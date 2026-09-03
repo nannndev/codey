@@ -11,6 +11,17 @@
     { "source": "/settings", "destination": "/index.html" },
     { "source": "/leaderboard", "destination": "/index.html" },
     { "source": "/profile", "destination": "/index.html" },
-    { "source": "/profile/:userId", "destination": "/index.html" }
+    { "source": "/profile/:userId", "destination": "/index.html" },
+    { "source": "/duel", "destination": "/index.html" },
+    { "source": "/race", "destination": "/index.html" },
+    { "source": "/arcade", "destination": "/index.html" },
+    { "source": "/analytics/keyboard", "destination": "/index.html" },
+    { "source": "/donate", "destination": "/index.html" },
+    { "source": "/support", "destination": "/index.html" },
+    { "source": "/contributors", "destination": "/index.html" },
+    {
+      "source": "/((?!api/|.*\\.[\\w]+$).*)",
+      "destination": "/index.html"
+    }
   ]
 }
