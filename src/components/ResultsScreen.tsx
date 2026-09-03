@@ -4,7 +4,7 @@ import { ErrorHeatmap } from "@/components/ErrorHeatmap";
 import { WeakKeys } from "@/components/WeakKeys";
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { RefreshCw, ArrowRight, Trophy, ImageDown, Zap, ShieldCheck } from "lucide-react";
+import { RefreshCw, ArrowRight, Trophy, ImageDown, Zap, ShieldCheck, GitPullRequest } from "lucide-react";
 import { useAuth, githubUsernameFromUser } from "@/components/AuthProvider";
 import type { ShareCardOptions } from "@/lib/share-result";
 import { SharePreviewDialog } from "@/components/SharePreviewDialog";
@@ -141,6 +141,15 @@ export function ResultsScreen({
         </div>
       )}
 
+      {result.language.toLowerCase() === "diff" && (
+        <div className="flex justify-center animate-scale-in">
+          <div className="flex items-center gap-2 rounded-2xl bg-emerald-500/15 border border-emerald-500/35 px-4 py-2 text-xs font-bold text-emerald-500 shadow-xs">
+            <GitPullRequest className="size-4 shrink-0" />
+            <span>Pull Request Approved & Merged! Code Review Sprint Complete 🚀</span>
+          </div>
+        </div>
+      )}
+
       {isCustom ? (
         <div className="rounded-xl border border-dashed border-border/80 bg-muted/20 px-4 py-3 text-center text-xs text-muted-foreground">
           Local drill result · not added to cloud history or global leaderboard.
@@ -152,9 +161,10 @@ export function ResultsScreen({
       ) : null}
 
       {/* Secondary Stats */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5">
         {[
           { label: "Raw Speed", value: `${result.rawWpm.toFixed(1)} WPM` },
+          { label: "Max Streak", value: `${result.maxCombo ?? 0} 🔥` },
           { label: "Consistency", value: `${result.consistency.toFixed(1)}%` },
           { label: "Errors", value: String(result.totalErrors) },
           { label: "Total Chars", value: String(result.charsTyped) },

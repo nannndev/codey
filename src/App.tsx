@@ -40,7 +40,7 @@ import type { TestMode, TimedDuration, RunResult, PersonalBest } from "@/types";
 
 import { RankedAuthModal } from "@/components/RankedAuthModal";
 import { DevPracticeSelector, type DevPracticeCategory } from "@/components/DevPracticeSelector";
-import { SYMBOL_DRILLS, TERMINAL_COMMANDS, ALGORITHM_SNIPPETS, type CategorySnippet } from "@/data/dev-practice-snippets";
+import { SYMBOL_DRILLS, TERMINAL_COMMANDS, ALGORITHM_SNIPPETS, PR_DIFF_SNIPPETS, type CategorySnippet } from "@/data/dev-practice-snippets";
 
 export default function App() {
   const { user } = useAuth();
@@ -64,6 +64,10 @@ export default function App() {
   const { getRandomSnippet: getPublicSnippet, loading: isLoadingSource } = useSnippets(language, preferences.snippetLength);
   const getRandomSnippet = useCallback(() => {
     if (customSnippet) return customSnippet;
+    if (devCategory === "diff") {
+      const list = PR_DIFF_SNIPPETS;
+      return list[Math.floor(Math.random() * list.length)];
+    }
     if (devCategory === "symbols") {
       const list = SYMBOL_DRILLS;
       return list[Math.floor(Math.random() * list.length)];
@@ -97,6 +101,8 @@ export default function App() {
     errorHistory,
     completedCorrectChars,
     loadSnippet,
+    combo,
+    maxCombo,
   } = useGame({ config, getSnippet: getRandomSnippet });
 
   const [result, setResult] = useState<RunResult | null>(null);
@@ -197,6 +203,7 @@ export default function App() {
         wpmSnapshots,
         progressSnapshots,
         snippetLength: config.mode === "snippet" ? preferences.snippetLength : undefined,
+        maxCombo,
       };
       setResult(r);
       const isCustom = snippet.sourceType === "custom";
@@ -724,15 +731,42 @@ export default function App() {
             )}
 
             {"title" in snippet && (snippet as CategorySnippet).title && (
-              <div className="rounded-xl border border-primary/20 bg-primary/10 px-4 py-3 backdrop-blur-sm flex items-center justify-between gap-3 text-xs shadow-sm">
-                <div>
-                  <span className="font-bold text-foreground font-mono text-xs">{(snippet as CategorySnippet).title}</span>
+              <div
+                className={cn(
+                  "rounded-xl border px-4 py-3 backdrop-blur-sm flex items-center justify-between gap-3 text-xs shadow-xs",
+                  (snippet as CategorySnippet).category === "diff"
+                    ? "border-emerald-500/30 bg-emerald-500/10"
+                    : "border-primary/20 bg-primary/10"
+                )}
+              >
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    {(snippet as CategorySnippet).category === "diff" && (
+                      <span className="inline-flex items-center gap-1 rounded-md bg-emerald-500 text-zinc-950 px-2 py-0.5 text-[10px] font-mono font-black shrink-0">
+                        {(snippet as CategorySnippet).prNumber || "PR"}
+                      </span>
+                    )}
+                    <span className="font-bold text-foreground font-mono text-xs truncate">
+                      {(snippet as CategorySnippet).title}
+                    </span>
+                  </div>
                   {(snippet as CategorySnippet).description && (
-                    <p className="text-[11px] text-muted-foreground mt-0.5 font-sans font-medium">{(snippet as CategorySnippet).description}</p>
+                    <p className="text-[11px] text-muted-foreground mt-0.5 font-sans font-medium">
+                      {(snippet as CategorySnippet).description}
+                    </p>
                   )}
                 </div>
-                <span className="text-[10px] font-mono uppercase px-2.5 py-1 rounded-md bg-primary/20 text-primary font-bold tracking-wider shrink-0">
-                  {(snippet as CategorySnippet).category} drill
+                <span
+                  className={cn(
+                    "text-[10px] font-mono uppercase px-2.5 py-1 rounded-md font-bold tracking-wider shrink-0",
+                    (snippet as CategorySnippet).category === "diff"
+                      ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
+                      : "bg-primary/20 text-primary"
+                  )}
+                >
+                  {(snippet as CategorySnippet).category === "diff"
+                    ? "PR Git Diff"
+                    : `${(snippet as CategorySnippet).category} drill`}
                 </span>
               </div>
             )}
@@ -755,6 +789,8 @@ export default function App() {
               isRunning={status === "running"}
               ghostCharIndex={ghostState.hasPb ? ghostState.ghostCharIndex : null}
               ghostWpm={ghostState.hasPb ? ghostState.targetWpm : null}
+              combo={combo}
+              maxCombo={maxCombo}
             />
 
             <DailyGoals refreshKey={goalRefreshKey} compact />

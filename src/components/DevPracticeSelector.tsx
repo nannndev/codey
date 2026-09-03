@@ -1,7 +1,7 @@
-import { Code2, Cpu, Terminal, Zap } from "lucide-react";
+import { Code2, Cpu, GitPullRequest, Terminal, Zap } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-export type DevPracticeCategory = "public" | "symbols" | "terminal" | "algorithms";
+export type DevPracticeCategory = "public" | "symbols" | "terminal" | "algorithms" | "diff";
 
 interface DevPracticeSelectorProps {
   activeCategory: DevPracticeCategory;
@@ -21,6 +21,13 @@ const CATEGORIES: {
     label: "GitHub Repos",
     icon: Code2,
     description: "Real-world code from popular GitHub open-source repositories",
+  },
+  {
+    id: "diff",
+    label: "PR & Git Diffs",
+    badge: "🔀",
+    icon: GitPullRequest,
+    description: "Practice typing real-world bug fixes and Pull Request code diffs",
   },
   {
     id: "symbols",

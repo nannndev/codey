@@ -24,6 +24,8 @@ interface UseGameReturn {
   completedCorrectChars: number;
   progressSnapshots: Array<{ ms: number; charIndex: number }>;
   loadSnippet: (snippet: Snippet) => void;
+  combo: number;
+  maxCombo: number;
 }
 
 export function useGame({ config, getSnippet }: UseGameOptions): UseGameReturn {
@@ -39,6 +41,8 @@ export function useGame({ config, getSnippet }: UseGameOptions): UseGameReturn {
   const [mistakes, setMistakes] = useState(0);
   const [errorHistory, setErrorHistory] = useState<ErrorDetail[]>([]);
   const [completedCorrectChars, setCompletedCorrectChars] = useState(0);
+  const [combo, setCombo] = useState(0);
+  const [maxCombo, setMaxCombo] = useState(0);
 
   const startRef = useRef<number | null>(null);
   const rafRef = useRef<number | null>(null);
@@ -140,10 +144,17 @@ export function useGame({ config, getSnippet }: UseGameOptions): UseGameReturn {
           setKeystrokes((count) => count + 1);
           if (key !== expected) {
             setMistakes((count) => count + 1);
+            setCombo(0);
             setErrorHistory((errors) => [
               ...errors,
               { index: position, attemptIndex, expected, typed: key },
             ].slice(-200));
+          } else {
+            setCombo((c) => {
+              const nextCombo = c + 1;
+              setMaxCombo((max) => Math.max(max, nextCombo));
+              return nextCombo;
+            });
           }
 
           const next = prev + key;
@@ -194,12 +205,15 @@ export function useGame({ config, getSnippet }: UseGameOptions): UseGameReturn {
     setMistakes(0);
     setErrorHistory([]);
     setCompletedCorrectChars(0);
+    setCombo(0);
+    setMaxCombo(0);
     setSnippet(getSnippet());
   }, [clearTimers, config.duration, getSnippet]);
 
   const nextSnippet = useCallback(() => {
     setSnippet(getSnippet());
     setInput('');
+    setCombo(0);
   }, [getSnippet]);
 
   const loadSnippet = useCallback((next: Snippet) => {
@@ -219,6 +233,8 @@ export function useGame({ config, getSnippet }: UseGameOptions): UseGameReturn {
     setMistakes(0);
     setErrorHistory([]);
     setCompletedCorrectChars(0);
+    setCombo(0);
+    setMaxCombo(0);
   }, [clearTimers]);
 
   useEffect(() => {
@@ -243,5 +259,7 @@ export function useGame({ config, getSnippet }: UseGameOptions): UseGameReturn {
     errorHistory,
     completedCorrectChars,
     loadSnippet,
+    combo,
+    maxCombo,
   };
 }

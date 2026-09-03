@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import {
   BarChart3,
+  Flame,
   Gamepad2,
   Heart,
   Keyboard,
@@ -20,6 +21,7 @@ import {
 import { ThemeToggle } from "./ThemeToggle";
 import { Button } from "./ui/button";
 import { useAuth } from "./AuthProvider";
+import { usePreferences } from "./PreferencesProvider";
 import { SoundPackModal } from "./SoundPackModal";
 import { ThemeStudioModal } from "./ThemeStudioModal";
 import { cn } from "@/lib/utils";
@@ -27,6 +29,7 @@ import { cn } from "@/lib/utils";
 export function Header() {
   const location = useLocation();
   const { user, loading, configured, login, logout } = useAuth();
+  const { preferences, setPreference } = usePreferences();
   const [showSoundModal, setShowSoundModal] = useState(false);
   const [showThemeModal, setShowThemeModal] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -36,7 +39,7 @@ export function Header() {
   return (
     <header className="sticky top-4 z-40 mb-8">
       <div className="glass-card rounded-2xl px-4 py-2.5 shadow-lg shadow-black/5 transition-all duration-300">
-        <div className="flex items-center justify-between gap-3">
+        <div className="relative flex items-center justify-between gap-3">
           {/* Logo & Brand */}
           <div className="flex items-center gap-3 shrink-0">
             <Link to="/" className="group flex items-center gap-2.5 transition-transform hover:scale-[1.02]">
@@ -55,8 +58,8 @@ export function Header() {
             </Link>
           </div>
 
-          {/* Primary Nav Links (Desktop) */}
-          <nav className="hidden lg:flex items-center gap-1 glass-pill rounded-xl p-1 shadow-inner shrink-0 whitespace-nowrap">
+          {/* Primary Nav Links (Desktop) - Symmetrically Centered */}
+          <nav className="hidden lg:flex absolute left-1/2 -translate-x-1/2 items-center gap-1 glass-pill rounded-xl p-1 shadow-inner shrink-0 whitespace-nowrap">
             <Link
               to="/duel"
               className={cn(
@@ -137,6 +140,21 @@ export function Header() {
                 title="Mechanical Switch Sound Engine"
               >
                 <Volume2 className="size-4" />
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setPreference("comboEffects", !preferences.comboEffects)}
+                className={cn(
+                  "rounded-lg p-2 transition-colors shrink-0 cursor-pointer",
+                  preferences.comboEffects
+                    ? "text-amber-500 hover:bg-amber-500/10"
+                    : "text-muted-foreground/60 hover:text-foreground hover:bg-muted/80"
+                )}
+                aria-label="Toggle Combo Sparks"
+                title={preferences.comboEffects ? "Combo Sparks & Glow: ON (Click to disable)" : "Combo Sparks & Glow: OFF (Click to enable)"}
+              >
+                <Flame className="size-4" />
               </button>
 
               <Link
@@ -306,6 +324,20 @@ export function Header() {
             >
               <Volume2 className="size-4 text-amber-500" />
               <span>Sound Pack</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setPreference("comboEffects", !preferences.comboEffects)}
+              className="flex items-center justify-between p-2.5 rounded-xl text-xs font-semibold border bg-card/70 border-border/40 text-foreground text-left"
+            >
+              <span className="flex items-center gap-2">
+                <Flame className={cn("size-4", preferences.comboEffects ? "text-amber-500" : "text-muted-foreground")} />
+                <span>Combo Sparks</span>
+              </span>
+              <span className={cn("text-[10px] font-mono px-1.5 py-0.5 rounded-md border", preferences.comboEffects ? "bg-amber-500/15 border-amber-500/30 text-amber-500" : "bg-muted text-muted-foreground")}>
+                {preferences.comboEffects ? "ON" : "OFF"}
+              </span>
             </button>
 
             <Link

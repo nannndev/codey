@@ -66,6 +66,7 @@ export interface RunResult {
   wpmSnapshots?: number[];
   progressSnapshots?: Array<{ ms: number; charIndex: number }>;
   snippetLength?: SnippetLength;
+  maxCombo?: number;
 }
 
 export interface GhostRunnerState {

@@ -1,10 +1,12 @@
-import { useEffect, useMemo, useRef } from "react";
-import { Code2, ExternalLink, FileCode2, GitBranch, Maximize2, Minimize2, Minus, Plus } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Code2, ExternalLink, FileCode2, Flame, GitBranch, GitPullRequest, Maximize2, Minimize2, Minus, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { usePreferences } from "@/components/PreferencesProvider";
 import type { CharState } from "@/types";
 import { tokenizeCode, type SyntaxToken } from "@/utils/syntax";
+import { SparkCanvas, type SparkCanvasHandle } from "./SparkCanvas";
+import { playComboMilestoneSound, playComboLostSound } from "@/utils/combo-audio";
 
 interface CodeDisplayProps {
   chars: CharState[];
@@ -20,6 +22,8 @@ interface CodeDisplayProps {
   isRunning?: boolean;
   ghostCharIndex?: number | null;
   ghostWpm?: number | null;
+  combo?: number;
+  maxCombo?: number;
 }
 
 type CursorPref = "block" | "underline" | "line";
@@ -69,6 +73,8 @@ export function CodeDisplay({
   isRunning = false,
   ghostCharIndex = null,
   ghostWpm = null,
+  combo = 0,
+  maxCombo: _maxCombo = 0,
 }: CodeDisplayProps) {
   const { preferences, setPreference } = usePreferences();
   const cursorStyle = preferences.cursorStyle as CursorPref;
@@ -78,6 +84,58 @@ export function CodeDisplay({
   const syntaxTokens = useMemo(() => tokenizeCode(chars.map((char) => char.char).join("")), [chars]);
   const viewportRef = useRef<HTMLDivElement>(null);
   const cursorRef = useRef<HTMLSpanElement>(null);
+  const sparkCanvasRef = useRef<SparkCanvasHandle>(null);
+  const prevInputLenRef = useRef(input.length);
+  const prevComboRef = useRef(combo);
+  const [justLostCombo, setJustLostCombo] = useState(false);
+
+  useEffect(() => {
+    if (!preferences.comboEffects) return;
+
+    if (input.length > prevInputLenRef.current) {
+      if (cursorRef.current && viewportRef.current && sparkCanvasRef.current) {
+        const cursorRect = cursorRef.current.getBoundingClientRect();
+        const viewportRect = viewportRef.current.getBoundingClientRect();
+        const x = cursorRect.left - viewportRect.left + cursorRect.width / 2;
+        const y = cursorRect.top - viewportRect.top + cursorRect.height / 2;
+
+        sparkCanvasRef.current.spawn(x, y, combo);
+      }
+    }
+    prevInputLenRef.current = input.length;
+  }, [input, combo, preferences.comboEffects]);
+
+  useEffect(() => {
+    if (!preferences.comboEffects) return;
+
+    if (combo > prevComboRef.current) {
+      if (combo === 25 || combo === 50 || combo === 100 || (combo > 100 && combo % 50 === 0)) {
+        playComboMilestoneSound(combo, preferences.keyboardSoundVolume);
+        if (cursorRef.current && viewportRef.current && sparkCanvasRef.current) {
+          const cursorRect = cursorRef.current.getBoundingClientRect();
+          const viewportRect = viewportRef.current.getBoundingClientRect();
+          const x = cursorRect.left - viewportRect.left + cursorRect.width / 2;
+          const y = cursorRect.top - viewportRect.top + cursorRect.height / 2;
+          sparkCanvasRef.current.burst(x, y, combo);
+        }
+      }
+    } else if (prevComboRef.current >= 20 && combo === 0) {
+      playComboLostSound(preferences.keyboardSoundVolume);
+      setJustLostCombo(true);
+      const timer = setTimeout(() => setJustLostCombo(false), 300);
+      return () => clearTimeout(timer);
+    }
+    prevComboRef.current = combo;
+  }, [combo, preferences.comboEffects, preferences.keyboardSoundVolume]);
+
+  const comboTierClass =
+    !preferences.comboEffects || combo < 20
+      ? ""
+      : combo >= 100
+      ? "combo-glow-overdrive"
+      : combo >= 50
+      ? "combo-glow-fever"
+      : "combo-glow-flow";
 
   const toggleFocusMode = () => {
     const update = () => onFocusModeChange?.(!focusMode);
@@ -169,12 +227,36 @@ export function CodeDisplay({
   return (
     <div
       className={cn(
-        "code-window overflow-hidden rounded-2xl border border-border/80 shadow-2xl focus-within:ring-2 focus-within:ring-amber-500/50 focus-within:ring-offset-2 focus-within:ring-offset-background transition-all duration-200",
-        focusMode && "code-window-focus"
+        "code-window relative overflow-hidden rounded-2xl border border-border/80 shadow-2xl focus-within:ring-2 focus-within:ring-amber-500/50 focus-within:ring-offset-2 focus-within:ring-offset-background transition-all duration-300",
+        focusMode && "code-window-focus",
+        comboTierClass,
+        justLostCombo && "combo-shake"
       )}
       onClick={onClick}
       tabIndex={0}
     >
+      {/* Floating Combo Badge */}
+      {preferences.comboEffects && combo >= 10 && (
+        <div
+          key={combo}
+          className={cn(
+            "absolute top-2.5 right-12 z-30 flex items-center gap-1.5 px-3 py-1 rounded-full font-mono text-xs font-black shadow-lg backdrop-blur-md pointer-events-none combo-badge-pop select-none",
+            combo >= 100
+              ? "bg-gradient-to-r from-amber-500 via-pink-500 to-purple-600 text-white border border-yellow-300 shadow-[0_0_20px_rgba(245,158,11,0.6)]"
+              : combo >= 50
+              ? "bg-gradient-to-r from-amber-500 to-yellow-500 text-zinc-950 border border-amber-300 shadow-[0_0_15px_rgba(245,158,11,0.4)]"
+              : "bg-cyan-500/20 text-cyan-400 border border-cyan-500/40 shadow-[0_0_10px_rgba(6,182,212,0.3)]"
+          )}
+        >
+          <span className="text-sm">
+            {combo >= 100 ? "⚡" : combo >= 50 ? "🔥" : "✨"}
+          </span>
+          <span>
+            {combo}x {combo >= 100 ? "OVERDRIVE" : combo >= 50 ? "FEVER" : "STREAK"}
+          </span>
+        </div>
+      )}
+
       {/* Modern Editor Title bar / Tabs */}
       <div className="code-chrome flex items-center justify-between border-b border-border/70 px-4 py-2.5 select-none bg-muted/40 backdrop-blur-md">
         <div className="flex items-center gap-3 min-w-0">
@@ -211,9 +293,21 @@ export function CodeDisplay({
 
           {/* Active File Tab */}
           <div className="flex items-center gap-2 px-3 py-1 rounded-lg bg-background/60 border border-border/50 text-xs font-mono min-w-0 shadow-xs">
-            <FileCode2 aria-hidden="true" className="size-3.5 text-amber-500 shrink-0" />
+            {language.toLowerCase() === "diff" ? (
+              <GitPullRequest aria-hidden="true" className="size-3.5 text-emerald-500 shrink-0" />
+            ) : (
+              <FileCode2 aria-hidden="true" className="size-3.5 text-amber-500 shrink-0" />
+            )}
             <span className="truncate font-semibold text-foreground/90">{filename}</span>
-            <Badge variant="secondary" className="text-[9px] font-mono px-1.5 py-0 rounded-md shrink-0 bg-muted text-muted-foreground">
+            <Badge
+              variant="secondary"
+              className={cn(
+                "text-[9px] font-mono px-1.5 py-0 rounded-md shrink-0",
+                language.toLowerCase() === "diff"
+                  ? "bg-emerald-500/15 text-emerald-400 border border-emerald-500/30"
+                  : "bg-muted text-muted-foreground"
+              )}
+            >
               {language}
             </Badge>
           </div>
@@ -232,6 +326,24 @@ export function CodeDisplay({
             type="button"
             onClick={(event) => {
               event.stopPropagation();
+              setPreference("comboEffects", !preferences.comboEffects);
+            }}
+            className={cn(
+              "grid size-7 place-items-center rounded-lg transition-colors cursor-pointer",
+              preferences.comboEffects
+                ? "text-amber-500 hover:bg-amber-500/15"
+                : "text-muted-foreground/50 hover:bg-muted hover:text-muted-foreground"
+            )}
+            aria-label="Toggle Combo Sparks and Screen Glow"
+            title={preferences.comboEffects ? "Combo Sparks & Glow: ON (Click to disable)" : "Combo Sparks & Glow: OFF (Click to enable)"}
+          >
+            <Flame className="size-3.5" />
+          </button>
+
+          <button
+            type="button"
+            onClick={(event) => {
+              event.stopPropagation();
               toggleFocusMode();
             }}
             className="grid size-7 place-items-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground cursor-pointer"
@@ -244,10 +356,26 @@ export function CodeDisplay({
       </div>
 
       {/* Code viewport */}
-      <div ref={viewportRef} className="code-viewport min-w-0 overflow-auto py-5">
+      <div ref={viewportRef} className="code-viewport relative min-w-0 overflow-auto py-5">
+        <SparkCanvas ref={sparkCanvasRef} disabled={!preferences.comboEffects} />
         <div className="min-w-max">
-          {lines.map((line, li) => (
-            <div key={li} className={cn("code-row", li === currentLineIndex && "is-current-line")}>
+          {lines.map((line, li) => {
+            const lineStr = line.map((item) => item.state.char).join("");
+            const isDiffAdd = lineStr.startsWith("+");
+            const isDiffDel = lineStr.startsWith("-");
+            const isDiffHunk = lineStr.startsWith("@@");
+
+            return (
+              <div
+                key={li}
+                className={cn(
+                  "code-row",
+                  li === currentLineIndex && "is-current-line",
+                  isDiffAdd && "git-diff-add",
+                  isDiffDel && "git-diff-del",
+                  isDiffHunk && "git-diff-hunk"
+                )}
+              >
               <span className={cn("code-line-number", li === currentLineIndex && "is-current text-amber-500 font-bold")}>
                 {li + 1}
               </span>
@@ -299,7 +427,8 @@ export function CodeDisplay({
                 })}
               </div>
             </div>
-          ))}
+          );
+        })}
         </div>
       </div>
 

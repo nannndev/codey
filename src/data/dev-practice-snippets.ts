@@ -1,9 +1,11 @@
 import type { Snippet } from "@/types";
 
 export interface CategorySnippet extends Snippet {
-  category: "symbols" | "terminal" | "algorithms";
+  category: "symbols" | "terminal" | "algorithms" | "diff";
   title?: string;
   description?: string;
+  prNumber?: string;
+  prTitle?: string;
 }
 
 export const SYMBOL_DRILLS: CategorySnippet[] = [
@@ -199,3 +201,121 @@ export const ALGORITHM_SNIPPETS: CategorySnippet[] = [
     return memo[n]`,
   },
 ];
+
+export const PR_DIFF_SNIPPETS: CategorySnippet[] = [
+  {
+    id: "diff-1",
+    language: "TypeScript",
+    category: "diff",
+    prNumber: "#142",
+    prTitle: "fix(auth): prevent timing attacks on token signature validation",
+    title: "PR #142: Cryptographic Timing Attack Fix",
+    description: "Replace standard equality comparison with crypto.timingSafeEqual.",
+    filename: "src/auth/signature.ts",
+    code: `@@ -12,5 +12,6 @@
+ export function verifySignature(received: Buffer, expected: Buffer): boolean {
+-  if (received.toString() === expected.toString()) return true;
+-  return false;
++  if (received.length !== expected.length) return false;
++  return crypto.timingSafeEqual(received, expected);
+ }`,
+  },
+  {
+    id: "diff-2",
+    language: "TypeScript",
+    category: "diff",
+    prNumber: "#308",
+    prTitle: "perf(react): memoize expensive telemetry series calculations",
+    title: "PR #308: Prevent Chart Re-render Stutter",
+    description: "Wrap heavy chart aggregation calculation in useMemo hook.",
+    filename: "src/components/MetricsChart.tsx",
+    code: `@@ -18,4 +18,7 @@
+ export function MetricsChart({ telemetry, filter }: ChartProps) {
+-  const series = aggregateDataPoints(telemetry, filter);
++  const series = useMemo(
++    () => aggregateDataPoints(telemetry, filter),
++    [telemetry, filter]
++  );
+   return <CanvasRenderer series={series} />;`,
+  },
+  {
+    id: "diff-3",
+    language: "Go",
+    category: "diff",
+    prNumber: "#224",
+    prTitle: "fix(cache): eliminate concurrent read/write data race",
+    title: "PR #224: RWMutex Concurrency Protection",
+    description: "Protect internal map store reads and writes with sync.RWMutex.",
+    filename: "pkg/cache/lru.go",
+    code: `@@ -15,4 +15,6 @@
+ func (c *Cache) Get(key string) (Item, bool) {
++	c.mu.RLock()
++	defer c.mu.RUnlock()
+ 	item, found := c.items[key]
+ 	return item, found
+ }`,
+  },
+  {
+    id: "diff-4",
+    language: "Python",
+    category: "diff",
+    prNumber: "#512",
+    prTitle: "refactor(crawler): migrate synchronous requests to asyncio.gather",
+    title: "PR #512: Async Pipeline Concurrency Upgrade",
+    description: "Replace blocking thread loop with non-blocking aiohttp and asyncio.gather.",
+    filename: "crawler/fetcher.py",
+    code: `@@ -28,5 +28,4 @@
+-    for url in target_urls:
+-        response = requests.get(url, timeout=5)
+-        results.append(response.json())
++    tasks = [fetch_single(session, url) for url in target_urls]
++    results = await asyncio.gather(*tasks, return_exceptions=True)`,
+  },
+  {
+    id: "diff-5",
+    language: "SQL",
+    category: "diff",
+    prNumber: "#88",
+    prTitle: "perf(db): add compound index on customer orders table",
+    title: "PR #88: Eliminate Full Table Scan Query",
+    description: "Add compound index on customer_id and created_at columns for sub-10ms lookup.",
+    filename: "db/migrations/0048_add_customer_orders_idx.sql",
+    code: `@@ -1,3 +1,4 @@
+--- Query was causing 2.4s seq scans on 4M row table
++-- Adding compound index for optimized customer lookup
++CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_orders_cust_created
++  ON orders (customer_id, created_at DESC);`,
+  },
+  {
+    id: "diff-6",
+    language: "Rust",
+    category: "diff",
+    prNumber: "#670",
+    prTitle: "fix(memory): prevent reference cycle leak using std::rc::Weak",
+    title: "PR #670: Downgrade Cyclic Node Pointer",
+    description: "Prevent memory leak in doubly-linked graph nodes using Weak references.",
+    filename: "src/tree/node.rs",
+    code: `@@ -8,4 +8,4 @@
+ pub struct Node {
+     pub value: i32,
+-    pub parent: Option<Rc<RefCell<Node>>>,
++    pub parent: Option<Weak<RefCell<Node>>>,
+ }`,
+  },
+  {
+    id: "diff-7",
+    language: "JavaScript",
+    category: "diff",
+    prNumber: "#94",
+    prTitle: "fix(events): clean up window resize event listeners on unmount",
+    title: "PR #94: Browser Event Listener Cleanup",
+    description: "Return cleanup function in useEffect to prevent memory leaks.",
+    filename: "src/hooks/useWindowSize.js",
+    code: `@@ -11,3 +11,4 @@
+   useEffect(() => {
+     window.addEventListener("resize", handleResize);
++    return () => window.removeEventListener("resize", handleResize);
+   }, []);`,
+  },
+];
+

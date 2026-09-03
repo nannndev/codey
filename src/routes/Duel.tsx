@@ -313,46 +313,50 @@ export default function Duel() {
 
   return (
     <div className="workspace-shell min-h-screen bg-background transition-colors duration-300">
-      <div className="relative mx-auto max-w-5xl px-4 py-8 sm:px-6 sm:py-14">
+      <div className="relative mx-auto max-w-5xl px-4 py-8 sm:px-6 sm:py-12">
         <Header />
         
         {/* Navigation Breadcrumb */}
-        <Link to="/" className="mb-6 mt-6 inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground">
-          <ArrowLeft className="size-4" /> Back to typing
+        <Link to="/" className="mb-5 inline-flex items-center gap-1.5 text-xs font-semibold text-muted-foreground transition-colors hover:text-foreground">
+          <ArrowLeft className="size-3.5" /> Back to typing
         </Link>
 
-        <header className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <header className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <p className="flex items-center gap-2 text-xs uppercase tracking-[0.18em] text-muted-foreground font-bold">
+            <p className="flex items-center gap-1.5 text-[11px] font-mono uppercase tracking-widest text-amber-500 font-bold">
               <Swords className="size-3.5 text-amber-500" /> Esports Live Arena
             </p>
-            <h1 className="mt-2 text-3xl font-bold tracking-tight sm:text-4xl flex items-center gap-3">
+            <h1 className="mt-1 text-2xl sm:text-3xl font-black tracking-tight text-foreground font-sans flex items-center gap-3">
               1v1 Real-Time Code Race
-              <span className="rounded-lg bg-amber-500/20 border border-amber-500/40 px-2.5 py-1 text-xs font-black text-amber-400">P2P WEBRTC</span>
+              <span className="rounded-md bg-amber-500/15 border border-amber-500/30 px-2 py-0.5 text-[10px] font-mono font-bold text-amber-400">
+                P2P WEBRTC
+              </span>
             </h1>
-            <p className="mt-1 text-sm text-muted-foreground">Test your real-time coding speed against friends or other developers. Create a room, share the room code, and race for WPM!</p>
+            <p className="mt-1 text-xs text-muted-foreground font-sans max-w-xl leading-relaxed">
+              Test your real-time coding speed against friends or developers. Host a match or join an active room code!
+            </p>
           </div>
 
-          <div className="flex items-center gap-2">
-            <div className="flex rounded-xl border bg-card/70 p-1 text-xs font-bold">
+          <div className="flex items-center gap-2 shrink-0">
+            <div className="flex rounded-xl glass-card p-1 text-xs font-bold shadow-xs">
               <button
                 type="button"
                 onClick={() => setActiveTab("arena")}
-                className={`flex items-center gap-1.5 rounded-lg px-3.5 py-2 transition-colors ${activeTab === "arena" ? "bg-foreground text-background shadow-md" : "text-muted-foreground hover:bg-muted"}`}
+                className={`flex items-center gap-1.5 rounded-lg px-3.5 py-1.5 text-xs transition-colors cursor-pointer ${activeTab === "arena" ? "bg-foreground text-background shadow-xs font-bold" : "text-muted-foreground hover:bg-muted font-medium"}`}
               >
-                <Swords className="size-4" /> Race Arena
+                <Swords className="size-3.5" /> Race Arena
               </button>
               <button
                 type="button"
                 onClick={() => setActiveTab("history")}
-                className={`flex items-center gap-1.5 rounded-lg px-3.5 py-2 transition-colors ${activeTab === "history" ? "bg-foreground text-background shadow-md" : "text-muted-foreground hover:bg-muted"}`}
+                className={`flex items-center gap-1.5 rounded-lg px-3.5 py-1.5 text-xs transition-colors cursor-pointer ${activeTab === "history" ? "bg-foreground text-background shadow-xs font-bold" : "text-muted-foreground hover:bg-muted font-medium"}`}
               >
-                <History className="size-4" /> Duel History ({stats.total})
+                <History className="size-3.5" /> History ({stats.total})
               </button>
             </div>
 
             {duelState !== "idle" && (
-              <Button type="button" variant="outline" size="sm" onClick={leaveDuel} className="text-red-400 border-red-500/30 hover:bg-red-500/10">
+              <Button type="button" variant="outline" size="sm" onClick={leaveDuel} className="text-red-400 border-red-500/30 hover:bg-red-500/10 h-8 text-xs font-medium">
                 Leave Room
               </Button>
             )}
@@ -361,64 +365,64 @@ export default function Duel() {
 
         {/* ──── TAB 2: MATCH HISTORY & STATS ──── */}
         {activeTab === "history" && (
-          <div className="space-y-6 animate-fade-in">
+          <div className="space-y-4 animate-fade-in">
             {/* Stats Overview */}
-            <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-              <div className="rounded-2xl border bg-card/80 p-5 shadow-sm">
-                <Trophy className="mb-2 size-5 text-amber-400" />
-                <div className="text-3xl font-black tabular-nums">{stats.wins} <span className="text-xs font-medium text-muted-foreground">/ {stats.total} W</span></div>
-                <div className="text-[11px] uppercase tracking-wider text-muted-foreground font-bold mt-1">Win Rate {stats.winRate}%</div>
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+              <div className="rounded-2xl glass-card p-4 shadow-xs">
+                <Trophy className="mb-2 size-4.5 text-amber-400" />
+                <div className="text-2xl sm:text-3xl font-black tabular-nums">{stats.wins} <span className="text-xs font-medium text-muted-foreground">/ {stats.total} W</span></div>
+                <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mt-0.5">Win Rate {stats.winRate}%</div>
               </div>
-              <div className="rounded-2xl border bg-card/80 p-5 shadow-sm">
-                <Flame className="mb-2 size-5 text-amber-500 animate-pulse" />
-                <div className="text-3xl font-black tabular-nums">{stats.currentStreak} 🔥</div>
-                <div className="text-[11px] uppercase tracking-wider text-muted-foreground font-bold mt-1">Current Win Streak</div>
+              <div className="rounded-2xl glass-card p-4 shadow-xs">
+                <Flame className="mb-2 size-4.5 text-amber-500 animate-pulse" />
+                <div className="text-2xl sm:text-3xl font-black tabular-nums">{stats.currentStreak} 🔥</div>
+                <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mt-0.5">Current Win Streak</div>
               </div>
-              <div className="rounded-2xl border bg-card/80 p-5 shadow-sm">
-                <Zap className="mb-2 size-5 text-sky-400" />
-                <div className="text-3xl font-black tabular-nums">{stats.bestWpm.toFixed(1)}</div>
-                <div className="text-[11px] uppercase tracking-wider text-muted-foreground font-bold mt-1">Duel WPM Record</div>
+              <div className="rounded-2xl glass-card p-4 shadow-xs">
+                <Zap className="mb-2 size-4.5 text-sky-400" />
+                <div className="text-2xl sm:text-3xl font-black tabular-nums">{stats.bestWpm.toFixed(1)}</div>
+                <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mt-0.5">Duel WPM Record</div>
               </div>
-              <div className="rounded-2xl border bg-card/80 p-5 shadow-sm">
-                <Swords className="mb-2 size-5 text-purple-400" />
-                <div className="text-3xl font-black tabular-nums">{stats.losses}</div>
-                <div className="text-[11px] uppercase tracking-wider text-muted-foreground font-bold mt-1">Losses</div>
+              <div className="rounded-2xl glass-card p-4 shadow-xs">
+                <Swords className="mb-2 size-4.5 text-purple-400" />
+                <div className="text-2xl sm:text-3xl font-black tabular-nums">{stats.losses}</div>
+                <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mt-0.5">Losses</div>
               </div>
             </div>
 
             {/* Past Matches List */}
-            <div className="rounded-3xl border bg-card/80 overflow-hidden shadow-lg">
-              <div className="border-b bg-muted/40 px-6 py-4 text-xs font-extrabold uppercase tracking-wider text-muted-foreground">
+            <div className="rounded-2xl glass-card overflow-hidden shadow-sm">
+              <div className="border-b border-border/40 bg-muted/40 px-5 py-3 text-xs font-bold uppercase tracking-wider text-muted-foreground">
                 📜 1v1 Duel Match Logs
               </div>
               {history.length === 0 ? (
-                <div className="grid h-44 place-items-center text-sm text-muted-foreground">
+                <div className="grid h-40 place-items-center text-xs text-muted-foreground">
                   No duel history yet. Create or join a duel room to test your skills!
                 </div>
               ) : (
-                <div className="divide-y max-h-[500px] overflow-y-auto">
+                <div className="divide-y divide-border/30 max-h-[420px] overflow-y-auto">
                   {history.map((record) => {
                     const isWin = record.outcome === "victory";
                     const wpmDiff = (record.myWpm - record.oppWpm).toFixed(1);
                     return (
-                      <div key={record.id} className="grid grid-cols-[120px_1fr_140px_100px] items-center gap-4 px-6 py-4 text-sm hover:bg-muted/30 transition-colors">
-                        <div className={`flex items-center gap-2 font-bold ${isWin ? "text-emerald-400" : "text-red-400"}`}>
-                          {isWin ? <CheckCircle2 className="size-5" /> : <XCircle className="size-5" />}
-                          <span className="uppercase font-black">{isWin ? "WIN" : "LOSS"}</span>
+                      <div key={record.id} className="grid grid-cols-[100px_1fr_120px_80px] items-center gap-3 px-5 py-3 text-xs hover:bg-muted/30 transition-colors">
+                        <div className={`flex items-center gap-1.5 font-bold ${isWin ? "text-emerald-400" : "text-red-400"}`}>
+                          {isWin ? <CheckCircle2 className="size-4" /> : <XCircle className="size-4" />}
+                          <span className="uppercase font-black text-[11px]">{isWin ? "WIN" : "LOSS"}</span>
                         </div>
 
                         <div>
-                          <p className="font-bold text-foreground">vs {record.opponentName}</p>
-                          <p className="text-xs text-muted-foreground">{record.language} · {new Date(record.timestamp).toLocaleDateString()}</p>
+                          <p className="font-bold text-foreground text-xs">vs {record.opponentName}</p>
+                          <p className="text-[10px] text-muted-foreground">{record.language} · {new Date(record.timestamp).toLocaleDateString()}</p>
                         </div>
 
                         <div className="text-right">
-                          <p className="font-mono font-bold text-foreground tabular-nums">{record.myWpm.toFixed(1)} WPM</p>
-                          <p className="text-xs text-muted-foreground">vs {record.oppWpm.toFixed(1)} WPM</p>
+                          <p className="font-mono font-bold text-foreground tabular-nums text-xs">{record.myWpm.toFixed(1)} WPM</p>
+                          <p className="text-[10px] text-muted-foreground">vs {record.oppWpm.toFixed(1)} WPM</p>
                         </div>
 
-                        <div className={`text-right font-mono font-bold text-sm ${isWin ? "text-emerald-400" : "text-red-400"}`}>
-                          {isWin ? `+${wpmDiff}` : wpmDiff} WPM
+                        <div className={`text-right font-mono font-bold text-xs ${isWin ? "text-emerald-400" : "text-red-400"}`}>
+                          {isWin ? `+${wpmDiff}` : wpmDiff}
                         </div>
                       </div>
                     );
@@ -431,111 +435,131 @@ export default function Duel() {
 
         {/* ──── TAB 1: RACE ARENA ──── */}
         {activeTab === "arena" && (
-          <div className="space-y-6">
+          <div className="space-y-5">
             {/* ──── SCREEN 1: IDLE (SELECT MODE & LANGUAGE BEFORE DUEL) ──── */}
             {duelState === "idle" && (
-              <div className="space-y-6">
+              <div className="space-y-4">
                 {/* Pre-Race Mode & Language Selector Bar */}
-                <div className="rounded-3xl border bg-card/80 p-6 shadow-xl space-y-4">
-                  <div className="flex items-center gap-2 border-b pb-3">
-                    <Sliders className="size-5 text-amber-500" />
-                    <div>
-                      <h4 className="font-bold text-base tracking-tight text-foreground">⚙️ Arena Mode & Language Setup</h4>
-                      <p className="text-xs text-muted-foreground">Configure match rules when hosting. When joining a friend's room, host settings apply.</p>
+                <div className="glass-card rounded-2xl p-4 shadow-sm space-y-3">
+                  <div className="flex items-center justify-between border-b border-border/40 pb-2.5">
+                    <div className="flex items-center gap-2">
+                      <Sliders className="size-4 text-amber-500" />
+                      <h4 className="font-bold text-xs tracking-tight text-foreground font-sans">Arena Match Configuration</h4>
                     </div>
+                    <span className="text-[11px] text-muted-foreground font-sans">Host settings apply to both duelists</span>
                   </div>
 
-                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     {/* Mode Selector */}
-                    <div className="space-y-2">
-                      <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Match Mode</label>
-                      <div className="flex rounded-xl border bg-card p-1">
+                    <div>
+                      <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block mb-1">Match Mode</label>
+                      <div className="flex rounded-xl border border-border/60 bg-card/60 p-0.5 h-9">
                         <button
                           type="button"
                           onClick={() => handleHostChangeMode("snippet")}
-                          className={`flex-1 flex items-center justify-center gap-1.5 rounded-lg py-2 text-xs font-bold transition-all ${mode === "snippet" ? "bg-foreground text-background shadow-md" : "text-muted-foreground hover:text-foreground"}`}
+                          className={`flex-1 flex items-center justify-center gap-1.5 rounded-lg text-xs transition-all cursor-pointer ${mode === "snippet" ? "bg-foreground text-background shadow-xs font-bold" : "text-muted-foreground hover:text-foreground font-medium"}`}
                         >
-                          <Zap className="size-3.5" /> Snippet Mode
+                          <Zap className="size-3.5" /> Snippet
                         </button>
                         <button
                           type="button"
                           onClick={() => handleHostChangeMode("timed")}
-                          className={`flex-1 flex items-center justify-center gap-1.5 rounded-lg py-2 text-xs font-bold transition-all ${mode === "timed" ? "bg-foreground text-background shadow-md" : "text-muted-foreground hover:text-foreground"}`}
+                          className={`flex-1 flex items-center justify-center gap-1.5 rounded-lg text-xs transition-all cursor-pointer ${mode === "timed" ? "bg-foreground text-background shadow-xs font-bold" : "text-muted-foreground hover:text-foreground font-medium"}`}
                         >
-                          <Timer className="size-3.5" /> Timer Mode
+                          <Timer className="size-3.5" /> Timer
                         </button>
                       </div>
                     </div>
 
                     {/* Language Selector */}
-                    <div className="space-y-2">
-                      <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Programming Language</label>
+                    <div>
+                      <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block mb-1">Programming Language</label>
                       <select
                         value={selectedLanguage}
                         onChange={(e) => handleHostChangeLanguage(e.target.value)}
-                        className="w-full rounded-xl border bg-card px-4 py-2 text-xs font-bold text-foreground cursor-pointer focus:outline-none focus:ring-2 focus:ring-amber-500"
+                        className="w-full h-9 rounded-xl border border-border/60 bg-card/60 px-3 text-xs font-mono font-semibold text-foreground cursor-pointer focus:outline-none focus:ring-1 focus:ring-amber-500"
                       >
                         {languages.map((l) => (
                           <option key={l}>{l}</option>
                         ))}
                       </select>
                     </div>
-                  </div>
 
-                  {/* Format Sub-Option (Length or Timed Seconds) */}
-                  <div className="flex items-center gap-2 pt-2">
-                    <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Duration / Code Length:</span>
-                    <div className="flex gap-1.5">
-                      {mode === "snippet" ? (
-                        (["short", "medium", "long"] as SnippetLength[]).map((len) => (
-                          <button
-                            key={len}
-                            type="button"
-                            onClick={() => handleHostChangeSnippetLength(len)}
-                            className={`rounded-lg border px-3 py-1 text-xs font-bold capitalize transition-colors ${snippetLength === len ? "bg-amber-500/20 border-amber-500/60 text-amber-400" : "bg-card text-muted-foreground hover:text-foreground"}`}
-                          >
-                            {len}
-                          </button>
-                        ))
-                      ) : (
-                        ([15, 30, 60] as TimedDuration[]).map((dur) => (
-                          <button
-                            key={dur}
-                            type="button"
-                            onClick={() => handleHostChangeDuration(dur)}
-                            className={`rounded-lg border px-3 py-1 text-xs font-bold transition-colors ${durationSeconds === dur ? "bg-amber-500/20 border-amber-500/60 text-amber-400" : "bg-card text-muted-foreground hover:text-foreground"}`}
-                          >
-                            {dur}s
-                          </button>
-                        ))
-                      )}
+                    {/* Format Sub-Option (Length or Timed Seconds) */}
+                    <div>
+                      <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block mb-1">
+                        {mode === "snippet" ? "Snippet Length" : "Duration"}
+                      </label>
+                      <div className="flex gap-1.5 h-9 items-center">
+                        {mode === "snippet" ? (
+                          (["short", "medium", "long"] as SnippetLength[]).map((len) => (
+                            <button
+                              key={len}
+                              type="button"
+                              onClick={() => handleHostChangeSnippetLength(len)}
+                              className={`flex-1 h-9 rounded-xl border text-xs font-semibold capitalize transition-all cursor-pointer ${snippetLength === len ? "bg-amber-500 text-zinc-950 border-amber-500 font-bold shadow-xs" : "border-border/60 bg-card/60 text-muted-foreground hover:text-foreground"}`}
+                            >
+                              {len}
+                            </button>
+                          ))
+                        ) : (
+                          ([15, 30, 60] as TimedDuration[]).map((dur) => (
+                            <button
+                              key={dur}
+                              type="button"
+                              onClick={() => handleHostChangeDuration(dur)}
+                              className={`flex-1 h-9 rounded-xl border text-xs font-semibold transition-all cursor-pointer ${durationSeconds === dur ? "bg-amber-500 text-zinc-950 border-amber-500 font-bold shadow-xs" : "border-border/60 bg-card/60 text-muted-foreground hover:text-foreground"}`}
+                            >
+                              {dur}s
+                            </button>
+                          ))
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
 
-                {/* Create or Join Room Buttons */}
-                <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-                  <div className="flex flex-col items-center justify-center rounded-3xl border border-amber-500/30 bg-gradient-to-b from-amber-500/10 to-amber-500/5 p-8 text-center space-y-4 shadow-xl hover:shadow-[0_0_30px_rgba(245,158,11,0.2)] hover:border-amber-500/50 transition-all duration-300">
-                    <Swords className="size-14 text-amber-400 animate-bounce" />
-                    <div>
-                      <h4 className="font-black text-xl text-foreground">🔥 Create Duel Room</h4>
-                      <p className="text-xs text-muted-foreground mt-1 max-w-xs">Create a new room with your selected language & mode settings above.</p>
+                {/* Create or Join Room Action Cards */}
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                  {/* Create Card */}
+                  <div className="glass-card rounded-2xl p-6 border border-amber-500/30 bg-gradient-to-br from-amber-500/10 via-card/60 to-card/60 flex flex-col justify-between space-y-5 shadow-sm hover:border-amber-500/50 transition-all duration-300">
+                    <div className="flex items-start gap-3.5">
+                      <div className="size-11 rounded-2xl bg-amber-500/20 text-amber-400 border border-amber-500/40 flex items-center justify-center shrink-0 shadow-xs">
+                        <Swords className="size-5.5" />
+                      </div>
+                      <div>
+                        <h4 className="font-extrabold text-base text-foreground font-sans">Create Duel Room</h4>
+                        <p className="text-xs text-muted-foreground mt-1 leading-relaxed font-sans">
+                          Host a new live match with your selected rules and share the room code with an opponent.
+                        </p>
+                      </div>
                     </div>
-                    <Button type="button" size="lg" onClick={() => void createRoom(snippetForConfig(duelConfig), duelConfig)} className="btn-3d-amber w-full font-black bg-amber-500 hover:bg-amber-400 text-zinc-950 text-base py-6 shadow-md border border-amber-400">
-                      <Play data-icon="inline-start" /> Create New Room
+                    <Button
+                      type="button"
+                      onClick={() => void createRoom(snippetForConfig(duelConfig), duelConfig)}
+                      className="w-full h-11 rounded-xl bg-amber-500 hover:bg-amber-400 text-zinc-950 font-black text-sm transition-all shadow-md cursor-pointer flex items-center justify-center gap-2"
+                    >
+                      <Play className="size-4 fill-current" /> Create New Room
                     </Button>
                   </div>
 
-                  <div className="flex flex-col items-center justify-center rounded-3xl border border-sky-500/20 bg-gradient-to-b from-sky-500/10 to-sky-500/5 p-8 text-center space-y-4 shadow-xl hover:shadow-[0_0_30px_rgba(56,189,248,0.2)] hover:border-sky-500/40 transition-all duration-300">
-                    <Users className="size-14 text-sky-400" />
-                    <div>
-                      <h4 className="font-black text-xl text-foreground">⚔️ Join Friend's Room</h4>
-                      <p className="text-xs text-muted-foreground mt-1 max-w-xs">Have a room code from an opponent? Enter the 6-character code below.</p>
+                  {/* Join Card */}
+                  <div className="glass-card rounded-2xl p-6 border border-sky-500/30 bg-gradient-to-br from-sky-500/10 via-card/60 to-card/60 flex flex-col justify-between space-y-5 shadow-sm hover:border-sky-500/50 transition-all duration-300">
+                    <div className="flex items-start gap-3.5">
+                      <div className="size-11 rounded-2xl bg-sky-500/20 text-sky-400 border border-sky-500/40 flex items-center justify-center shrink-0 shadow-xs">
+                        <Users className="size-5.5" />
+                      </div>
+                      <div>
+                        <h4 className="font-extrabold text-base text-foreground font-sans">Join Friend's Room</h4>
+                        <p className="text-xs text-muted-foreground mt-1 leading-relaxed font-sans">
+                          Have a room code from an opponent? Enter the 6-character room code below to race.
+                        </p>
+                      </div>
                     </div>
-                    <div className="flex w-full gap-3">
+                    <div className="flex w-full gap-2.5">
                       <input
                         type="text"
-                        placeholder="eg: CODEY-X892"
+                        placeholder="EG: CODEY-X892"
                         value={inputCode}
                         onChange={(e) => setInputCode(e.target.value.toUpperCase())}
                         onKeyDown={(e) => {
@@ -544,14 +568,13 @@ export default function Duel() {
                             void joinRoom(inputCode);
                           }
                         }}
-                        className="flex-1 rounded-2xl border bg-background px-4 py-3 text-center text-base font-mono font-bold uppercase tracking-wider focus:outline-none focus:ring-2 focus:ring-sky-500"
+                        className="h-11 flex-1 rounded-xl border border-border/70 bg-background/80 px-3.5 text-center text-sm font-mono font-bold uppercase tracking-wider text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-sky-500"
                       />
                       <Button
                         type="button"
-                        size="lg"
                         disabled={!inputCode.trim()}
                         onClick={() => void joinRoom(inputCode)}
-                        className="btn-3d font-extrabold py-6 px-6 bg-sky-500 hover:bg-sky-400 text-zinc-950"
+                        className="h-11 px-6 rounded-xl bg-sky-500 hover:bg-sky-400 text-zinc-950 font-black text-sm transition-all shadow-md disabled:opacity-40 cursor-pointer"
                       >
                         Join
                       </Button>
