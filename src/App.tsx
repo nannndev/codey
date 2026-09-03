@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect, useRef, useMemo } from "react";
 import { Coffee, CornerDownLeft, IndentIncrease, LoaderCircle, RotateCcw, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import { CodeDisplay } from "@/components/CodeDisplay";
 import { StatsBar } from "@/components/StatsBar";
 import { ResultsScreen } from "@/components/ResultsScreen";
@@ -658,13 +659,31 @@ export default function App() {
               onStopZen={handleZenStop}
             />
 
-            <div className="flex flex-wrap items-end justify-between gap-3">
-              <label className="flex flex-col gap-1.5 text-[10px] uppercase tracking-wider text-muted-foreground">
-                Snippet length
-                <div className="flex gap-1 rounded-lg border bg-card/70 p-1">
-                  {(["short", "medium", "long"] as const).map((item) => <button key={item} type="button" disabled={status === "running" || Boolean(customSnippet)} onClick={() => setPreference("snippetLength", item)} className={`rounded-md px-3 py-1.5 text-[11px] font-medium capitalize transition-colors disabled:opacity-40 ${preferences.snippetLength === item ? "bg-foreground text-background" : "text-muted-foreground hover:bg-muted"}`}>{item}</button>)}
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground font-sans">
+                  Length:
+                </span>
+                <div className="flex gap-1 rounded-xl glass-card p-1">
+                  {(["short", "medium", "long"] as const).map((item) => (
+                    <button
+                      key={item}
+                      type="button"
+                      disabled={status === "running" || Boolean(customSnippet)}
+                      onClick={() => setPreference("snippetLength", item)}
+                      className={cn(
+                        "rounded-lg px-3 py-1 text-xs font-semibold capitalize transition-all cursor-pointer",
+                        preferences.snippetLength === item
+                          ? "bg-foreground text-background shadow-xs font-bold"
+                          : "text-muted-foreground hover:bg-muted/70 hover:text-foreground",
+                        (status === "running" || Boolean(customSnippet)) && "opacity-40 pointer-events-none"
+                      )}
+                    >
+                      {item}
+                    </button>
+                  ))}
                 </div>
-              </label>
+              </div>
 
               <div className="flex flex-wrap items-center gap-2">
                 <WeakKeyDrillModal onDrill={handleCustomSnippet} />
@@ -740,28 +759,34 @@ export default function App() {
 
             <DailyGoals refreshKey={goalRefreshKey} compact />
 
-            <div className="flex flex-col gap-3 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
-              <span className="flex items-center gap-2">
-                <Button type="button" variant="ghost" size="sm" onClick={handleRetry} className="h-7 px-2 text-[11px]">
-                  <RotateCcw data-icon="inline-start" /> Restart
+            <div className="flex flex-col gap-3 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between glass-card rounded-xl px-4 py-2.5 shadow-xs">
+              <span className="flex items-center gap-2 font-medium">
+                <Button type="button" variant="ghost" size="sm" onClick={handleRetry} className="h-7 px-2.5 text-xs font-semibold hover:text-foreground">
+                  <RotateCcw className="size-3.5 mr-1" /> Restart
                 </Button>
-                <span>
+                <span className="text-muted-foreground/90 font-sans">
                   {status === "idle"
                     ? "Start typing to begin"
                     : mode === "zen"
-                      ? "Zen mode — Tab to stop"
-                      : "Keep typing..."}
+                      ? "Zen mode — Press Tab to stop"
+                      : "Typing in progress..."}
                 </span>
               </span>
-              <span className="flex flex-wrap items-center gap-2">
-                <kbd className="rounded border bg-muted px-1 py-0.5 text-[10px] font-mono">Esc</kbd>
-                <span>restart</span>
-                <IndentIncrease aria-hidden="true" className="size-3.5" />
-                <kbd className="rounded border bg-muted px-1 py-0.5 text-[10px] font-mono">Tab</kbd>
-                <span>{mode === "zen" ? "stop" : "indent"}</span>
-                <CornerDownLeft aria-hidden="true" className="ml-1 size-3.5" />
-                <kbd className="rounded border bg-muted px-1 py-0.5 text-[10px] font-mono ml-1">Enter</kbd>
-                <span>newline</span>
+              <span className="flex flex-wrap items-center gap-2.5 text-[11px] font-medium">
+                <span className="inline-flex items-center gap-1">
+                  <kbd className="rounded-md border border-border/80 bg-background/80 px-1.5 py-0.5 text-[10px] font-mono shadow-xs">Esc</kbd>
+                  <span className="text-muted-foreground">restart</span>
+                </span>
+                <span className="inline-flex items-center gap-1">
+                  <IndentIncrease aria-hidden="true" className="size-3.5 text-muted-foreground/70" />
+                  <kbd className="rounded-md border border-border/80 bg-background/80 px-1.5 py-0.5 text-[10px] font-mono shadow-xs">Tab</kbd>
+                  <span className="text-muted-foreground">{mode === "zen" ? "stop" : "indent"}</span>
+                </span>
+                <span className="inline-flex items-center gap-1">
+                  <CornerDownLeft aria-hidden="true" className="size-3.5 text-muted-foreground/70" />
+                  <kbd className="rounded-md border border-border/80 bg-background/80 px-1.5 py-0.5 text-[10px] font-mono shadow-xs">Enter</kbd>
+                  <span className="text-muted-foreground">newline</span>
+                </span>
               </span>
             </div>
           </main>

@@ -11,33 +11,37 @@ function GithubIcon({ className }: { className?: string }) {
 
 export function Footer() {
   return (
-    <footer className="mt-16 border-t border-border bg-muted/30">
-      <div className="mx-auto flex max-w-5xl flex-col items-center gap-4 px-4 py-6 sm:flex-row sm:justify-between sm:px-6">
-        <div className="flex flex-wrap items-center gap-4">
+    <footer className="mt-20 border-t border-border/60 bg-background/50 backdrop-blur-md">
+      <div className="mx-auto flex max-w-5xl flex-col items-center gap-4 px-4 py-8 sm:flex-row sm:justify-between sm:px-6">
+        <div className="flex flex-wrap items-center justify-center gap-3 sm:gap-5 text-xs text-muted-foreground">
           <a
             href="https://github.com/nannndev/codetype"
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 text-xs text-muted-foreground transition-colors hover:text-foreground"
+            className="inline-flex items-center gap-2 hover:text-foreground transition-colors font-medium"
           >
             <GithubIcon className="size-4" />
-            <span>Codey on GitHub</span>
+            <span>Codey Open Source</span>
           </a>
-          <span className="text-border hidden sm:inline">&bull;</span>
+
+          <span className="text-border/80 hidden sm:inline">&bull;</span>
+
           <Link
             to="/contributors"
-            className="inline-flex items-center gap-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground"
+            className="inline-flex items-center gap-1.5 hover:text-foreground transition-colors"
           >
             <Users className="size-3.5" />
             <span>Contributors</span>
           </Link>
-          <span className="text-border hidden sm:inline">&bull;</span>
+
+          <span className="text-border/80 hidden sm:inline">&bull;</span>
+
           <Link
             to="/donate"
-            className="inline-flex items-center gap-1.5 text-xs text-amber-500 font-medium transition-colors hover:text-amber-400"
+            className="inline-flex items-center gap-1.5 text-amber-500 font-semibold transition-colors hover:text-amber-400"
           >
-            <Heart className="size-3.5 fill-current" />
-            <span>Donate</span>
+            <Heart className="size-3.5 fill-current animate-pulse" />
+            <span>Support</span>
           </Link>
         </div>
 
@@ -46,24 +50,24 @@ export function Footer() {
             href="https://github.com/nannndev/codetype/stargazers"
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 rounded-md border bg-card px-2.5 py-1 text-xs text-muted-foreground transition-colors hover:text-foreground hover:border-amber-400/40"
+            className="inline-flex items-center gap-1.5 rounded-xl border border-border/70 bg-card/80 px-3 py-1.5 text-xs font-semibold text-muted-foreground transition-all hover:text-foreground hover:border-amber-400/50 hover:bg-muted shadow-xs"
           >
-            <Star className="size-3.5" />
-            <span>Star</span>
+            <Star className="size-3.5 text-amber-500" />
+            <span>Star on GitHub</span>
           </a>
 
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <span>Built by</span>
+            <span>by</span>
             <a
               href="https://github.com/nannndev"
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 transition-colors hover:text-foreground"
+              className="inline-flex items-center gap-1.5 font-semibold transition-colors hover:text-foreground group"
             >
               <img
                 src="https://avatars.githubusercontent.com/u/72372613?v=4&s=40"
                 alt="nannndev"
-                className="size-5 rounded-full"
+                className="size-5 rounded-full ring-1 ring-border group-hover:ring-amber-500 transition-all"
               />
               <span>nannndev</span>
             </a>

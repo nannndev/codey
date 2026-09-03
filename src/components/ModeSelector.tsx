@@ -1,6 +1,6 @@
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { Focus, Gauge, Timer } from "lucide-react";
+import { Focus, Gauge, Timer, Sparkles } from "lucide-react";
 import type { TestMode, TimedDuration } from "@/types";
+import { cn } from "@/lib/utils";
 
 interface ModeSelectorProps {
   mode: TestMode;
@@ -12,62 +12,98 @@ interface ModeSelectorProps {
 }
 
 const TIMED_OPTIONS: { label: string; duration: TimedDuration }[] = [
-  { label: '15s', duration: 15 },
-  { label: '30s', duration: 30 },
-  { label: '60s', duration: 60 },
-  { label: '120s', duration: 120 },
+  { label: "15s", duration: 15 },
+  { label: "30s", duration: 30 },
+  { label: "60s", duration: 60 },
+  { label: "120s", duration: 120 },
 ];
 
-export function ModeSelector({ mode, duration, onSelect, disabled, isRunningZen, onStopZen }: ModeSelectorProps) {
-  const timedValue = mode === 'timed' ? `timed-${duration}` : mode;
+export function ModeSelector({
+  mode,
+  duration,
+  onSelect,
+  disabled,
+  isRunningZen,
+  onStopZen,
+}: ModeSelectorProps) {
+  const currentTimedValue = mode === "timed" ? duration : null;
 
   return (
-    <div className="flex flex-col gap-1.5">
-      <span className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-muted-foreground">
-        <Gauge aria-hidden="true" className="size-3" /> Mode
-      </span>
-      <ToggleGroup
-        type="single"
-        value={timedValue}
-        onValueChange={(v) => {
-          if (!v) return;
-          if (v === 'snippet') onSelect('snippet', null);
-          else if (v === 'zen') onSelect('zen', null);
-          else if (v.startsWith('timed-')) {
-            const d = Number(v.replace('timed-', '')) as TimedDuration;
-            onSelect('timed', d);
-          }
-        }}
-        disabled={disabled && !isRunningZen}
-        className="flex-wrap justify-start gap-1.5"
-      >
-        <ToggleGroupItem value="snippet" className="btn-3d h-9 px-4 text-xs font-bold rounded-lg transition-all duration-150 data-[state=on]:bg-primary data-[state=on]:text-primary-foreground">
-          <Focus aria-hidden="true" />
-          Snippet
-        </ToggleGroupItem>
-        {TIMED_OPTIONS.map((opt) => (
-          <ToggleGroupItem
-            key={opt.duration}
-            value={`timed-${opt.duration}`}
-            className="btn-3d h-9 px-4 text-xs font-bold rounded-lg transition-all duration-150 data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
+    <div className="flex flex-col gap-2">
+      <div className="flex items-center justify-between">
+        <span className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground font-sans">
+          <Gauge aria-hidden="true" className="size-3.5 opacity-70" /> Practice Mode
+        </span>
+
+        {isRunningZen && onStopZen && (
+          <button
+            type="button"
+            onClick={onStopZen}
+            className="text-xs font-semibold text-rose-500 hover:text-rose-400 underline underline-offset-4 animate-pulse transition-colors"
           >
-            <Timer aria-hidden="true" />
-            {opt.label}
-          </ToggleGroupItem>
-        ))}
-        <ToggleGroupItem value="zen" className="btn-3d h-9 px-4 text-xs font-bold rounded-lg transition-all duration-150 data-[state=on]:bg-primary data-[state=on]:text-primary-foreground">
-          <Focus aria-hidden="true" />
-          Zen
-        </ToggleGroupItem>
-      </ToggleGroup>
-      {isRunningZen && onStopZen && (
+            End Zen Session (Tab)
+          </button>
+        )}
+      </div>
+
+      <div className="flex flex-wrap items-center gap-1.5 glass-card rounded-xl p-1.5">
+        {/* Snippet Mode */}
         <button
-          onClick={onStopZen}
-          className="text-xs text-destructive hover:underline mt-1"
+          type="button"
+          disabled={disabled && !isRunningZen}
+          onClick={() => onSelect("snippet", null)}
+          className={cn(
+            "flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-bold transition-all duration-150 cursor-pointer select-none",
+            mode === "snippet"
+              ? "bg-foreground text-background shadow-sm"
+              : "text-muted-foreground hover:text-foreground hover:bg-muted/70",
+            disabled && !isRunningZen && "opacity-50 pointer-events-none"
+          )}
         >
-          Stop zen run
+          <Focus className="size-3.5" />
+          <span>Snippet</span>
         </button>
-      )}
+
+        {/* Timed Durations */}
+        {TIMED_OPTIONS.map((opt) => {
+          const isSelected = mode === "timed" && currentTimedValue === opt.duration;
+          return (
+            <button
+              key={opt.duration}
+              type="button"
+              disabled={disabled && !isRunningZen}
+              onClick={() => onSelect("timed", opt.duration)}
+              className={cn(
+                "flex items-center gap-1 px-3 py-2 rounded-lg text-xs font-bold transition-all duration-150 cursor-pointer select-none font-mono",
+                isSelected
+                  ? "bg-foreground text-background shadow-sm"
+                  : "text-muted-foreground hover:text-foreground hover:bg-muted/70",
+                disabled && !isRunningZen && "opacity-50 pointer-events-none"
+              )}
+            >
+              <Timer className="size-3.5 font-sans" />
+              <span>{opt.label}</span>
+            </button>
+          );
+        })}
+
+        {/* Zen Mode */}
+        <button
+          type="button"
+          disabled={disabled && !isRunningZen}
+          onClick={() => onSelect("zen", null)}
+          className={cn(
+            "flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-bold transition-all duration-150 cursor-pointer select-none ml-auto",
+            mode === "zen"
+              ? "bg-foreground text-background shadow-sm"
+              : "text-muted-foreground hover:text-foreground hover:bg-muted/70",
+            disabled && !isRunningZen && "opacity-50 pointer-events-none"
+          )}
+        >
+          <Sparkles className="size-3.5" />
+          <span>Zen</span>
+        </button>
+      </div>
     </div>
   );
 }

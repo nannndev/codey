@@ -4,13 +4,13 @@ import { ErrorHeatmap } from "@/components/ErrorHeatmap";
 import { WeakKeys } from "@/components/WeakKeys";
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { RefreshCw, ArrowRight, Trophy, ImageDown } from "lucide-react";
+import { RefreshCw, ArrowRight, Trophy, ImageDown, Zap, ShieldCheck } from "lucide-react";
 import { useAuth, githubUsernameFromUser } from "@/components/AuthProvider";
 import type { ShareCardOptions } from "@/lib/share-result";
 import { SharePreviewDialog } from "@/components/SharePreviewDialog";
-import { Zap } from "lucide-react";
 import { rankRejectionReason, describeRankRejection } from "@/utils/ranking";
 import type { RankedStatus } from "@/hooks/useRankedGame";
+import { cn } from "@/lib/utils";
 
 interface ResultsScreenProps {
   result: RunResult;
@@ -23,15 +23,25 @@ interface ResultsScreenProps {
   onDrill: (snippet: Snippet) => void;
 }
 
-export function ResultsScreen({ result, previousBest, verifiedResult, rankedStatus, rankedError, onRetry, onNext, onDrill }: ResultsScreenProps) {
+export function ResultsScreen({
+  result,
+  previousBest,
+  verifiedResult,
+  rankedStatus,
+  rankedError,
+  onRetry,
+  onNext,
+  onDrill,
+}: ResultsScreenProps) {
   const { user } = useAuth();
   const [shareOptions, setShareOptions] = useState<ShareCardOptions | null>(null);
+
   const modeLabel =
-    result.mode === 'timed'
-      ? `${result.duration / 1000}s`
-      : result.mode === 'zen'
-        ? 'Zen'
-        : `${result.snippetLength ? `${result.snippetLength.charAt(0).toUpperCase()}${result.snippetLength.slice(1)} ` : ''}Snippet`;
+    result.mode === "timed"
+      ? `${result.duration / 1000}s Timed`
+      : result.mode === "zen"
+      ? "Zen Flow"
+      : `${result.snippetLength ? `${result.snippetLength.charAt(0).toUpperCase()}${result.snippetLength.slice(1)} ` : ""}Snippet`;
 
   const isNewWpmRecord = previousBest ? result.wpm > previousBest.bestWpm : true;
   const isNewAccuracyRecord = previousBest ? result.accuracy > previousBest.bestAccuracy : true;
@@ -39,114 +49,145 @@ export function ResultsScreen({ result, previousBest, verifiedResult, rankedStat
   const isCustom = result.sourceType === "custom";
   const rejection = rankRejectionReason(result);
 
+  const tier =
+    result.wpm >= 100
+      ? { label: "Grandmaster", color: "text-purple-400 border-purple-500/30 bg-purple-500/10" }
+      : result.wpm >= 80
+      ? { label: "Master Typist", color: "text-amber-400 border-amber-500/30 bg-amber-500/10" }
+      : result.wpm >= 60
+      ? { label: "Pro Coder", color: "text-blue-400 border-blue-500/30 bg-blue-500/10" }
+      : { label: "Apprentice", color: "text-emerald-400 border-emerald-500/30 bg-emerald-500/10" };
+
   return (
-    <div className="mt-8 flex animate-fade-in-up flex-col gap-5">
-      <div className="text-center">
-        <h2 className="text-xl font-bold">
-          Run Complete — <span className="text-muted-foreground">{modeLabel}</span>
+    <div className="mt-8 flex animate-fade-in-up flex-col gap-6 max-w-3xl mx-auto">
+      {/* Title & Badge */}
+      <div className="text-center flex flex-col items-center gap-2">
+        <div className={cn("inline-flex items-center gap-1.5 px-3 py-1 rounded-full border text-xs font-bold uppercase tracking-wider font-mono", tier.color)}>
+          <span>⚡ {tier.label}</span>
+        </div>
+        <h2 className="text-2xl font-black tracking-tight text-foreground font-sans">
+          Run Completed · <span className="text-amber-500">{modeLabel}</span>
         </h2>
-        <p className="text-sm text-muted-foreground mt-1">{result.language}</p>
+        <p className="text-xs font-mono text-muted-foreground uppercase tracking-widest">
+          {result.language} Ecosystem
+        </p>
       </div>
 
       {/* Hero Stats */}
-      <div className="grid grid-cols-2 gap-3">
-        <div className="relative rounded-xl border bg-card p-6 text-center">
+      <div className="grid grid-cols-2 gap-4">
+        {/* WPM Card */}
+        <div className="relative rounded-2xl glass-card p-6 text-center shadow-lg transition-all duration-200 hover:border-foreground/20">
           {!isCustom && isNewWpmRecord && (
-            <div className="absolute -top-2 right-2 flex items-center gap-1 rounded-full bg-amber-400/15 px-2 py-0.5 text-[10px] font-bold text-amber-600 dark:text-amber-400">
-              <Trophy className="size-3" /> Record
+            <div className="absolute -top-3 right-4 flex items-center gap-1 rounded-full bg-amber-500 text-zinc-950 font-black px-2.5 py-0.5 text-[10px] shadow-sm">
+              <Trophy className="size-3" /> NEW PB
             </div>
           )}
-          <p className="text-xs uppercase tracking-wider text-muted-foreground mb-2">WPM</p>
-          <p className="text-5xl font-bold tracking-tight">{result.wpm.toFixed(1)}</p>
+          <p className="text-xs uppercase font-bold tracking-wider text-muted-foreground mb-1 font-sans">Words Per Minute</p>
+          <p className="text-5xl sm:text-6xl font-black font-mono tracking-tight text-foreground">{result.wpm.toFixed(1)}</p>
           {previousBest && (
-            <p className="text-[10px] text-muted-foreground mt-2">
-              Best: {previousBest.bestWpm.toFixed(1)} WPM in {previousBest.totalRuns} runs
+            <p className="text-[11px] font-mono text-muted-foreground mt-2">
+              Previous PB: {previousBest.bestWpm.toFixed(1)} WPM
             </p>
           )}
         </div>
-        <div className="relative rounded-xl border bg-card p-6 text-center">
+
+        {/* Accuracy Card */}
+        <div className="relative rounded-2xl glass-card p-6 text-center shadow-lg transition-all duration-200 hover:border-foreground/20">
           {!isCustom && isNewAccuracyRecord && result.accuracy > 0 && (
-            <div className="absolute -top-2 right-2 flex items-center gap-1 rounded-full bg-amber-400/15 px-2 py-0.5 text-[10px] font-bold text-amber-600 dark:text-amber-400">
-              <Trophy className="size-3" /> Record
+            <div className="absolute -top-3 right-4 flex items-center gap-1 rounded-full bg-emerald-500 text-zinc-950 font-black px-2.5 py-0.5 text-[10px] shadow-sm">
+              <Trophy className="size-3" /> BEST ACC
             </div>
           )}
-          <p className="text-xs uppercase tracking-wider text-muted-foreground mb-2">Accuracy</p>
-          <p className="text-5xl font-bold tracking-tight text-green-600 dark:text-green-400">{result.accuracy.toFixed(1)}%</p>
+          <p className="text-xs uppercase font-bold tracking-wider text-muted-foreground mb-1 font-sans">Accuracy</p>
+          <p className={cn("text-5xl sm:text-6xl font-black font-mono tracking-tight", result.accuracy >= 95 ? "text-emerald-500 dark:text-emerald-400" : "text-amber-500")}>
+            {result.accuracy.toFixed(1)}%
+          </p>
           {previousBest && (
-            <p className="text-[10px] text-muted-foreground mt-2">
-              Best: {previousBest.bestAccuracy.toFixed(1)}%
+            <p className="text-[11px] font-mono text-muted-foreground mt-2">
+              Previous: {previousBest.bestAccuracy.toFixed(1)}%
             </p>
           )}
         </div>
       </div>
 
+      {/* Ranked Score Banner / Verification */}
       {verifiedResult?.verified && (
-        <div className="flex justify-center">
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-500/15 border border-amber-500/30 px-3.5 py-1 text-xs font-bold text-amber-500">
-            <span>⚡ Ranked Score</span>
+        <div className="flex justify-center animate-scale-in">
+          <span className="inline-flex items-center gap-2 rounded-2xl bg-amber-500/15 border border-amber-500/30 px-4 py-2 text-xs font-bold text-amber-500 shadow-xs">
+            <ShieldCheck className="size-4" />
+            <span>Anti-Cheat Verified · Ranked Leaderboard Placed!</span>
           </span>
         </div>
       )}
 
       {rankedStatus === "submitting" && (
-        <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-center text-xs font-semibold text-amber-600 dark:text-amber-400">
-          Verifying Ranked run with the server...
+        <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-center text-xs font-semibold text-amber-500">
+          Verifying Ranked telemetry with server...
         </div>
       )}
 
       {rankedStatus === "rejected" && rankedError && (
-        <div className="rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-center text-xs font-semibold text-red-600 dark:text-red-400">
+        <div className="rounded-xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-center text-xs font-semibold text-rose-500">
           Ranked run rejected: {rankedError}
         </div>
       )}
 
-      {!isCustom && hasAnyRecord && (
+      {!isCustom && hasAnyRecord && !verifiedResult?.verified && (
         <div className="flex justify-center">
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-400/15 px-3 py-1 text-xs font-bold text-amber-600 dark:text-amber-400">
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-500/15 border border-amber-500/30 px-4 py-1 text-xs font-bold text-amber-500">
             <Trophy className="size-3.5" />
-            New personal best!
+            New Personal Best Record!
           </span>
         </div>
       )}
 
-      {isCustom
-        ? <div className="rounded-lg border border-dashed bg-muted/30 px-4 py-3 text-center text-xs text-muted-foreground">Local practice result · not added to history, streak, cloud sync, personal best, or leaderboard.</div>
-        : verifiedResult?.verified
-          ? <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-center text-xs text-emerald-600 dark:text-emerald-400 font-semibold">🛡️ Verified by server anti-cheat — Placed on the Ranked Leaderboard!</div>
-          : rejection && <div className="rounded-lg border border-dashed bg-muted/30 px-4 py-3 text-center text-xs text-muted-foreground">Saved to your history, but not ranked. {describeRankRejection(rejection)}</div>}
+      {isCustom ? (
+        <div className="rounded-xl border border-dashed border-border/80 bg-muted/20 px-4 py-3 text-center text-xs text-muted-foreground">
+          Local drill result · not added to cloud history or global leaderboard.
+        </div>
+      ) : rejection ? (
+        <div className="rounded-xl border border-dashed border-border/80 bg-muted/20 px-4 py-3 text-center text-xs text-muted-foreground">
+          Saved to local history. {describeRankRejection(rejection)}
+        </div>
+      ) : null}
 
       {/* Secondary Stats */}
-      <div className="grid grid-cols-4 gap-2">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
         {[
-          { label: 'Raw WPM', value: result.rawWpm.toFixed(1) },
-          { label: 'Consistency', value: `${result.consistency.toFixed(1)}%` },
-          { label: 'Errors', value: String(result.totalErrors) },
-          { label: 'Chars', value: String(result.charsTyped) },
+          { label: "Raw Speed", value: `${result.rawWpm.toFixed(1)} WPM` },
+          { label: "Consistency", value: `${result.consistency.toFixed(1)}%` },
+          { label: "Errors", value: String(result.totalErrors) },
+          { label: "Total Chars", value: String(result.charsTyped) },
         ].map((s) => (
-          <div key={s.label} className="rounded-lg border bg-muted/30 p-3 text-center">
-            <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">{s.label}</p>
-            <p className="text-sm font-bold tabular-nums">{s.value}</p>
+          <div key={s.label} className="glass-card rounded-xl p-3.5 text-center shadow-xs">
+            <p className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground mb-1 font-sans">{s.label}</p>
+            <p className="text-base sm:text-lg font-black font-mono tabular-nums text-foreground">{s.value}</p>
           </div>
         ))}
       </div>
 
       {/* Per-line Accuracy */}
       {result.perLineStats.length > 0 && (
-        <div className="flex flex-col gap-2">
-          <p className="text-xs uppercase tracking-wider text-muted-foreground">Per-Line Accuracy</p>
-          <div className="flex flex-col gap-1.5">
+        <div className="glass-card rounded-2xl p-4 flex flex-col gap-2.5">
+          <p className="text-xs uppercase font-bold tracking-wider text-muted-foreground font-sans">Per-Line Accuracy</p>
+          <div className="flex flex-col gap-2">
             {result.perLineStats.map((ls) => (
-              <div key={ls.lineIndex} className="flex items-center gap-2">
-                <span className="text-[10px] text-muted-foreground w-6 text-right tabular-nums">
+              <div key={ls.lineIndex} className="flex items-center gap-3">
+                <span className="text-[11px] font-mono text-muted-foreground w-7 text-right tabular-nums">
                   L{ls.lineIndex + 1}
                 </span>
-                <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
+                <div className="flex-1 h-2 bg-secondary rounded-full overflow-hidden">
                   <div
-                    className="h-full bg-green-500 rounded-full transition-all"
+                    className={cn(
+                      "h-full rounded-full transition-all duration-300",
+                      ls.accuracy >= 95 ? "bg-emerald-500" : ls.accuracy >= 85 ? "bg-amber-500" : "bg-rose-500"
+                    )}
                     style={{ width: `${ls.accuracy}%` }}
                   />
                 </div>
-                <span className="w-10 text-[10px] tabular-nums text-muted-foreground">{ls.accuracy.toFixed(1)}%</span>
+                <span className="w-12 text-right text-[11px] font-mono tabular-nums text-muted-foreground font-semibold">
+                  {ls.accuracy.toFixed(1)}%
+                </span>
               </div>
             ))}
           </div>
@@ -155,58 +196,57 @@ export function ResultsScreen({ result, previousBest, verifiedResult, rankedStat
 
       {/* Error Heatmap */}
       {result.errorPositions.length > 0 && (
-        <div className="flex flex-col gap-2">
-          <p className="text-xs uppercase tracking-wider text-muted-foreground">
-            Error Map ({result.errorPositions.length} errors)
+        <div className="glass-card rounded-2xl p-4 flex flex-col gap-2.5">
+          <p className="text-xs uppercase font-bold tracking-wider text-muted-foreground font-sans">
+            Typing Error Map ({result.errorPositions.length} mistakes)
           </p>
           <ErrorHeatmap errorPositions={result.errorPositions} totalChars={result.charsTyped} />
         </div>
       )}
 
-      {/* Error Details */}
-      {result.errorPositions.length > 0 && (
-        <div className="flex flex-col gap-2">
-          <p className="text-xs uppercase tracking-wider text-muted-foreground">Error Details</p>
-          <div className="flex max-h-32 flex-col gap-1 overflow-y-auto rounded-lg border bg-muted/30 p-3 text-xs font-mono">
-            {result.errorPositions.slice(0, 20).map((e, errorIndex) => (
-              <div key={`${e.index}-${errorIndex}`}>
-                pos {e.index}: expected{' '}
-                <span className="text-green-600 dark:text-green-400">{e.expected === '\n' ? '↵' : e.expected}</span>
-                {' '}got{' '}
-                <span className="text-red-500">{e.typed === '\n' ? '↵' : e.typed}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Keyed on timestamp so the panel re-reads history after this run is saved. */}
+      {/* Weak Keys Drill Trigger */}
       <WeakKeys refreshKey={result.timestamp} onDrill={onDrill} />
 
-      {/* CTAs */}
-      <div className="flex flex-col items-center gap-2">
-        <div className="flex gap-2 w-full">
-          <Button onClick={() => setShareOptions({ result, username: user ? githubUsernameFromUser(user) || user.name || undefined : undefined })} variant="outline" size="lg" className="flex-1 border-foreground/25 bg-foreground text-background hover:bg-foreground/85 hover:text-background">
-            <ImageDown data-icon="inline-start" /> Share result
+      {/* Action Buttons */}
+      <div className="flex flex-col items-center gap-3 mt-2">
+        <div className="flex flex-col sm:flex-row gap-2.5 w-full">
+          <Button
+            onClick={() =>
+              setShareOptions({
+                result,
+                username: user ? githubUsernameFromUser(user) || user.name || undefined : undefined,
+              })
+            }
+            variant="outline"
+            size="lg"
+            className="flex-1 h-11 rounded-xl font-bold bg-foreground text-background hover:bg-foreground/90 hover:text-background border-transparent shadow-xs"
+          >
+            <ImageDown className="size-4 mr-2" /> Share Result Card
           </Button>
-          <Button asChild variant="outline" size="lg" className="flex-1 border-amber-500/40 text-amber-500 hover:bg-amber-500/10">
-            <Link to="/analytics/keyboard"><Zap className="size-4" /> Keyboard analytics</Link>
+
+          <Button
+            asChild
+            variant="outline"
+            size="lg"
+            className="flex-1 h-11 rounded-xl font-bold border-amber-500/40 text-amber-500 hover:bg-amber-500/10"
+          >
+            <Link to="/analytics/keyboard">
+              <Zap className="size-4 mr-2" /> Keyboard Analytics
+            </Link>
           </Button>
         </div>
-        <div className="flex gap-2 w-full justify-center">
-          <Button onClick={onRetry} size="lg" className="flex-1">
-            <RefreshCw data-icon="inline-start" />
-            Try Again
+
+        <div className="flex flex-col sm:flex-row gap-2.5 w-full">
+          <Button onClick={onRetry} size="lg" className="flex-1 h-11 rounded-xl font-bold shadow-md">
+            <RefreshCw className="size-4 mr-2" /> Try Again (Enter)
           </Button>
-          <Button onClick={onNext} variant="outline" size="lg" className="flex-1">
-            <ArrowRight data-icon="inline-start" />
-            Next Snippet
+
+          <Button onClick={onNext} variant="outline" size="lg" className="flex-1 h-11 rounded-xl font-bold">
+            <ArrowRight className="size-4 mr-2" /> Next Snippet
           </Button>
         </div>
-        <span className="text-xs text-muted-foreground">
-          Press <kbd className="rounded border bg-muted px-1 py-0.5 text-[10px] font-mono">Enter</kbd> to retry
-        </span>
       </div>
+
       <SharePreviewDialog options={shareOptions} onClose={() => setShareOptions(null)} />
     </div>
   );

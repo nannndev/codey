@@ -1,4 +1,5 @@
 import { Code2, Cpu, Terminal, Zap } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 export type DevPracticeCategory = "public" | "symbols" | "terminal" | "algorithms";
 
@@ -8,28 +9,37 @@ interface DevPracticeSelectorProps {
   disabled: boolean;
 }
 
-const CATEGORIES: { id: DevPracticeCategory; label: string; icon: React.ElementType; description: string }[] = [
+const CATEGORIES: {
+  id: DevPracticeCategory;
+  label: string;
+  badge?: string;
+  icon: React.ElementType;
+  description: string;
+}[] = [
   {
     id: "public",
-    label: "🌐 GitHub Code Repos",
+    label: "GitHub Repos",
     icon: Code2,
-    description: "Real-world code from popular GitHub projects",
+    description: "Real-world code from popular GitHub open-source repositories",
   },
   {
     id: "symbols",
-    label: "⚡ Symbol & Operator Drills",
+    label: "Symbol Drills",
+    badge: "⚡",
     icon: Zap,
     description: "Sharpen speed typing brackets {}, =>, ?, and complex symbols",
   },
   {
     id: "terminal",
-    label: "💻 Terminal & Git Workflow",
+    label: "Terminal & Git",
+    badge: "💻",
     icon: Terminal,
     description: "Practice typing Bash, Git, Docker & Kubernetes commands",
   },
   {
     id: "algorithms",
-    label: "🧩 Algorithms & LeetCode",
+    label: "Algorithms",
+    badge: "🧩",
     icon: Cpu,
     description: "Common algorithm patterns: Binary Search, BFS, DP, etc.",
   },
@@ -37,9 +47,9 @@ const CATEGORIES: { id: DevPracticeCategory; label: string; icon: React.ElementT
 
 export function DevPracticeSelector({ activeCategory, onSelectCategory, disabled }: DevPracticeSelectorProps) {
   return (
-    <div className="flex flex-col gap-1.5">
-      <div className="flex flex-wrap items-center gap-1.5 rounded-xl border bg-card/65 p-1.5 backdrop-blur-sm">
-        {CATEGORIES.map(({ id, label, icon: Icon }) => {
+    <div className="flex flex-col gap-2">
+      <div className="flex flex-wrap items-center gap-1.5 glass-card rounded-xl p-1.5">
+        {CATEGORIES.map(({ id, label, icon: Icon, badge, description }) => {
           const isActive = activeCategory === id;
           return (
             <button
@@ -47,14 +57,18 @@ export function DevPracticeSelector({ activeCategory, onSelectCategory, disabled
               type="button"
               disabled={disabled}
               onClick={() => onSelectCategory(id)}
-              className={`btn-3d flex items-center gap-1.5 rounded-lg px-3.5 py-2 text-xs font-semibold transition-all ${
+              title={description}
+              className={cn(
+                "flex items-center gap-2 rounded-lg px-3.5 py-2 text-xs font-semibold transition-all duration-150 cursor-pointer select-none",
                 isActive
-                  ? "bg-primary text-primary-foreground shadow-md font-bold"
-                  : "bg-card border text-muted-foreground hover:bg-muted hover:text-foreground"
-              } ${disabled ? "opacity-50 pointer-events-none" : ""}`}
+                  ? "bg-foreground text-background font-bold shadow-sm"
+                  : "text-muted-foreground hover:text-foreground hover:bg-muted/70",
+                disabled && "opacity-50 pointer-events-none"
+              )}
             >
-              <Icon className="size-3.5" />
+              <Icon className={cn("size-3.5 shrink-0", isActive ? "text-background" : "text-amber-500")} />
               <span>{label}</span>
+              {badge && <span className="text-[11px] leading-none opacity-80">{badge}</span>}
             </button>
           );
         })}

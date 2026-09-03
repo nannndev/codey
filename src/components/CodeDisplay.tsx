@@ -168,36 +168,89 @@ export function CodeDisplay({
 
   return (
     <div
-      className={cn("code-window overflow-hidden rounded-2xl border shadow-xl focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 focus-within:ring-offset-background transition-all duration-200", focusMode && "code-window-focus")}
+      className={cn(
+        "code-window overflow-hidden rounded-2xl border border-border/80 shadow-2xl focus-within:ring-2 focus-within:ring-amber-500/50 focus-within:ring-offset-2 focus-within:ring-offset-background transition-all duration-200",
+        focusMode && "code-window-focus"
+      )}
       onClick={onClick}
       tabIndex={0}
     >
-      {/* Title bar */}
-      <div className="code-chrome flex items-center gap-3 border-b px-4 py-2.5 select-none">
-        <div className="editor-window-actions flex shrink-0 gap-1.5" onClick={(event) => event.stopPropagation()}>
-          <button type="button" onClick={restartFromChrome} className="editor-window-dot bg-red-400/80" aria-label="Restart typing run" title="Restart run"><span>×</span></button>
-          <button type="button" onClick={centerCursor} className="editor-window-dot bg-yellow-400/80" aria-label="Center active cursor" title="Center active cursor"><span>−</span></button>
-          <button type="button" onClick={toggleFocusMode} className="editor-window-dot bg-green-400/80" aria-label={focusMode ? "Exit focus mode" : "Enter focus mode"} title={focusMode ? "Exit focus mode" : "Focus mode"}><span>{focusMode ? "−" : "+"}</span></button>
+      {/* Modern Editor Title bar / Tabs */}
+      <div className="code-chrome flex items-center justify-between border-b border-border/70 px-4 py-2.5 select-none bg-muted/40 backdrop-blur-md">
+        <div className="flex items-center gap-3 min-w-0">
+          {/* macOS window controls */}
+          <div className="editor-window-actions flex shrink-0 items-center gap-2" onClick={(event) => event.stopPropagation()}>
+            <button
+              type="button"
+              onClick={restartFromChrome}
+              className="editor-window-dot size-3 rounded-full bg-rose-500/80 hover:bg-rose-500 hover:shadow-[0_0_8px_rgba(244,63,94,0.6)] transition-all"
+              aria-label="Restart typing run"
+              title="Restart run"
+            >
+              <span>×</span>
+            </button>
+            <button
+              type="button"
+              onClick={centerCursor}
+              className="editor-window-dot size-3 rounded-full bg-amber-400/80 hover:bg-amber-400 hover:shadow-[0_0_8px_rgba(251,191,36,0.6)] transition-all"
+              aria-label="Center active cursor"
+              title="Center active cursor"
+            >
+              <span>−</span>
+            </button>
+            <button
+              type="button"
+              onClick={toggleFocusMode}
+              className="editor-window-dot size-3 rounded-full bg-emerald-500/80 hover:bg-emerald-500 hover:shadow-[0_0_8px_rgba(16,185,129,0.6)] transition-all"
+              aria-label={focusMode ? "Exit focus mode" : "Enter focus mode"}
+              title={focusMode ? "Exit focus mode" : "Focus mode"}
+            >
+              <span>{focusMode ? "−" : "+"}</span>
+            </button>
+          </div>
+
+          {/* Active File Tab */}
+          <div className="flex items-center gap-2 px-3 py-1 rounded-lg bg-background/60 border border-border/50 text-xs font-mono min-w-0 shadow-xs">
+            <FileCode2 aria-hidden="true" className="size-3.5 text-amber-500 shrink-0" />
+            <span className="truncate font-semibold text-foreground/90">{filename}</span>
+            <Badge variant="secondary" className="text-[9px] font-mono px-1.5 py-0 rounded-md shrink-0 bg-muted text-muted-foreground">
+              {language}
+            </Badge>
+          </div>
         </div>
-        <FileCode2 aria-hidden="true" className="size-3.5 text-muted-foreground" />
-        <span className="min-w-0 flex-1 truncate text-[11px] text-muted-foreground">
-          {filename}
-        </span>
-        <Badge variant="secondary" className="shrink-0 text-[10px]">
-          {language}
-        </Badge>
-        {focusMode && focusStats && <div className="hidden items-center gap-3 border-l pl-3 text-[10px] tabular-nums text-muted-foreground sm:flex"><span><strong className="text-foreground">{focusStats.wpm.toFixed(1)}</strong> WPM</span><span><strong className="text-foreground">{focusStats.accuracy.toFixed(1)}%</strong> ACC</span><span>{focusStats.time}</span></div>}
-        <button type="button" onClick={(event) => { event.stopPropagation(); toggleFocusMode(); }} className="grid size-7 shrink-0 place-items-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground" aria-label={focusMode ? "Exit focus mode" : "Expand editor to focus mode"} title={focusMode ? "Exit focus mode (Esc)" : "Focus mode"}>
-          {focusMode ? <Minimize2 className="size-3.5" /> : <Maximize2 className="size-3.5" />}
-        </button>
+
+        <div className="flex items-center gap-3 shrink-0">
+          {focusMode && focusStats && (
+            <div className="hidden items-center gap-3 border-l border-border/50 pl-3 text-[11px] font-mono tabular-nums text-muted-foreground sm:flex">
+              <span><strong className="text-foreground">{focusStats.wpm.toFixed(1)}</strong> WPM</span>
+              <span><strong className="text-foreground">{focusStats.accuracy.toFixed(1)}%</strong> ACC</span>
+              <span>{focusStats.time}</span>
+            </div>
+          )}
+
+          <button
+            type="button"
+            onClick={(event) => {
+              event.stopPropagation();
+              toggleFocusMode();
+            }}
+            className="grid size-7 place-items-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground cursor-pointer"
+            aria-label={focusMode ? "Exit focus mode" : "Expand editor to focus mode"}
+            title={focusMode ? "Exit focus mode (Esc)" : "Focus mode"}
+          >
+            {focusMode ? <Minimize2 className="size-3.5" /> : <Maximize2 className="size-3.5" />}
+          </button>
+        </div>
       </div>
 
-      {/* Code area */}
-      <div ref={viewportRef} className="code-viewport min-w-0 overflow-auto py-4">
+      {/* Code viewport */}
+      <div ref={viewportRef} className="code-viewport min-w-0 overflow-auto py-5">
         <div className="min-w-max">
           {lines.map((line, li) => (
             <div key={li} className={cn("code-row", li === currentLineIndex && "is-current-line")}>
-              <span className={cn("code-line-number", li === currentLineIndex && "is-current")}>{li + 1}</span>
+              <span className={cn("code-line-number", li === currentLineIndex && "is-current text-amber-500 font-bold")}>
+                {li + 1}
+              </span>
               <div className="whitespace-pre px-4">
                 {line.map(({ state: c, syntax, globalIndex }, ci) => {
                   const isGhostHere = showGhost && globalIndex === effectiveGhostIndex;
@@ -208,7 +261,7 @@ export function CodeDisplay({
                         {isGhostHere && (
                           <span
                             className="absolute -top-3.5 left-0 z-20 flex items-center gap-0.5 rounded-xs bg-purple-950/80 dark:bg-purple-900/80 border border-purple-500/40 px-1 py-0 text-[8px] font-medium text-purple-300 pointer-events-none backdrop-blur-xs select-none"
-                            title={`Ghost PB Pace: ${ghostWpm ? `${ghostWpm.toFixed(0)} WPM` : ''}`}
+                            title={`Ghost PB Pace: ${ghostWpm ? `${ghostWpm.toFixed(0)} WPM` : ""}`}
                           >
                             <span>👻</span>
                             <span>PB</span>
@@ -234,7 +287,7 @@ export function CodeDisplay({
                       {isGhostHere && (
                         <span
                           className="absolute -top-3.5 left-0 z-20 flex items-center gap-0.5 rounded-xs bg-purple-950/80 dark:bg-purple-900/80 border border-purple-500/40 px-1 py-0 text-[8px] font-medium text-purple-300 pointer-events-none backdrop-blur-xs select-none"
-                          title={`Ghost PB Pace: ${ghostWpm ? `${ghostWpm.toFixed(0)} WPM` : ''}`}
+                          title={`Ghost PB Pace: ${ghostWpm ? `${ghostWpm.toFixed(0)} WPM` : ""}`}
                         >
                           <span>👻</span>
                           <span>PB</span>
@@ -250,36 +303,57 @@ export function CodeDisplay({
         </div>
       </div>
 
-      {/* Status bar */}
-      <div className="code-chrome flex items-center justify-between gap-4 border-t px-4 py-2 text-[10px] text-muted-foreground select-none">
+      {/* Status telemetry bar */}
+      <div className="code-chrome flex items-center justify-between gap-4 border-t border-border/70 px-4 py-2 text-[11px] font-mono text-muted-foreground select-none bg-muted/30">
         {source ? (
           <a
             href={source.url}
             target="_blank"
             rel="noreferrer"
-            className="flex min-w-0 items-center gap-1.5 hover:text-foreground"
+            className="flex min-w-0 items-center gap-1.5 hover:text-foreground transition-colors font-sans"
             onClick={(event) => event.stopPropagation()}
           >
-            <GitBranch aria-hidden="true" className="size-3" />
+            <GitBranch aria-hidden="true" className="size-3 text-amber-500" />
             <span className="truncate">{source.repo}</span>
-            <ExternalLink aria-hidden="true" className="size-3 shrink-0" />
+            <ExternalLink aria-hidden="true" className="size-3 shrink-0 opacity-70" />
           </a>
         ) : (
-          <span className="flex items-center gap-1.5"><Code2 aria-hidden="true" className="size-3" /> Built-in snippet</span>
+          <span className="flex items-center gap-1.5 font-sans">
+            <Code2 aria-hidden="true" className="size-3 text-amber-500" /> Built-in snippet
+          </span>
         )}
+
         <div className="flex shrink-0 items-center gap-3">
           {showGhost && (
-            <span className="inline-flex items-center gap-1 rounded bg-purple-500/10 px-1.5 py-0.5 text-purple-600 dark:text-purple-400 font-medium">
-              👻 Ghost PB {ghostWpm ? `(${ghostWpm.toFixed(0)} WPM)` : ''}
+            <span className="inline-flex items-center gap-1 rounded-md bg-purple-500/15 border border-purple-500/30 px-1.5 py-0.5 text-purple-400 font-medium text-[10px]">
+              👻 Ghost PB {ghostWpm ? `(${ghostWpm.toFixed(0)} WPM)` : ""}
             </span>
           )}
-          {focusMode && <span className="hidden sm:inline">Esc to exit focus</span>}
+          {focusMode && <span className="hidden sm:inline font-sans text-xs">Esc to exit focus</span>}
           <span>Ln {currentLineIndex + 1}, Col {cursorCol}</span>
           <span className="h-3 w-px bg-border" />
+          <span className="hidden sm:inline text-muted-foreground/80">UTF-8</span>
+          <span className="h-3 w-px bg-border hidden sm:inline" />
           <div className="flex items-center gap-1" onClick={(event) => event.stopPropagation()}>
-            <button type="button" disabled={fontIndex <= 0} onClick={() => setPreference("fontSize", fontSizes[fontIndex - 1])} className="grid size-6 place-items-center rounded hover:bg-muted hover:text-foreground disabled:opacity-30" aria-label="Decrease editor font size"><Minus className="size-3" /></button>
-            <span className="w-9 text-center font-bold text-foreground">{preferences.fontSize}px</span>
-            <button type="button" disabled={fontIndex >= fontSizes.length - 1} onClick={() => setPreference("fontSize", fontSizes[fontIndex + 1])} className="grid size-6 place-items-center rounded hover:bg-muted hover:text-foreground disabled:opacity-30" aria-label="Increase editor font size"><Plus className="size-3" /></button>
+            <button
+              type="button"
+              disabled={fontIndex <= 0}
+              onClick={() => setPreference("fontSize", fontSizes[fontIndex - 1])}
+              className="grid size-5 place-items-center rounded hover:bg-muted hover:text-foreground disabled:opacity-30 cursor-pointer"
+              aria-label="Decrease editor font size"
+            >
+              <Minus className="size-3" />
+            </button>
+            <span className="w-8 text-center font-bold text-foreground">{preferences.fontSize}px</span>
+            <button
+              type="button"
+              disabled={fontIndex >= fontSizes.length - 1}
+              onClick={() => setPreference("fontSize", fontSizes[fontIndex + 1])}
+              className="grid size-5 place-items-center rounded hover:bg-muted hover:text-foreground disabled:opacity-30 cursor-pointer"
+              aria-label="Increase editor font size"
+            >
+              <Plus className="size-3" />
+            </button>
           </div>
         </div>
       </div>
