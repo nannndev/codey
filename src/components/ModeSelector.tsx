@@ -41,7 +41,7 @@ export function ModeSelector({ mode, duration, onSelect, disabled, isRunningZen,
         disabled={disabled && !isRunningZen}
         className="flex-wrap justify-start gap-1.5"
       >
-        <ToggleGroupItem value="snippet" className="h-9 px-4 text-xs rounded-lg transition-all duration-150 data-[state=on]:bg-primary data-[state=on]:text-primary-foreground data-[state=on]:shadow-sm">
+        <ToggleGroupItem value="snippet" className="btn-3d h-9 px-4 text-xs font-bold rounded-lg transition-all duration-150 data-[state=on]:bg-primary data-[state=on]:text-primary-foreground">
           <Focus aria-hidden="true" />
           Snippet
         </ToggleGroupItem>
@@ -49,13 +49,13 @@ export function ModeSelector({ mode, duration, onSelect, disabled, isRunningZen,
           <ToggleGroupItem
             key={opt.duration}
             value={`timed-${opt.duration}`}
-            className="h-9 px-4 text-xs rounded-lg transition-all duration-150 data-[state=on]:bg-primary data-[state=on]:text-primary-foreground data-[state=on]:shadow-sm"
+            className="btn-3d h-9 px-4 text-xs font-bold rounded-lg transition-all duration-150 data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
           >
             <Timer aria-hidden="true" />
             {opt.label}
           </ToggleGroupItem>
         ))}
-        <ToggleGroupItem value="zen" className="h-9 px-4 text-xs rounded-lg transition-all duration-150 data-[state=on]:bg-primary data-[state=on]:text-primary-foreground data-[state=on]:shadow-sm">
+        <ToggleGroupItem value="zen" className="btn-3d h-9 px-4 text-xs font-bold rounded-lg transition-all duration-150 data-[state=on]:bg-primary data-[state=on]:text-primary-foreground">
           <Focus aria-hidden="true" />
           Zen
         </ToggleGroupItem>

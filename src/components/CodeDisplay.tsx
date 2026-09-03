@@ -24,9 +24,9 @@ interface CodeDisplayProps {
 
 type CursorPref = "block" | "underline" | "line";
 
-function BlockCursor({ char, syntax }: { char: string; syntax: SyntaxToken }) {
+function BlockCursor({ char }: { char: string; syntax: SyntaxToken }) {
   return (
-    <span className={cn("rounded-[2px] bg-primary text-primary-foreground", `syntax-${syntax}`)}>
+    <span className="rounded-[2px] bg-primary !text-primary-foreground font-black px-[1px] shadow-xs">
       {char === "\n" ? "↵\n" : char}
     </span>
   );
@@ -34,7 +34,7 @@ function BlockCursor({ char, syntax }: { char: string; syntax: SyntaxToken }) {
 
 function UnderlineCursor({ char, syntax }: { char: string; syntax: SyntaxToken }) {
   return (
-    <span className={cn("border-b-[3px] border-primary pb-0.5", `syntax-${syntax}`)}>
+    <span className={cn("border-b-[3px] border-primary pb-0.5 font-bold", `syntax-${syntax}`)}>
       {char === "\n" ? "↵\n" : char}
     </span>
   );
@@ -43,8 +43,8 @@ function UnderlineCursor({ char, syntax }: { char: string; syntax: SyntaxToken }
 function LineCursor({ char, syntax }: { char: string; syntax: SyntaxToken }) {
   return (
     <span className="relative">
-      <span className="absolute left-0 top-0 bottom-0 w-0.5 bg-primary animate-[blink_1s_step-end_infinite]" />
-      <span className={cn("pl-1", `syntax-${syntax}`)}>{char === "\n" ? "↵\n" : char}</span>
+      <span className="absolute left-0 top-0 bottom-0 w-[2.5px] bg-primary animate-[blink_1s_step-end_infinite] rounded-full shadow-[0_0_8px_var(--color-primary)]" />
+      <span className={cn("pl-[3px]", `syntax-${syntax}`)}>{char === "\n" ? "↵\n" : char}</span>
     </span>
   );
 }

@@ -176,6 +176,55 @@
   letter-spacing: .2em;
 }
 
+/* 3D Tactile Action Button Utilities */
+.btn-3d {
+  position: relative;
+  transition: transform 100ms cubic-bezier(0.4, 0, 0.2, 1), box-shadow 100ms cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 0 var(--color-border);
+}
+
+.btn-3d:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 0 var(--color-border);
+}
+
+.btn-3d:active {
+  transform: translateY(3px) !important;
+  box-shadow: 0 1px 0 var(--color-border) !important;
+}
+
+.btn-3d-amber {
+  position: relative;
+  transition: transform 100ms cubic-bezier(0.4, 0, 0.2, 1), box-shadow 100ms cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 0 #b45309;
+}
+
+.btn-3d-amber:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 0 #b45309, 0 0 20px rgba(245, 158, 11, 0.4);
+}
+
+.btn-3d-amber:active {
+  transform: translateY(3px) !important;
+  box-shadow: 0 1px 0 #b45309 !important;
+}
+
+.btn-3d-primary {
+  position: relative;
+  transition: transform 100ms cubic-bezier(0.4, 0, 0.2, 1), box-shadow 100ms cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 0 rgba(0, 0, 0, 0.35);
+}
+
+.btn-3d-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 0 rgba(0, 0, 0, 0.4);
+}
+
+.btn-3d-primary:active {
+  transform: translateY(3px) !important;
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.4) !important;
+}
+
 @media (min-width: 1024px) {
   @keyframes arcade-fall {
     from { transform: translate(-50%, -4rem); }
@@ -542,7 +591,7 @@ html {
   font-weight: 700;
 }
 
-.syntax-char.is-pending { opacity: 0.5; }
+.syntax-char.is-pending { opacity: 0.78; }
 .syntax-char.is-typed { opacity: 1; }
 .syntax-char.is-error {
   color: hsl(0 78% 62%) !important;

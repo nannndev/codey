@@ -59,7 +59,7 @@ export function CustomPractice({ onLoad }: { onLoad: (snippet: Snippet) => void 
 
   if (!open) {
     return (
-      <Button type="button" variant="outline" size="sm" onClick={() => setOpen(true)} className="gap-1.5 text-xs font-semibold">
+      <Button type="button" variant="outline" size="sm" onClick={() => setOpen(true)} className="btn-3d gap-1.5 text-xs font-bold border">
         <FileUp className="size-3.5 text-amber-500" /> Custom / Gist Practice
       </Button>
     );

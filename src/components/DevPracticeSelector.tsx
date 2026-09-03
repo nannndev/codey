@@ -47,10 +47,10 @@ export function DevPracticeSelector({ activeCategory, onSelectCategory, disabled
               type="button"
               disabled={disabled}
               onClick={() => onSelectCategory(id)}
-              className={`flex items-center gap-1.5 rounded-lg px-3.5 py-2 text-xs font-semibold transition-all ${
+              className={`btn-3d flex items-center gap-1.5 rounded-lg px-3.5 py-2 text-xs font-semibold transition-all ${
                 isActive
-                  ? "bg-primary text-primary-foreground shadow-md scale-[1.02]"
-                  : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                  ? "bg-primary text-primary-foreground shadow-md font-bold"
+                  : "bg-card border text-muted-foreground hover:bg-muted hover:text-foreground"
               } ${disabled ? "opacity-50 pointer-events-none" : ""}`}
             >
               <Icon className="size-3.5" />

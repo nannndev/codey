@@ -521,7 +521,7 @@ export default function Duel() {
                       <h4 className="font-black text-xl text-foreground">🔥 Create Duel Room</h4>
                       <p className="text-xs text-muted-foreground mt-1 max-w-xs">Create a new room with your selected language & mode settings above.</p>
                     </div>
-                    <Button type="button" size="lg" onClick={() => void createRoom(snippetForConfig(duelConfig), duelConfig)} className="w-full font-bold bg-amber-500 hover:bg-amber-400 text-zinc-950 text-base py-6 shadow-md transition-transform active:scale-[0.98]">
+                    <Button type="button" size="lg" onClick={() => void createRoom(snippetForConfig(duelConfig), duelConfig)} className="btn-3d-amber w-full font-black bg-amber-500 hover:bg-amber-400 text-zinc-950 text-base py-6 shadow-md border border-amber-400">
                       <Play data-icon="inline-start" /> Create New Room
                     </Button>
                   </div>
@@ -551,7 +551,7 @@ export default function Duel() {
                         size="lg"
                         disabled={!inputCode.trim()}
                         onClick={() => void joinRoom(inputCode)}
-                        className="font-bold py-6 px-6 bg-sky-500 hover:bg-sky-400 text-zinc-950"
+                        className="btn-3d font-extrabold py-6 px-6 bg-sky-500 hover:bg-sky-400 text-zinc-950"
                       >
                         Join
                       </Button>
