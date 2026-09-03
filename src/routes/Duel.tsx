@@ -330,7 +330,7 @@ export default function Duel() {
               1v1 Real-Time Code Race
               <span className="rounded-lg bg-amber-500/20 border border-amber-500/40 px-2.5 py-1 text-xs font-black text-amber-400">P2P WEBRTC</span>
             </h1>
-            <p className="mt-1 text-sm text-muted-foreground">Select Mode & Language, host or join room, and race in an authentic VS Code editor layout.</p>
+            <p className="mt-1 text-sm text-muted-foreground">Uji kecepatan ngetik kode secara real-time lawan teman atau dev lain. Bikin room, bagikan kode room, lalu adu WPM!</p>
           </div>
 
           <div className="flex items-center gap-2">
@@ -340,20 +340,20 @@ export default function Duel() {
                 onClick={() => setActiveTab("arena")}
                 className={`flex items-center gap-1.5 rounded-lg px-3.5 py-2 transition-colors ${activeTab === "arena" ? "bg-foreground text-background shadow-md" : "text-muted-foreground hover:bg-muted"}`}
               >
-                <Swords className="size-4" /> Race Arena
+                <Swords className="size-4" /> Arena Tanding
               </button>
               <button
                 type="button"
                 onClick={() => setActiveTab("history")}
                 className={`flex items-center gap-1.5 rounded-lg px-3.5 py-2 transition-colors ${activeTab === "history" ? "bg-foreground text-background shadow-md" : "text-muted-foreground hover:bg-muted"}`}
               >
-                <History className="size-4" /> Match History ({stats.total})
+                <History className="size-4" /> Riwayat Duel ({stats.total})
               </button>
             </div>
 
             {duelState !== "idle" && (
               <Button type="button" variant="outline" size="sm" onClick={leaveDuel} className="text-red-400 border-red-500/30 hover:bg-red-500/10">
-                Leave Duel
+                Keluar Room
               </Button>
             )}
           </div>
@@ -372,28 +372,28 @@ export default function Duel() {
               <div className="rounded-2xl border bg-card/80 p-5 shadow-sm">
                 <Flame className="mb-2 size-5 text-amber-500 animate-pulse" />
                 <div className="text-3xl font-black tabular-nums">{stats.currentStreak} 🔥</div>
-                <div className="text-[11px] uppercase tracking-wider text-muted-foreground font-bold mt-1">Current Win Streak</div>
+                <div className="text-[11px] uppercase tracking-wider text-muted-foreground font-bold mt-1">Win Streak Saat Ini</div>
               </div>
               <div className="rounded-2xl border bg-card/80 p-5 shadow-sm">
                 <Zap className="mb-2 size-5 text-sky-400" />
                 <div className="text-3xl font-black tabular-nums">{stats.bestWpm.toFixed(1)}</div>
-                <div className="text-[11px] uppercase tracking-wider text-muted-foreground font-bold mt-1">Best Duel WPM</div>
+                <div className="text-[11px] uppercase tracking-wider text-muted-foreground font-bold mt-1">Rekor WPM Duel</div>
               </div>
               <div className="rounded-2xl border bg-card/80 p-5 shadow-sm">
                 <Swords className="mb-2 size-5 text-purple-400" />
                 <div className="text-3xl font-black tabular-nums">{stats.losses}</div>
-                <div className="text-[11px] uppercase tracking-wider text-muted-foreground font-bold mt-1">Losses</div>
+                <div className="text-[11px] uppercase tracking-wider text-muted-foreground font-bold mt-1">Kekalahan</div>
               </div>
             </div>
 
             {/* Past Matches List */}
             <div className="rounded-3xl border bg-card/80 overflow-hidden shadow-lg">
               <div className="border-b bg-muted/40 px-6 py-4 text-xs font-extrabold uppercase tracking-wider text-muted-foreground">
-                Head-to-Head Duel Match Log
+                📜 Catatan Tanding Duel 1v1
               </div>
               {history.length === 0 ? (
                 <div className="grid h-44 place-items-center text-sm text-muted-foreground">
-                  No 1v1 duel history recorded yet. Create or join a race room to compete!
+                  Belum ada riwayat duel. Buat atau gabung room tanding untuk menguji skill-mu!
                 </div>
               ) : (
                 <div className="divide-y max-h-[500px] overflow-y-auto">
@@ -404,7 +404,7 @@ export default function Duel() {
                       <div key={record.id} className="grid grid-cols-[120px_1fr_140px_100px] items-center gap-4 px-6 py-4 text-sm hover:bg-muted/30 transition-colors">
                         <div className={`flex items-center gap-2 font-bold ${isWin ? "text-emerald-400" : "text-red-400"}`}>
                           {isWin ? <CheckCircle2 className="size-5" /> : <XCircle className="size-5" />}
-                          <span className="uppercase font-black">{record.outcome}</span>
+                          <span className="uppercase font-black">{isWin ? "Menang" : "Kalah"}</span>
                         </div>
 
                         <div>
@@ -440,36 +440,36 @@ export default function Duel() {
                   <div className="flex items-center gap-2 border-b pb-3">
                     <Sliders className="size-5 text-amber-500" />
                     <div>
-                      <h4 className="font-bold text-base tracking-tight text-foreground">Pre-Race Mode & Language Setup</h4>
-                      <p className="text-xs text-muted-foreground">Applies when you host. If you join a room, the host's settings replace these.</p>
+                      <h4 className="font-bold text-base tracking-tight text-foreground">⚙️ Setup Mode & Bahasa Arena</h4>
+                      <p className="text-xs text-muted-foreground">Atur aturan main saat kamu jadi Host. Pas kamu gabung room teman, pengaturan dari Host yang akan dipakai.</p>
                     </div>
                   </div>
 
                   <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                     {/* Mode Selector */}
                     <div className="space-y-2">
-                      <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Race Mode</label>
+                      <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Mode Tanding</label>
                       <div className="flex rounded-xl border bg-card p-1">
                         <button
                           type="button"
                           onClick={() => handleHostChangeMode("snippet")}
                           className={`flex-1 flex items-center justify-center gap-1.5 rounded-lg py-2 text-xs font-bold transition-all ${mode === "snippet" ? "bg-foreground text-background shadow-md" : "text-muted-foreground hover:text-foreground"}`}
                         >
-                          <Zap className="size-3.5" /> Snippet Mode
+                          <Zap className="size-3.5" /> Mode Snippet
                         </button>
                         <button
                           type="button"
                           onClick={() => handleHostChangeMode("timed")}
                           className={`flex-1 flex items-center justify-center gap-1.5 rounded-lg py-2 text-xs font-bold transition-all ${mode === "timed" ? "bg-foreground text-background shadow-md" : "text-muted-foreground hover:text-foreground"}`}
                         >
-                          <Timer className="size-3.5" /> Timed Mode
+                          <Timer className="size-3.5" /> Mode Timer
                         </button>
                       </div>
                     </div>
 
                     {/* Language Selector */}
                     <div className="space-y-2">
-                      <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Language</label>
+                      <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Bahasa Pemrograman</label>
                       <select
                         value={selectedLanguage}
                         onChange={(e) => handleHostChangeLanguage(e.target.value)}
@@ -484,7 +484,7 @@ export default function Duel() {
 
                   {/* Format Sub-Option (Length or Timed Seconds) */}
                   <div className="flex items-center gap-2 pt-2">
-                    <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Format Spec:</span>
+                    <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Durasi / Panjang Kode:</span>
                     <div className="flex gap-1.5">
                       {mode === "snippet" ? (
                         (["short", "medium", "long"] as SnippetLength[]).map((len) => (
@@ -515,27 +515,27 @@ export default function Duel() {
 
                 {/* Create or Join Room Buttons */}
                 <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-                  <div className="flex flex-col items-center justify-center rounded-3xl border border-amber-500/30 bg-amber-500/10 p-8 text-center space-y-4 shadow-xl">
+                  <div className="flex flex-col items-center justify-center rounded-3xl border border-amber-500/30 bg-gradient-to-b from-amber-500/10 to-amber-500/5 p-8 text-center space-y-4 shadow-xl hover:shadow-[0_0_30px_rgba(245,158,11,0.2)] hover:border-amber-500/50 transition-all duration-300">
                     <Swords className="size-14 text-amber-400 animate-bounce" />
                     <div>
-                      <h4 className="font-black text-xl text-foreground">Host Race Room</h4>
-                      <p className="text-xs text-muted-foreground mt-1 max-w-xs">Host a room with the configured mode & language setup.</p>
+                      <h4 className="font-black text-xl text-foreground">🔥 Buat Room Duel</h4>
+                      <p className="text-xs text-muted-foreground mt-1 max-w-xs">Bikin room baru sesuai bahasa & mode pilihanmu di atas.</p>
                     </div>
-                    <Button type="button" size="lg" onClick={() => void createRoom(snippetForConfig(duelConfig), duelConfig)} className="w-full font-bold bg-amber-500 hover:bg-amber-400 text-zinc-950 text-base py-6">
-                      <Play data-icon="inline-start" /> Create Room
+                    <Button type="button" size="lg" onClick={() => void createRoom(snippetForConfig(duelConfig), duelConfig)} className="w-full font-bold bg-amber-500 hover:bg-amber-400 text-zinc-950 text-base py-6 shadow-md transition-transform active:scale-[0.98]">
+                      <Play data-icon="inline-start" /> Buat Room Baru
                     </Button>
                   </div>
 
-                  <div className="flex flex-col items-center justify-center rounded-3xl border bg-card/70 p-8 text-center space-y-4 shadow-xl">
+                  <div className="flex flex-col items-center justify-center rounded-3xl border border-sky-500/20 bg-gradient-to-b from-sky-500/10 to-sky-500/5 p-8 text-center space-y-4 shadow-xl hover:shadow-[0_0_30px_rgba(56,189,248,0.2)] hover:border-sky-500/40 transition-all duration-300">
                     <Users className="size-14 text-sky-400" />
                     <div>
-                      <h4 className="font-black text-xl text-foreground">Join Existing Race</h4>
-                      <p className="text-xs text-muted-foreground mt-1 max-w-xs">Enter your friend's 6-character room code to join the duel.</p>
+                      <h4 className="font-black text-xl text-foreground">⚔️ Gabung Room Teman</h4>
+                      <p className="text-xs text-muted-foreground mt-1 max-w-xs">Punya kode room dari lawan? Masukkan 6 karakter kode di bawah.</p>
                     </div>
                     <div className="flex w-full gap-3">
                       <input
                         type="text"
-                        placeholder="e.g. CODEY-X892"
+                        placeholder="cth: CODEY-X892"
                         value={inputCode}
                         onChange={(e) => setInputCode(e.target.value.toUpperCase())}
                         onKeyDown={(e) => {
@@ -544,16 +544,16 @@ export default function Duel() {
                             void joinRoom(inputCode);
                           }
                         }}
-                        className="flex-1 rounded-2xl border bg-background px-4 py-3 text-center text-base font-mono font-bold uppercase tracking-wider"
+                        className="flex-1 rounded-2xl border bg-background px-4 py-3 text-center text-base font-mono font-bold uppercase tracking-wider focus:outline-none focus:ring-2 focus:ring-sky-500"
                       />
                       <Button
                         type="button"
                         size="lg"
                         disabled={!inputCode.trim()}
                         onClick={() => void joinRoom(inputCode)}
-                        className="font-bold py-6 px-6"
+                        className="font-bold py-6 px-6 bg-sky-500 hover:bg-sky-400 text-zinc-950"
                       >
-                        Join
+                        Gabung
                       </Button>
                     </div>
                   </div>
@@ -567,12 +567,12 @@ export default function Duel() {
                 {/* Room Link Bar */}
                 <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-amber-500/40 bg-amber-500/10 p-5">
                   <div>
-                    <span className="text-xs uppercase tracking-wider text-amber-400 font-bold block">Room Code</span>
+                    <span className="text-xs uppercase tracking-wider text-amber-400 font-bold block">📋 Kode Room Duel</span>
                     <span className="text-3xl font-black font-mono tracking-widest text-foreground">{roomCode}</span>
                   </div>
-                  <Button type="button" variant="outline" size="sm" onClick={handleCopyCode} className="border-amber-500/40 text-amber-400 hover:bg-amber-500/20">
+                  <Button type="button" variant="outline" size="sm" onClick={handleCopyCode} className="border-amber-500/40 text-amber-400 hover:bg-amber-500/20 font-bold">
                     {copied ? <Check className="size-4" /> : <Copy className="size-4" />}
-                    {copied ? "Copied!" : "Copy Code"}
+                    {copied ? "Tersalin!" : "Salin Kode Room"}
                   </Button>
                 </div>
 
@@ -580,10 +580,10 @@ export default function Duel() {
                 <div className="rounded-2xl border bg-muted/30 p-5 space-y-4">
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <span className="text-xs uppercase tracking-wider text-muted-foreground font-bold flex items-center gap-1.5">
-                      <Code2 className="size-4 text-amber-400" /> Match Settings {isHost ? "(You Control)" : "(Set by Host)"}
+                      <Code2 className="size-4 text-amber-400" /> Aturan Duel {isHost ? "(Kamu Host)" : "(Diatur oleh Host)"}
                     </span>
                     <span className="text-[11px] font-bold text-muted-foreground">
-                      {connectionStatus === "connected" ? "🟢 Both players synced" : "⏳ Waiting for opponent"}
+                      {connectionStatus === "connected" ? "🟢 Kedua pemain terhubung" : "⏳ Menunggu lawan bergabung..."}
                     </span>
                   </div>
 
@@ -593,11 +593,11 @@ export default function Duel() {
                       <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">Mode</div>
                       <div className="mt-1 flex items-center gap-1.5 text-sm font-black text-foreground">
                         {mode === "timed" ? <Timer className="size-4 text-amber-400" /> : <Zap className="size-4 text-amber-400" />}
-                        {mode === "timed" ? "Timed" : "Snippet"}
+                        {mode === "timed" ? "Timer" : "Snippet"}
                       </div>
                     </div>
                     <div className="rounded-xl border bg-card/70 px-3 py-2.5">
-                      <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">Language</div>
+                      <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">Bahasa</div>
                       <div className="mt-1 flex items-center gap-1.5 text-sm font-black text-foreground">
                         <Code2 className="size-4 text-sky-400" />
                         {snippet.language}
@@ -605,14 +605,14 @@ export default function Duel() {
                     </div>
                     <div className="rounded-xl border bg-card/70 px-3 py-2.5">
                       <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">
-                        {mode === "timed" ? "Duration" : "Length"}
+                        {mode === "timed" ? "Durasi" : "Panjang Snippet"}
                       </div>
                       <div className="mt-1 text-sm font-black capitalize text-foreground">
                         {mode === "timed" ? `${durationSeconds}s` : snippetLength}
                       </div>
                     </div>
                     <div className="rounded-xl border bg-card/70 px-3 py-2.5">
-                      <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">Characters</div>
+                      <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">Karakter Kode</div>
                       <div className="mt-1 font-mono text-sm font-black tabular-nums text-foreground">{snippet.code.length}</div>
                     </div>
                   </div>
@@ -676,20 +676,20 @@ export default function Duel() {
                         variant="outline"
                         size="sm"
                         onClick={() => updateLobbyConfig(duelConfig, snippetForConfig(duelConfig))}
-                        className="gap-1.5 text-xs"
+                        className="gap-1.5 text-xs font-bold"
                       >
-                        <Sparkles className="size-3.5 text-amber-400" /> Shuffle
+                        <Sparkles className="size-3.5 text-amber-400" /> Acak Snippet
                       </Button>
                     </div>
                   ) : (
                     <p className="border-t pt-4 text-xs text-muted-foreground">
-                      {opponent.name} is the host and picks the mode, language, and format. Both of you race the exact same snippet.
+                      {opponent.name} adalah Host dan mengatur bahasa serta durasi duel. Kalian berdua akan ngetik kode yang persis sama.
                     </p>
                   )}
 
                   {isHost && mode === "snippet" && unavailableLengths.has(snippetLength) && (
                     <p className="text-[11px] text-amber-400/80">
-                      * Not enough {selectedLanguage} snippets for a full {snippetLength} run — you'll race {snippet.code.length} characters.
+                      * Jumlah snippet {selectedLanguage} terbatas — kalian akan tanding dengan {snippet.code.length} karakter.
                     </p>
                   )}
                 </div>
@@ -700,9 +700,9 @@ export default function Duel() {
                     <div className="grid size-16 place-items-center mx-auto rounded-2xl bg-amber-500 text-zinc-950 font-bold text-2xl">
                       {playerName.slice(0, 1).toUpperCase()}
                     </div>
-                    <h4 className="font-bold text-base">{playerName} (You)</h4>
+                    <h4 className="font-bold text-base">{playerName} (Kamu)</h4>
                     <Button type="button" variant={isReady ? "default" : "outline"} size="lg" onClick={toggleReady} className="w-full font-bold">
-                      {isReady ? "READY ✓" : "Set Ready"}
+                      {isReady ? "SIAP TANDING ✓" : "Klik untuk Siap"}
                     </Button>
                   </div>
 
@@ -711,8 +711,8 @@ export default function Duel() {
                       {opponent.name.slice(0, 1).toUpperCase()}
                     </div>
                     <h4 className="font-bold text-base">{opponent.name}</h4>
-                    <div className={`text-xs font-bold py-2 rounded-xl border ${opponentReady ? "border-emerald-500/40 text-emerald-400 bg-emerald-500/15" : "border-border text-muted-foreground"}`}>
-                      {connectionStatus === "connected" ? (opponentReady ? "READY ✓" : "Waiting for ready...") : "Waiting for player..."}
+                    <div className={`text-xs font-bold py-2.5 rounded-xl border ${opponentReady ? "border-emerald-500/40 text-emerald-400 bg-emerald-500/15" : "border-border text-muted-foreground"}`}>
+                      {connectionStatus === "connected" ? (opponentReady ? "SIAP TANDING ✓" : "Menunggu lawan siap...") : "Menunggu lawan bergabung..."}
                     </div>
                   </div>
                 </div>
@@ -726,7 +726,7 @@ export default function Duel() {
                     onClick={startMatch}
                     className="w-full font-black bg-amber-500 hover:bg-amber-400 text-zinc-950 text-base py-6 shadow-xl"
                   >
-                    <Play data-icon="inline-start" /> START 1v1 RACE NOW
+                    <Play data-icon="inline-start" /> MULAI DUEL SEKARANG!
                   </Button>
                 )}
               </div>
@@ -737,7 +737,7 @@ export default function Duel() {
               <div className="grid h-80 place-items-center text-center space-y-4 animate-fade-in rounded-3xl border bg-card/80 p-8 shadow-xl">
                 <span className="text-8xl font-black text-amber-400 animate-ping">{countdownSeconds}</span>
                 <div className="space-y-2">
-                  <p className="text-base font-bold text-muted-foreground uppercase tracking-widest">GET READY TO TYPE!</p>
+                  <p className="text-base font-bold text-muted-foreground uppercase tracking-widest">SIAP-SIAP KETIK!</p>
                   <p className="text-sm font-bold text-foreground">
                     {snippet.language} · {mode === "timed" ? `Timed ${durationSeconds}s` : `${snippetLength} snippet`} · vs {opponent.name}
                   </p>

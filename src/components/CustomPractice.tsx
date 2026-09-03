@@ -19,7 +19,7 @@ export function CustomPractice({ onLoad }: { onLoad: (snippet: Snippet) => void 
 
   const readFile = async (file: File) => {
     if (file.size > 100 * 1024) {
-      setError("Maximum file size is 100 KB.");
+      setError("Ukuran file maksimal 100 KB.");
       return;
     }
     const text = await file.text();
@@ -31,7 +31,7 @@ export function CustomPractice({ onLoad }: { onLoad: (snippet: Snippet) => void 
 
   const handleFetchGist = async () => {
     if (!gistUrl.trim()) {
-      setError("Enter a GitHub Gist URL or raw file link.");
+      setError("Masukkan URL GitHub Gist atau raw file link yang valid.");
       return;
     }
     setError("");
@@ -42,7 +42,7 @@ export function CustomPractice({ onLoad }: { onLoad: (snippet: Snippet) => void 
       setOpen(false);
       setGistUrl("");
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Failed to load Gist.");
+      setError(err instanceof Error ? err.message : "Gagal mengambil kode dari Gist.");
     } finally {
       setLoadingGist(false);
     }
@@ -50,7 +50,7 @@ export function CustomPractice({ onLoad }: { onLoad: (snippet: Snippet) => void 
 
   const start = () => {
     if (code.trim().length < 20) {
-      setError("Add at least 20 characters of code.");
+      setError("Minimal 20 karakter kode untuk memulai latihan.");
       return;
     }
     onLoad({ id: `custom-${Date.now()}`, filename, language, code: code.trimEnd(), sourceType: "custom" });
@@ -59,49 +59,49 @@ export function CustomPractice({ onLoad }: { onLoad: (snippet: Snippet) => void 
 
   if (!open) {
     return (
-      <Button type="button" variant="outline" size="sm" onClick={() => setOpen(true)}>
-        <FileUp data-icon="inline-start" /> Custom / Gist Practice
+      <Button type="button" variant="outline" size="sm" onClick={() => setOpen(true)} className="gap-1.5 text-xs font-semibold">
+        <FileUp className="size-3.5 text-amber-500" /> Custom / Gist Practice
       </Button>
     );
   }
 
   return (
-    <section className="rounded-xl border bg-card/85 p-4 backdrop-blur-sm shadow-md">
-      <div className="mb-3 flex items-start justify-between gap-4">
+    <section className="rounded-2xl border bg-card/90 p-5 backdrop-blur-md shadow-xl transition-all animate-scale-in">
+      <div className="mb-4 flex items-start justify-between gap-4">
         <div>
-          <h2 className="text-sm font-bold">Custom Practice & Import</h2>
+          <h2 className="text-sm font-bold text-foreground">📁 Latihan Kode Pribadi & Import Gist</h2>
           <p className="mt-1 flex items-center gap-1.5 text-[11px] text-muted-foreground">
-            <LockKeyhole className="size-3" /> Practice local code or import directly from GitHub Gist.
+            <LockKeyhole className="size-3 text-emerald-400" /> Privasi aman — kode lokal hanya diproses di browsermu.
           </p>
         </div>
         <button
           type="button"
           onClick={() => setOpen(false)}
-          className="rounded-md p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground"
+          className="rounded-lg p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground"
         >
           <X className="size-4" />
         </button>
       </div>
 
       {/* Tabs */}
-      <div className="mb-3 flex gap-2 border-b pb-2">
+      <div className="mb-4 flex gap-2 border-b border-border/60 pb-2">
         <button
           type="button"
           onClick={() => { setTab("paste"); setError(""); }}
-          className={`flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-md transition-colors ${
-            tab === "paste" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted"
+          className={`flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-lg transition-colors ${
+            tab === "paste" ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:bg-muted"
           }`}
         >
-          <FileUp className="size-3.5" /> Paste / Upload File
+          <FileUp className="size-3.5" /> Paste & Upload File
         </button>
         <button
           type="button"
           onClick={() => { setTab("gist"); setError(""); }}
-          className={`flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-md transition-colors ${
-            tab === "gist" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted"
+          className={`flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-lg transition-colors ${
+            tab === "gist" ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:bg-muted"
           }`}
         >
-          <Link className="size-3.5" /> Import Gist / Raw URL
+          <Link className="size-3.5" /> Import Gist / Raw Link
         </button>
       </div>
 
@@ -117,13 +117,13 @@ export function CustomPractice({ onLoad }: { onLoad: (snippet: Snippet) => void 
             }}
           />
           <div className="mb-3 flex flex-wrap gap-2">
-            <Button type="button" variant="outline" size="sm" onClick={() => inputRef.current?.click()}>
-              <FileUp data-icon="inline-start" /> Upload file
+            <Button type="button" variant="outline" size="sm" onClick={() => inputRef.current?.click()} className="text-xs">
+              <FileUp data-icon="inline-start" /> Pilih File Kode
             </Button>
             <select
               value={language}
               onChange={(event) => setLanguage(event.target.value)}
-              className="h-8 rounded-md border bg-background px-3 text-xs"
+              className="h-8 rounded-lg border bg-background px-3 text-xs font-medium"
             >
               {languages.map((item) => (
                 <option key={item}>{item}</option>
@@ -132,29 +132,29 @@ export function CustomPractice({ onLoad }: { onLoad: (snippet: Snippet) => void 
             <input
               value={filename}
               onChange={(event) => setFilename(event.target.value)}
-              className="h-8 min-w-40 flex-1 rounded-md border bg-background px-3 text-xs"
+              className="h-8 min-w-40 flex-1 rounded-lg border bg-background px-3 text-xs font-mono"
               aria-label="Filename"
             />
           </div>
           <textarea
             value={code}
             onChange={(event) => setCode(event.target.value)}
-            placeholder="Paste code here, or upload any text-based source file..."
-            className="min-h-40 w-full resize-y rounded-lg border bg-background p-3 font-mono text-xs leading-relaxed outline-none focus:ring-1 focus:ring-ring"
+            placeholder="Paste potongan kode milikmu di sini atau upload file source code..."
+            className="min-h-40 w-full resize-y rounded-xl border bg-background p-3 font-mono text-xs leading-relaxed outline-none focus:ring-2 focus:ring-primary/40"
           />
           <div className="mt-3 flex items-center justify-between gap-3">
-            <span className={`text-[11px] ${error ? "text-destructive" : "text-muted-foreground"}`}>
-              {error || `${code.length.toLocaleString()} characters · 100 KB max`}
+            <span className={`text-[11px] font-medium ${error ? "text-destructive font-bold" : "text-muted-foreground"}`}>
+              {error || `${code.length.toLocaleString()} karakter · batas max 100 KB`}
             </span>
-            <Button type="button" size="sm" onClick={start}>
-              Start local practice
+            <Button type="button" size="sm" onClick={start} className="font-bold">
+              Mulai Latihan Kode
             </Button>
           </div>
         </>
       ) : (
         <div className="space-y-3">
           <p className="text-xs text-muted-foreground">
-            Paste a public GitHub Gist link (e.g. <code className="bg-muted px-1 rounded">https://gist.github.com/user/gist_id</code>) or a raw GitHub file URL.
+            Masukkan link GitHub Gist publik (cth: <code className="bg-muted px-1.5 py-0.5 rounded font-mono text-[11px]">https://gist.github.com/user/gist_id</code>) atau raw GitHub file URL.
           </p>
           <div className="flex gap-2">
             <input
@@ -162,13 +162,13 @@ export function CustomPractice({ onLoad }: { onLoad: (snippet: Snippet) => void 
               onChange={(e) => setGistUrl(e.target.value)}
               onKeyDown={(e) => { if (e.key === "Enter") void handleFetchGist(); }}
               placeholder="https://gist.github.com/username/gist_id"
-              className="h-9 flex-1 rounded-md border bg-background px-3 text-xs outline-none focus:ring-1 focus:ring-ring"
+              className="h-10 flex-1 rounded-xl border bg-background px-3 text-xs font-mono outline-none focus:ring-2 focus:ring-primary/40"
             />
-            <Button type="button" size="sm" onClick={handleFetchGist} disabled={loadingGist}>
-              {loadingGist ? <LoaderCircle className="size-4 animate-spin" /> : "Fetch & Practice"}
+            <Button type="button" size="sm" onClick={handleFetchGist} disabled={loadingGist} className="font-bold h-10 px-4">
+              {loadingGist ? <LoaderCircle className="size-4 animate-spin" /> : "Ambil & Latih Kode"}
             </Button>
           </div>
-          {error && <p className="text-xs text-destructive">{error}</p>}
+          {error && <p className="text-xs text-destructive font-semibold">{error}</p>}
         </div>
       )}
     </section>
