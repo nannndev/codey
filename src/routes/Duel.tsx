@@ -586,90 +586,96 @@ export default function Duel() {
 
             {/* ──── SCREEN 2: LOBBY ──── */}
             {duelState === "lobby" && (
-              <div className="space-y-6 rounded-3xl border bg-card/80 p-6 shadow-xl">
+              <div className="space-y-4 glass-card rounded-2xl p-4 sm:p-5 shadow-sm">
                 {/* Room Link Bar */}
-                <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-amber-500/40 bg-amber-500/10 p-5">
+                <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3">
                   <div>
-                    <span className="text-xs uppercase tracking-wider text-amber-400 font-bold block">📋 Duel Room Code</span>
-                    <span className="text-3xl font-black font-mono tracking-widest text-foreground">{roomCode}</span>
+                    <span className="text-[10px] uppercase tracking-wider text-amber-400 font-bold block">📋 Duel Room Code</span>
+                    <span className="text-xl sm:text-2xl font-black font-mono tracking-widest text-foreground">{roomCode}</span>
                   </div>
-                  <Button type="button" variant="outline" size="sm" onClick={handleCopyCode} className="border-amber-500/40 text-amber-400 hover:bg-amber-500/20 font-bold">
-                    {copied ? <Check className="size-4" /> : <Copy className="size-4" />}
-                    {copied ? "Copied!" : "Copy Room Code"}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={handleCopyCode}
+                    className="h-8 px-3 text-xs font-bold border-amber-500/40 text-amber-400 hover:bg-amber-500/20 rounded-lg cursor-pointer"
+                  >
+                    {copied ? <Check className="size-3.5" /> : <Copy className="size-3.5" />}
+                    {copied ? "Copied!" : "Copy Code"}
                   </Button>
                 </div>
 
                 {/* Agreed match settings — rendered identically for host and guest */}
-                <div className="rounded-2xl border bg-muted/30 p-5 space-y-4">
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <span className="text-xs uppercase tracking-wider text-muted-foreground font-bold flex items-center gap-1.5">
-                      <Code2 className="size-4 text-amber-400" /> Duel Rules {isHost ? "(You are Host)" : "(Set by Host)"}
+                <div className="rounded-xl border border-border/50 bg-card/40 p-3.5 space-y-3">
+                  <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/40 pb-2">
+                    <span className="text-xs uppercase tracking-wider text-foreground font-bold flex items-center gap-1.5 font-sans">
+                      <Code2 className="size-3.5 text-amber-400" /> Duel Match Rules {isHost ? "(Host)" : "(Set by Host)"}
                     </span>
-                    <span className="text-[11px] font-bold text-muted-foreground">
-                      {connectionStatus === "connected" ? "🟢 Both players connected" : "⏳ Waiting for opponent to join..."}
+                    <span className="text-[11px] font-semibold text-muted-foreground">
+                      {connectionStatus === "connected" ? "🟢 Both players connected" : "⏳ Waiting for opponent..."}
                     </span>
                   </div>
 
                   {/* The three facts both players must agree on before racing */}
-                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                    <div className="rounded-xl border bg-card/70 px-3 py-2.5">
-                      <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">Mode</div>
-                      <div className="mt-1 flex items-center gap-1.5 text-sm font-black text-foreground">
-                        {mode === "timed" ? <Timer className="size-4 text-amber-400" /> : <Zap className="size-4 text-amber-400" />}
+                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                    <div className="rounded-lg border border-border/50 bg-background/50 px-2.5 py-2">
+                      <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Mode</div>
+                      <div className="mt-0.5 flex items-center gap-1 text-xs font-bold text-foreground">
+                        {mode === "timed" ? <Timer className="size-3 text-amber-400" /> : <Zap className="size-3 text-amber-400" />}
                         {mode === "timed" ? "Timer" : "Snippet"}
                       </div>
                     </div>
-                    <div className="rounded-xl border bg-card/70 px-3 py-2.5">
-                      <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">Language</div>
-                      <div className="mt-1 flex items-center gap-1.5 text-sm font-black text-foreground">
-                        <Code2 className="size-4 text-sky-400" />
+                    <div className="rounded-lg border border-border/50 bg-background/50 px-2.5 py-2">
+                      <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Language</div>
+                      <div className="mt-0.5 flex items-center gap-1 text-xs font-bold text-foreground">
+                        <Code2 className="size-3 text-sky-400" />
                         {snippet.language}
                       </div>
                     </div>
-                    <div className="rounded-xl border bg-card/70 px-3 py-2.5">
-                      <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">
+                    <div className="rounded-lg border border-border/50 bg-background/50 px-2.5 py-2">
+                      <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
                         {mode === "timed" ? "Duration" : "Snippet Length"}
                       </div>
-                      <div className="mt-1 text-sm font-black capitalize text-foreground">
+                      <div className="mt-0.5 text-xs font-bold capitalize text-foreground">
                         {mode === "timed" ? `${durationSeconds}s` : snippetLength}
                       </div>
                     </div>
-                    <div className="rounded-xl border bg-card/70 px-3 py-2.5">
-                      <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">Code Length</div>
-                      <div className="mt-1 font-mono text-sm font-black tabular-nums text-foreground">{snippet.code.length}</div>
+                    <div className="rounded-lg border border-border/50 bg-background/50 px-2.5 py-2">
+                      <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Code Length</div>
+                      <div className="mt-0.5 font-mono text-xs font-bold tabular-nums text-foreground">{snippet.code.length} chars</div>
                     </div>
                   </div>
 
                   {isHost ? (
-                    <div className="flex flex-wrap items-center gap-2 border-t pt-4">
-                      <div className="flex rounded-xl border bg-card p-1">
+                    <div className="flex flex-wrap items-center gap-2 border-t border-border/40 pt-2.5">
+                      <div className="flex rounded-lg border border-border/60 bg-card/60 p-0.5 h-8">
                         <button
                           type="button"
                           onClick={() => handleHostChangeMode("snippet")}
-                          className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${mode === "snippet" ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground"}`}
+                          className={`flex items-center gap-1 rounded-md px-2.5 py-1 text-xs font-semibold transition-all cursor-pointer ${mode === "snippet" ? "bg-foreground text-background shadow-xs font-bold" : "text-muted-foreground hover:text-foreground"}`}
                         >
-                          <Zap className="size-3.5" /> Snippet
+                          <Zap className="size-3" /> Snippet
                         </button>
                         <button
                           type="button"
                           onClick={() => handleHostChangeMode("timed")}
-                          className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${mode === "timed" ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground"}`}
+                          className={`flex items-center gap-1 rounded-md px-2.5 py-1 text-xs font-semibold transition-all cursor-pointer ${mode === "timed" ? "bg-foreground text-background shadow-xs font-bold" : "text-muted-foreground hover:text-foreground"}`}
                         >
-                          <Timer className="size-3.5" /> Timed
+                          <Timer className="size-3" /> Timed
                         </button>
                       </div>
 
                       <select
                         value={selectedLanguage}
                         onChange={(e) => handleHostChangeLanguage(e.target.value)}
-                        className="rounded-xl border bg-card px-3 py-2 text-xs font-bold text-foreground cursor-pointer"
+                        className="h-8 rounded-lg border border-border/60 bg-card/60 px-2.5 text-xs font-mono font-semibold text-foreground cursor-pointer"
                       >
                         {languages.map((l) => (
                           <option key={l}>{l}</option>
                         ))}
                       </select>
 
-                      <div className="flex gap-1.5">
+                      <div className="flex gap-1 h-8 items-center">
                         {mode === "snippet"
                           ? (["short", "medium", "long"] as SnippetLength[]).map((len) => (
                               <button
@@ -677,7 +683,7 @@ export default function Duel() {
                                 type="button"
                                 onClick={() => handleHostChangeSnippetLength(len)}
                                 title={unavailableLengths.has(len) ? `Not enough ${selectedLanguage} snippets for a full ${len} run` : undefined}
-                                className={`rounded-lg border px-2.5 py-1.5 text-xs font-bold capitalize transition-colors ${snippetLength === len ? "bg-amber-500/20 border-amber-500/60 text-amber-400" : "bg-card text-muted-foreground hover:text-foreground"}`}
+                                className={`h-8 rounded-lg border px-2 text-xs font-semibold capitalize transition-all cursor-pointer ${snippetLength === len ? "bg-amber-500 text-zinc-950 border-amber-500 font-bold shadow-xs" : "border-border/60 bg-card/60 text-muted-foreground hover:text-foreground"}`}
                               >
                                 {len}{unavailableLengths.has(len) ? " *" : ""}
                               </button>
@@ -687,7 +693,7 @@ export default function Duel() {
                                 key={dur}
                                 type="button"
                                 onClick={() => handleHostChangeDuration(dur)}
-                                className={`rounded-lg border px-2.5 py-1.5 text-xs font-bold transition-colors ${durationSeconds === dur ? "bg-amber-500/20 border-amber-500/60 text-amber-400" : "bg-card text-muted-foreground hover:text-foreground"}`}
+                                className={`h-8 rounded-lg border px-2 text-xs font-semibold transition-all cursor-pointer ${durationSeconds === dur ? "bg-amber-500 text-zinc-950 border-amber-500 font-bold shadow-xs" : "border-border/60 bg-card/60 text-muted-foreground hover:text-foreground"}`}
                               >
                                 {dur}s
                               </button>
@@ -699,42 +705,48 @@ export default function Duel() {
                         variant="outline"
                         size="sm"
                         onClick={() => updateLobbyConfig(duelConfig, snippetForConfig(duelConfig))}
-                        className="gap-1.5 text-xs font-bold"
+                        className="h-8 gap-1 text-xs font-semibold rounded-lg cursor-pointer"
                       >
-                        <Sparkles className="size-3.5 text-amber-400" /> Randomize Snippet
+                        <Sparkles className="size-3 text-amber-400" /> Randomize Snippet
                       </Button>
                     </div>
                   ) : (
-                    <p className="border-t pt-4 text-xs text-muted-foreground">
-                      {opponent.name} is the Host and manages language & duration settings. You will both type the exact same code.
+                    <p className="border-t border-border/40 pt-2 text-xs text-muted-foreground">
+                      {opponent.name} is the Host and manages match settings. You will both type the exact same code.
                     </p>
                   )}
 
                   {isHost && mode === "snippet" && unavailableLengths.has(snippetLength) && (
-                    <p className="text-[11px] text-amber-400/80">
+                    <p className="text-[10px] text-amber-400/80">
                       * Limited {selectedLanguage} snippets available — you will race with {snippet.code.length} characters.
                     </p>
                   )}
                 </div>
 
                 {/* Matchup Players Grid */}
-                <div className="grid grid-cols-2 gap-5">
-                  <div className={`rounded-2xl border p-6 text-center space-y-4 ${isReady ? "border-emerald-500/60 bg-emerald-500/10 shadow-lg" : "border-border"}`}>
-                    <div className="grid size-16 place-items-center mx-auto rounded-2xl bg-amber-500 text-zinc-950 font-bold text-2xl">
+                <div className="grid grid-cols-2 gap-3 sm:gap-4">
+                  <div className={`rounded-xl border p-4 text-center space-y-2.5 transition-all ${isReady ? "border-emerald-500/50 bg-emerald-500/10 shadow-xs" : "border-border/60 bg-card/40"}`}>
+                    <div className="grid size-12 place-items-center mx-auto rounded-xl bg-amber-500 text-zinc-950 font-black text-lg shadow-xs">
                       {playerName.slice(0, 1).toUpperCase()}
                     </div>
-                    <h4 className="font-bold text-base">{playerName} (You)</h4>
-                    <Button type="button" variant={isReady ? "default" : "outline"} size="lg" onClick={toggleReady} className="w-full font-bold">
+                    <h4 className="font-bold text-xs sm:text-sm text-foreground">{playerName} (You)</h4>
+                    <Button
+                      type="button"
+                      variant={isReady ? "default" : "outline"}
+                      size="sm"
+                      onClick={toggleReady}
+                      className="w-full h-8 text-xs font-bold rounded-lg cursor-pointer"
+                    >
                       {isReady ? "READY TO RACE ✓" : "Click to Ready"}
                     </Button>
                   </div>
 
-                  <div className={`rounded-2xl border p-6 text-center space-y-4 ${opponentReady ? "border-emerald-500/60 bg-emerald-500/10 shadow-lg" : "border-border"}`}>
-                    <div className="grid size-16 place-items-center mx-auto rounded-2xl bg-sky-500 text-zinc-950 font-bold text-2xl">
+                  <div className={`rounded-xl border p-4 text-center space-y-2.5 transition-all ${opponentReady ? "border-emerald-500/50 bg-emerald-500/10 shadow-xs" : "border-border/60 bg-card/40"}`}>
+                    <div className="grid size-12 place-items-center mx-auto rounded-xl bg-sky-500 text-zinc-950 font-black text-lg shadow-xs">
                       {opponent.name.slice(0, 1).toUpperCase()}
                     </div>
-                    <h4 className="font-bold text-base">{opponent.name}</h4>
-                    <div className={`text-xs font-bold py-2.5 rounded-xl border ${opponentReady ? "border-emerald-500/40 text-emerald-400 bg-emerald-500/15" : "border-border text-muted-foreground"}`}>
+                    <h4 className="font-bold text-xs sm:text-sm text-foreground">{opponent.name}</h4>
+                    <div className={`text-xs font-semibold py-1.5 rounded-lg border ${opponentReady ? "border-emerald-500/40 text-emerald-400 bg-emerald-500/15 font-bold" : "border-border/60 text-muted-foreground bg-card/40"}`}>
                       {connectionStatus === "connected" ? (opponentReady ? "READY TO RACE ✓" : "Waiting for opponent...") : "Waiting for opponent to join..."}
                     </div>
                   </div>
@@ -744,12 +756,11 @@ export default function Duel() {
                 {isHost && (
                   <Button
                     type="button"
-                    size="lg"
                     disabled={!isReady || !opponentReady}
                     onClick={startMatch}
-                    className="w-full font-black bg-amber-500 hover:bg-amber-400 text-zinc-950 text-base py-6 shadow-xl"
+                    className="w-full h-10 font-black bg-amber-500 hover:bg-amber-400 text-zinc-950 text-xs sm:text-sm rounded-xl shadow-md transition-all cursor-pointer flex items-center justify-center gap-1.5"
                   >
-                    <Play data-icon="inline-start" /> START DUEL NOW!
+                    <Play className="size-4 fill-current" /> START DUEL NOW!
                   </Button>
                 )}
               </div>

@@ -1,6 +1,7 @@
-import { ArrowLeft, Command, Flame, Maximize2, Play, RotateCcw, Volume2, VolumeX, Type, Sparkles, Target } from "lucide-react";
+import { ArrowLeft, Command, Flame, Headphones, Maximize2, Play, RotateCcw, Volume2, VolumeX, Type, Sparkles, Target } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useEffect, useRef, useState } from "react";
+import { useFlowRadio } from "@/components/RadioProvider";
 import {
   usePreferences,
   DEFAULT_SOUND_TUNING,
@@ -107,6 +108,7 @@ const SOUND_KNOBS: Array<{ key: keyof Omit<KeyboardSoundTuning, "base">; label: 
 
 export default function Settings() {
   const { preferences, setPreference } = usePreferences();
+  const radio = useFlowRadio();
   const { user } = useAuth();
   const [settings, setSettings] = useState(getSettings);
   const previewSound = useKeyboardSound(
@@ -351,6 +353,26 @@ export default function Settings() {
                     </div>
                   </div>
                 )}
+              </div>
+
+              {/* Flow State Radio */}
+              <div className="pt-3">
+                <div className="flex items-center justify-between gap-4">
+                  <div className="flex items-start gap-2.5 min-w-0">
+                    <Headphones className={cn("mt-0.5 size-4 shrink-0", radio.isPlaying ? "text-amber-500" : "text-muted-foreground")} />
+                    <div>
+                      <p className="text-xs font-semibold text-foreground">Flow State Ambient Radio</p>
+                      <p className="text-[11px] text-muted-foreground leading-snug">
+                        Background Lo-Fi beats, Synthwave & rain soundscapes for laser focus.
+                      </p>
+                    </div>
+                  </div>
+                  <SettingSwitch
+                    checked={radio.isPlaying}
+                    onCheckedChange={radio.togglePlay}
+                    label="Toggle Flow State Radio"
+                  />
+                </div>
               </div>
             </div>
           </div>
