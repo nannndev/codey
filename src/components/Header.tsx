@@ -4,6 +4,7 @@ import {
   BarChart3,
   Flame,
   Gamepad2,
+  Headphones,
   Heart,
   Keyboard,
   LogIn,
@@ -22,12 +23,14 @@ import { ThemeToggle } from "./ThemeToggle";
 import { Button } from "./ui/button";
 import { useAuth } from "./AuthProvider";
 import { usePreferences } from "./PreferencesProvider";
+import { useFlowRadio } from "./RadioProvider";
 import { SoundPackModal } from "./SoundPackModal";
 import { ThemeStudioModal } from "./ThemeStudioModal";
 import { cn } from "@/lib/utils";
 
 export function Header() {
   const location = useLocation();
+  const radio = useFlowRadio();
   const { user, loading, configured, login, logout } = useAuth();
   const { preferences, setPreference } = usePreferences();
   const [showSoundModal, setShowSoundModal] = useState(false);
@@ -138,6 +141,25 @@ export function Header() {
               title="Mechanical Switch Sound Engine"
             >
               <Volume2 className="size-4" />
+            </button>
+
+            <button
+              type="button"
+              onClick={radio.togglePlay}
+              className={cn(
+                "rounded-lg p-2 transition-colors shrink-0 cursor-pointer",
+                radio.isPlaying
+                  ? "text-amber-500 bg-amber-500/15 shadow-xs"
+                  : "text-muted-foreground hover:text-foreground hover:bg-muted/80"
+              )}
+              aria-label="Flow State Radio"
+              title={
+                radio.isPlaying
+                  ? `Flow Radio: Playing (${radio.stationInfo.name}) - Click to Pause`
+                  : "Flow Radio: Click to Play Ambient Lo-Fi / Synthwave"
+              }
+            >
+              <Headphones className={cn("size-4", radio.isPlaying && "animate-pulse")} />
             </button>
 
             <button
