@@ -440,6 +440,16 @@ html {
   --syntax-plain: #f0eff1; --syntax-keyword: #fef445; --syntax-string: #ff7edb; --syntax-comment: #614d85;
   --syntax-number: #f97e72; --syntax-function: #36f9f6; --syntax-type: #fe4450; --syntax-operator: #fef445; --syntax-property: #72f1b8;
 }
+[data-editor-theme="gruvbox"] .code-window {
+  --editor-bg: #282828; --editor-chrome: #1d2021; --editor-border: #504945;
+  --syntax-plain: #ebdbb2; --syntax-keyword: #fb4934; --syntax-string: #b8bb26; --syntax-comment: #928374;
+  --syntax-number: #d3869b; --syntax-function: #fabd2f; --syntax-type: #8ec07c; --syntax-operator: #fe8019; --syntax-property: #83a598;
+}
+[data-editor-theme="cyberpunk"] .code-window {
+  --editor-bg: #0d0f18; --editor-chrome: #05060a; --editor-border: rgba(245, 158, 11, 0.35);
+  --syntax-plain: #00f0ff; --syntax-keyword: #ff0055; --syntax-string: #ffe600; --syntax-comment: #52607b;
+  --syntax-number: #9d00ff; --syntax-function: #00ff66; --syntax-type: #ff0055; --syntax-operator: #ff0055; --syntax-property: #00f0ff;
+}
 
 .code-viewport {
   height: clamp(20rem, 48vh, 32rem);

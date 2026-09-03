@@ -26,6 +26,8 @@ const THEMES: ThemeOption[] = [
   { id: "dracula", name: "Dracula Neon", author: "Zeno Rocha", bg: "#282a36", fg: "#f8f8f2", keyword: "#ff79c6", string: "#f1fa8c", comment: "#6272a4", function: "#50fa7b" },
   { id: "nord", name: "Nord Frost", author: "Arctic Ice Studio", bg: "#2e3440", fg: "#d8dee9", keyword: "#81a1c1", string: "#a3be8c", comment: "#616e88", function: "#88c0d0" },
   { id: "synthwave", name: "Synthwave '84", author: "Robb Owen", bg: "#262335", fg: "#f0eff1", keyword: "#fef445", string: "#ff7edb", comment: "#614d85", function: "#36f9f6" },
+  { id: "gruvbox", name: "Gruvbox Dark", author: "morhetz", bg: "#282828", fg: "#ebdbb2", keyword: "#fb4934", string: "#b8bb26", comment: "#928374", function: "#fabd2f" },
+  { id: "cyberpunk", name: "Cyberpunk 2077", author: "CD Projekt Red", bg: "#0d0f18", fg: "#00f0ff", keyword: "#ff0055", string: "#ffe600", comment: "#52607b", function: "#00ff66" },
   { id: "github", name: "GitHub Light", author: "GitHub", bg: "#ffffff", fg: "#24292f", keyword: "#cf222e", string: "#0a3069", comment: "#6e7781", function: "#8250df" },
 ];
 

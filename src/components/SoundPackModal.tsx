@@ -13,6 +13,7 @@ const SOUND_PACK_PRESETS: { id: KeyboardSoundProfile; name: string; tag: string;
   { id: "clicky", name: "Cherry MX Blue", tag: "Crisp Clicky", desc: "High-pitched crisp tactile click & spring release", icon: "🔵" },
   { id: "linear", name: "Cherry MX Red", tag: "Smooth Linear", desc: "Soft, smooth linear stroke with gentle bottom-out thud", icon: "🔴" },
   { id: "tactile", name: "Topre Electro-Capacitive", tag: "Soft Tactile", desc: "Smooth rounded tactile bump with muffled dome pop", icon: "🏛️" },
+  { id: "custom", name: "Cyberpunk Synth & Custom", tag: "Synth Tuning", desc: "Custom tuned synth frequency with adjustable click & damping", icon: "⚡" },
 ];
 
 export function SoundPackModal({ isOpen, onClose }: SoundPackModalProps) {
