@@ -9,3 +9,15 @@ appwrite.config.json
 .env.*
 !.env.example
 .vercel
+
+# AI Tools, Agents & IDE Configs
+.gemini/
+.agents/
+.antigravity/
+.cursor/
+.cursorrules
+.windsurf/
+.claude/
+.copilot/
+.codeium/
+.ai/
