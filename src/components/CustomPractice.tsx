@@ -19,7 +19,7 @@ export function CustomPractice({ onLoad }: { onLoad: (snippet: Snippet) => void 
 
   const readFile = async (file: File) => {
     if (file.size > 100 * 1024) {
-      setError("Ukuran file maksimal 100 KB.");
+      setError("Maximum file size is 100 KB.");
       return;
     }
     const text = await file.text();
@@ -31,7 +31,7 @@ export function CustomPractice({ onLoad }: { onLoad: (snippet: Snippet) => void 
 
   const handleFetchGist = async () => {
     if (!gistUrl.trim()) {
-      setError("Masukkan URL GitHub Gist atau raw file link yang valid.");
+      setError("Enter a valid GitHub Gist URL or raw file link.");
       return;
     }
     setError("");
@@ -42,7 +42,7 @@ export function CustomPractice({ onLoad }: { onLoad: (snippet: Snippet) => void 
       setOpen(false);
       setGistUrl("");
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Gagal mengambil kode dari Gist.");
+      setError(err instanceof Error ? err.message : "Failed to fetch code from Gist.");
     } finally {
       setLoadingGist(false);
     }
@@ -50,7 +50,7 @@ export function CustomPractice({ onLoad }: { onLoad: (snippet: Snippet) => void 
 
   const start = () => {
     if (code.trim().length < 20) {
-      setError("Minimal 20 karakter kode untuk memulai latihan.");
+      setError("At least 20 code characters required to start practice.");
       return;
     }
     onLoad({ id: `custom-${Date.now()}`, filename, language, code: code.trimEnd(), sourceType: "custom" });
@@ -69,9 +69,9 @@ export function CustomPractice({ onLoad }: { onLoad: (snippet: Snippet) => void 
     <section className="rounded-2xl border bg-card/90 p-5 backdrop-blur-md shadow-xl transition-all animate-scale-in">
       <div className="mb-4 flex items-start justify-between gap-4">
         <div>
-          <h2 className="text-sm font-bold text-foreground">📁 Latihan Kode Pribadi & Import Gist</h2>
+          <h2 className="text-sm font-bold text-foreground">📁 Custom Code & Import Gist</h2>
           <p className="mt-1 flex items-center gap-1.5 text-[11px] text-muted-foreground">
-            <LockKeyhole className="size-3 text-emerald-400" /> Privasi aman — kode lokal hanya diproses di browsermu.
+            <LockKeyhole className="size-3 text-emerald-400" /> Privacy secured — local code is processed only in your browser.
           </p>
         </div>
         <button
@@ -118,7 +118,7 @@ export function CustomPractice({ onLoad }: { onLoad: (snippet: Snippet) => void 
           />
           <div className="mb-3 flex flex-wrap gap-2">
             <Button type="button" variant="outline" size="sm" onClick={() => inputRef.current?.click()} className="text-xs">
-              <FileUp data-icon="inline-start" /> Pilih File Kode
+              <FileUp data-icon="inline-start" /> Select Code File
             </Button>
             <select
               value={language}
@@ -139,22 +139,22 @@ export function CustomPractice({ onLoad }: { onLoad: (snippet: Snippet) => void 
           <textarea
             value={code}
             onChange={(event) => setCode(event.target.value)}
-            placeholder="Paste potongan kode milikmu di sini atau upload file source code..."
+            placeholder="Paste your code snippet here or upload a source code file..."
             className="min-h-40 w-full resize-y rounded-xl border bg-background p-3 font-mono text-xs leading-relaxed outline-none focus:ring-2 focus:ring-primary/40"
           />
           <div className="mt-3 flex items-center justify-between gap-3">
             <span className={`text-[11px] font-medium ${error ? "text-destructive font-bold" : "text-muted-foreground"}`}>
-              {error || `${code.length.toLocaleString()} karakter · batas max 100 KB`}
+              {error || `${code.length.toLocaleString()} characters · max limit 100 KB`}
             </span>
             <Button type="button" size="sm" onClick={start} className="font-bold">
-              Mulai Latihan Kode
+              Start Code Practice
             </Button>
           </div>
         </>
       ) : (
         <div className="space-y-3">
           <p className="text-xs text-muted-foreground">
-            Masukkan link GitHub Gist publik (cth: <code className="bg-muted px-1.5 py-0.5 rounded font-mono text-[11px]">https://gist.github.com/user/gist_id</code>) atau raw GitHub file URL.
+            Enter a public GitHub Gist link (e.g. <code className="bg-muted px-1.5 py-0.5 rounded font-mono text-[11px]">https://gist.github.com/user/gist_id</code>) or a raw GitHub file URL.
           </p>
           <div className="flex gap-2">
             <input
@@ -165,7 +165,7 @@ export function CustomPractice({ onLoad }: { onLoad: (snippet: Snippet) => void 
               className="h-10 flex-1 rounded-xl border bg-background px-3 text-xs font-mono outline-none focus:ring-2 focus:ring-primary/40"
             />
             <Button type="button" size="sm" onClick={handleFetchGist} disabled={loadingGist} className="font-bold h-10 px-4">
-              {loadingGist ? <LoaderCircle className="size-4 animate-spin" /> : "Ambil & Latih Kode"}
+              {loadingGist ? <LoaderCircle className="size-4 animate-spin" /> : "Fetch & Practice Code"}
             </Button>
           </div>
           {error && <p className="text-xs text-destructive font-semibold">{error}</p>}

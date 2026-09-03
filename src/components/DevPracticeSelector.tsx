@@ -11,27 +11,27 @@ interface DevPracticeSelectorProps {
 const CATEGORIES: { id: DevPracticeCategory; label: string; icon: React.ElementType; description: string }[] = [
   {
     id: "public",
-    label: "🌐 Repo Kode GitHub",
+    label: "🌐 GitHub Code Repos",
     icon: Code2,
-    description: "Kode real-world dari proyek populer GitHub",
+    description: "Real-world code from popular GitHub projects",
   },
   {
     id: "symbols",
-    label: "⚡ Drill Simbol & Operator",
+    label: "⚡ Symbol & Operator Drills",
     icon: Zap,
-    description: "Asah kelincahan ngetik kurung {}, =>, ?, dan simbol rumit",
+    description: "Sharpen speed typing brackets {}, =>, ?, and complex symbols",
   },
   {
     id: "terminal",
     label: "💻 Terminal & Git Workflow",
     icon: Terminal,
-    description: "Latihan ngetik command Bash, Git, Docker & Kubernetes",
+    description: "Practice typing Bash, Git, Docker & Kubernetes commands",
   },
   {
     id: "algorithms",
-    label: "🧩 Algoritma & LeetCode",
+    label: "🧩 Algorithms & LeetCode",
     icon: Cpu,
-    description: "Pola algoritma umum: Binary Search, BFS, DP, dll.",
+    description: "Common algorithm patterns: Binary Search, BFS, DP, etc.",
   },
 ];
 

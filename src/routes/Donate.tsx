@@ -57,7 +57,7 @@ export default function Donate() {
                     </div>
                     <div>
                       <h2 className="text-xl font-bold">Saweria</h2>
-                      <p className="text-xs text-muted-foreground">Lokal Indonesia (QRIS / E-Wallet)</p>
+                      <p className="text-xs text-muted-foreground">Local Indonesia (QRIS / E-Wallet)</p>
                     </div>
                   </div>
                   <span className="rounded-full bg-amber-500/10 px-2.5 py-1 text-[10px] font-bold text-amber-600 dark:text-amber-400">
@@ -66,12 +66,12 @@ export default function Donate() {
                 </div>
 
                 <p className="mt-4 text-xs text-muted-foreground sm:text-sm">
-                  Dukung via <strong>QRIS, GoPay, OVO, DANA, LinkAja, ShopeePay</strong>, atau Transfer Bank. Tampilkan pesan & overlay saat streaming/typing!
+                  Support via <strong>QRIS, GoPay, OVO, DANA, LinkAja, ShopeePay</strong>, or Bank Transfer. Display messages & overlay while streaming/typing!
                 </p>
 
                 {/* Preset Nominal */}
                 <div className="mt-5 space-y-2">
-                  <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Preset Nominal</p>
+                  <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Preset Amounts</p>
                   <div className="grid grid-cols-4 gap-2 text-center text-xs">
                     {["Rp 10k", "Rp 25k", "Rp 50k", "Rp 100k"].map((amount) => (
                       <a
