@@ -38,6 +38,8 @@ import { scheduleKeyboardStatsSync, syncKeyboardStatsNow } from "@/lib/keyboard-
 import type { TestMode, TimedDuration, RunResult, PersonalBest } from "@/types";
 
 import { RankedAuthModal } from "@/components/RankedAuthModal";
+import { DevPracticeSelector, type DevPracticeCategory } from "@/components/DevPracticeSelector";
+import { SYMBOL_DRILLS, TERMINAL_COMMANDS, ALGORITHM_SNIPPETS, type CategorySnippet } from "@/data/dev-practice-snippets";
 
 export default function App() {
   const { user } = useAuth();
@@ -53,12 +55,28 @@ export default function App() {
   const [showRankedAuthModal, setShowRankedAuthModal] = useState(false);
   const { preferences, setPreference } = usePreferences();
   const userIdRef = useRef<string | null>(user?.$id ?? null);
+  const [devCategory, setDevCategory] = useState<DevPracticeCategory>("public");
   const [language, setLanguage] = useState("All");
   const [mode, setMode] = useState<TestMode>("snippet");
   const [duration, setDuration] = useState<TimedDuration | null>(null);
   const [customSnippet, setCustomSnippet] = useState<import("@/types").Snippet | null>(null);
   const { getRandomSnippet: getPublicSnippet, loading: isLoadingSource } = useSnippets(language, preferences.snippetLength);
-  const getRandomSnippet = useCallback(() => customSnippet ?? getPublicSnippet(), [customSnippet, getPublicSnippet]);
+  const getRandomSnippet = useCallback(() => {
+    if (customSnippet) return customSnippet;
+    if (devCategory === "symbols") {
+      const list = SYMBOL_DRILLS;
+      return list[Math.floor(Math.random() * list.length)];
+    }
+    if (devCategory === "terminal") {
+      const list = TERMINAL_COMMANDS;
+      return list[Math.floor(Math.random() * list.length)];
+    }
+    if (devCategory === "algorithms") {
+      const list = ALGORITHM_SNIPPETS;
+      return list[Math.floor(Math.random() * list.length)];
+    }
+    return getPublicSnippet();
+  }, [customSnippet, devCategory, getPublicSnippet]);
 
   const config = useMemo(() => ({ mode, duration }), [mode, duration]);
   const {
@@ -86,7 +104,7 @@ export default function App() {
   const [editorFocusMode, setEditorFocusMode] = useState(false);
   const playKeyboardSound = useKeyboardSound(preferences.keyboardSound, preferences.keyboardSoundProfile, preferences.keyboardSoundVolume, preferences.keyboardSoundTuning);
   const containerRef = useRef<HTMLDivElement>(null);
-  const previousSelectionRef = useRef({ language, mode, duration, snippetLength: preferences.snippetLength });
+  const previousSelectionRef = useRef({ language, mode, duration, devCategory, snippetLength: preferences.snippetLength });
   const submittedRankedSessionRef = useRef<string | null>(null);
   const physicalKeypressesRef = useRef<PhysicalKeypress[]>([]);
   const lastPhysicalKeyAtRef = useRef<number | null>(null);
@@ -131,16 +149,17 @@ export default function App() {
     const selectionChanged = previous.language !== language
       || previous.mode !== mode
       || previous.duration !== duration
+      || previous.devCategory !== devCategory
       || previous.snippetLength !== preferences.snippetLength;
 
-    previousSelectionRef.current = { language, mode, duration, snippetLength: preferences.snippetLength };
+    previousSelectionRef.current = { language, mode, duration, devCategory, snippetLength: preferences.snippetLength };
     if (selectionChanged && (status === "idle" || status === "finished")) {
       setResult(null);
       resetPhysicalKeypresses();
       reset();
       focusWorkspace();
     }
-  }, [language, mode, duration, preferences.snippetLength, status, reset, focusWorkspace, resetPhysicalKeypresses]);
+  }, [language, mode, duration, devCategory, preferences.snippetLength, status, reset, focusWorkspace, resetPhysicalKeypresses]);
 
   useEffect(() => {
     if (status === "finished" && keystrokes > 0) {
@@ -260,6 +279,18 @@ export default function App() {
     reset();
     focusWorkspace();
   }, [isRanked, user, ranked, language, mode, preferences.snippetLength, duration, loadSnippet, reset, focusWorkspace, resetPhysicalKeypresses]);
+
+  const handleDevCategoryChange = useCallback(
+    (cat: DevPracticeCategory) => {
+      resetPhysicalKeypresses();
+      setDevCategory(cat);
+      setCustomSnippet(null);
+      setResult(null);
+      reset();
+      focusWorkspace();
+    },
+    [reset, focusWorkspace, resetPhysicalKeypresses],
+  );
 
   const handleLanguageChange = useCallback(
     (lang: string) => {
@@ -438,7 +469,7 @@ export default function App() {
 
   const handleCustomSnippet = useCallback((nextSnippet: import("@/types").Snippet) => {
     resetPhysicalKeypresses();
-    previousSelectionRef.current = { language: nextSnippet.language, mode: "snippet", duration: null, snippetLength: preferences.snippetLength };
+    previousSelectionRef.current = { language: nextSnippet.language, mode: "snippet", duration: null, devCategory, snippetLength: preferences.snippetLength };
     setCustomSnippet(nextSnippet);
     setLanguage(nextSnippet.language);
     setMode("snippet");
@@ -446,7 +477,7 @@ export default function App() {
     setResult(null);
     loadSnippet(nextSnippet);
     focusWorkspace();
-  }, [loadSnippet, focusWorkspace, preferences.snippetLength, resetPhysicalKeypresses]);
+  }, [loadSnippet, focusWorkspace, devCategory, preferences.snippetLength, resetPhysicalKeypresses]);
 
   const exitCustomPractice = useCallback(() => {
     resetPhysicalKeypresses();
@@ -454,7 +485,7 @@ export default function App() {
     setResult(null);
     const nextSnippet = getPublicSnippet();
     setLanguage("All");
-    previousSelectionRef.current = { language: "All", mode: "snippet", duration: null, snippetLength: preferences.snippetLength };
+    previousSelectionRef.current = { language: "All", mode: "snippet", duration: null, devCategory: "public", snippetLength: preferences.snippetLength };
     loadSnippet(nextSnippet);
     focusWorkspace();
   }, [getPublicSnippet, loadSnippet, focusWorkspace, preferences.snippetLength, resetPhysicalKeypresses]);
@@ -657,13 +688,35 @@ export default function App() {
               isGhostEnabled={preferences.ghostRunner}
             />
 
-            <LanguagePicker
-              languages={languages}
-              selected={language}
-              onSelect={handleLanguageChange}
+            <DevPracticeSelector
+              activeCategory={devCategory}
+              onSelectCategory={handleDevCategoryChange}
               disabled={status === "running"}
-              loading={isLoadingSource}
             />
+
+            {devCategory === "public" && (
+              <LanguagePicker
+                languages={languages}
+                selected={language}
+                onSelect={handleLanguageChange}
+                disabled={status === "running"}
+                loading={isLoadingSource}
+              />
+            )}
+
+            {"title" in snippet && (snippet as CategorySnippet).title && (
+              <div className="rounded-xl border border-primary/20 bg-primary/10 px-4 py-3 backdrop-blur-sm flex items-center justify-between gap-3 text-xs shadow-sm">
+                <div>
+                  <span className="font-bold text-foreground font-mono text-xs">{(snippet as CategorySnippet).title}</span>
+                  {(snippet as CategorySnippet).description && (
+                    <p className="text-[11px] text-muted-foreground mt-0.5 font-sans font-medium">{(snippet as CategorySnippet).description}</p>
+                  )}
+                </div>
+                <span className="text-[10px] font-mono uppercase px-2.5 py-1 rounded-md bg-primary/20 text-primary font-bold tracking-wider shrink-0">
+                  {(snippet as CategorySnippet).category} drill
+                </span>
+              </div>
+            )}
 
             <CodeDisplay
               chars={charStates}
