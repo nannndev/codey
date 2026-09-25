@@ -37,6 +37,7 @@ export interface Preferences {
   ghostRunner: boolean;
   comboEffects: boolean;
   autoIndent: boolean;
+  keyboard3d: boolean;
 }
 
 export const DEFAULT_SOUND_TUNING: KeyboardSoundTuning = {
@@ -72,6 +73,7 @@ const DEFAULTS: Preferences = {
   ghostRunner: true,
   comboEffects: true,
   autoIndent: true,
+  keyboard3d: true,
 };
 
 const FONT_SIZE_MAP: Record<FontSize, string> = {

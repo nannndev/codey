@@ -228,6 +228,24 @@ export default function Settings() {
                 />
               </div>
 
+              {/* 3D Keyboard */}
+              <div className="flex items-center justify-between py-3 gap-4">
+                <div className="flex items-start gap-2.5 min-w-0">
+                  <span className="mt-0.5 text-sm shrink-0">⌨️</span>
+                  <div>
+                    <p className="text-xs font-semibold text-foreground">3D Live Keyboard</p>
+                    <p className="text-[11px] text-muted-foreground leading-snug">
+                      Keycaps press as you type, the next key glows, and mistakes flash red. Shown on wider screens.
+                    </p>
+                  </div>
+                </div>
+                <SettingSwitch
+                  checked={preferences.keyboard3d}
+                  onCheckedChange={() => setPreference("keyboard3d", !preferences.keyboard3d)}
+                  label="Toggle 3D keyboard"
+                />
+              </div>
+
               {/* Ghost Runner */}
               <div className="flex items-center justify-between py-3 gap-4">
                 <div className="flex items-start gap-2.5 min-w-0">

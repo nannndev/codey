@@ -130,7 +130,7 @@ export function CommandPalette() {
 
   const commands = useMemo<Command[]>(() => {
     const go = (path: string) => () => navigate(path);
-    const toggle = (key: "keyboardSound" | "comboEffects" | "ghostRunner" | "autoIndent") => () =>
+    const toggle = (key: "keyboardSound" | "comboEffects" | "ghostRunner" | "autoIndent" | "keyboard3d") => () =>
       setPreference(key, !preferences[key]);
     const onOff = (value: boolean): Command["state"] => (value ? "on" : "off");
 
@@ -163,6 +163,7 @@ export function CommandPalette() {
       { id: "toggle-combo", group: "Toggles", label: "Combo sparks", keywords: "effects glow streak", icon: Flame, state: onOff(preferences.comboEffects), run: toggle("comboEffects") },
       { id: "toggle-ghost", group: "Toggles", label: "Ghost runner", keywords: "personal best pb pace", icon: Flame, state: onOff(preferences.ghostRunner), run: toggle("ghostRunner") },
       { id: "toggle-indent", group: "Toggles", label: "Auto-indent", keywords: "whitespace tab enter", icon: IndentIncrease, state: onOff(preferences.autoIndent), run: toggle("autoIndent") },
+      { id: "toggle-keyboard3d", group: "Toggles", label: "3D keyboard", keywords: "keycaps visual hint", icon: Keyboard, state: onOff(preferences.keyboard3d), run: toggle("keyboard3d") },
       { id: "toggle-radio", group: "Toggles", label: "Flow radio", keywords: "music lofi play pause", icon: Headphones, state: onOff(radio.isPlaying), run: radio.togglePlay },
     ];
   }, [navigate, preferences, setPreference, theme, setTheme, radio.isPlaying, radio.togglePlay]);

@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect, useRef, useMemo } from "react";
 import { Coffee, CornerDownLeft, IndentIncrease, LoaderCircle, RotateCcw, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { Keyboard3D } from "@/components/Keyboard3D";
 import { CodeDisplay } from "@/components/CodeDisplay";
 import { StatsBar } from "@/components/StatsBar";
 import { ResultsScreen } from "@/components/ResultsScreen";
@@ -793,6 +794,15 @@ export default function App() {
               combo={combo}
               maxCombo={maxCombo}
             />
+
+            {preferences.keyboard3d && (
+              <Keyboard3D
+                className="hidden md:block"
+                nextChar={snippet.code[input.length]}
+                active={status !== "finished"}
+                combo={preferences.comboEffects ? combo : 0}
+              />
+            )}
 
             <DailyGoals refreshKey={goalRefreshKey} compact />
 
