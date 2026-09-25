@@ -17,6 +17,7 @@ import Arcade from './routes/Arcade';
 import KeyboardAnalytics from './routes/KeyboardAnalytics';
 import { RadioProvider } from './components/RadioProvider';
 import { FlowRadioWidget } from './components/FlowRadioWidget';
+import { CommandPalette } from './components/CommandPalette';
 import './index.css';
 
 createRoot(document.getElementById('root')!).render(
@@ -44,6 +45,7 @@ createRoot(document.getElementById('root')!).render(
                 <Route path="/contributors" element={<Contributors />} />
               </Routes>
               <FlowRadioWidget />
+              <CommandPalette />
             </BrowserRouter>
             <Analytics />
           </RadioProvider>

@@ -11,6 +11,7 @@ import {
   LogOut,
   Menu,
   Palette,
+  Search,
   Settings,
   Swords,
   Trophy,
@@ -26,6 +27,7 @@ import { usePreferences } from "./PreferencesProvider";
 import { useFlowRadio } from "./RadioProvider";
 import { SoundPackModal } from "./SoundPackModal";
 import { ThemeStudioModal } from "./ThemeStudioModal";
+import { isMac, openCommandPalette } from "./CommandPalette";
 import { cn } from "@/lib/utils";
 
 export function Header() {
@@ -123,6 +125,17 @@ export function Header() {
         <div className="flex items-center gap-1.5 shrink-0">
           {/* Quick Tools pill (Theme, Sound, History, Settings) */}
           <div className="hidden md:flex items-center gap-0.5 rounded-xl border border-border/50 bg-background/50 p-0.5 shrink-0">
+            <button
+              type="button"
+              onClick={openCommandPalette}
+              className="flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-muted-foreground hover:text-foreground hover:bg-muted/80 transition-colors shrink-0 cursor-pointer"
+              aria-label="Open command palette"
+              title="Command palette"
+            >
+              <Search className="size-4" />
+              <kbd className="hidden lg:inline font-mono text-[10px] font-semibold">{isMac() ? "⌘K" : "Ctrl K"}</kbd>
+            </button>
+
             <button
               type="button"
               onClick={() => setShowThemeModal(true)}
