@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   BarChart3,
+  CalendarDays,
   Check,
   CornerDownLeft,
   Flame,
@@ -14,6 +15,7 @@ import {
   Monitor,
   Moon,
   Palette,
+  Play,
   Search,
   Settings,
   Sun,
@@ -140,6 +142,8 @@ export function CommandPalette() {
       { id: "go-home", group: "Go to", label: "Practice", keywords: "home type test start", icon: Home, run: go("/") },
       { id: "go-duel", group: "Go to", label: "Duel", keywords: "race multiplayer versus", icon: Swords, run: go("/duel") },
       { id: "go-arcade", group: "Go to", label: "Arcade", keywords: "game falling notes", icon: Gamepad2, run: go("/arcade") },
+      { id: "go-daily", group: "Go to", label: "Daily challenge", keywords: "today streak github snippet", icon: CalendarDays, run: go("/daily") },
+      { id: "play-daily", group: "Go to", label: "Play today's challenge", keywords: "daily start streak", icon: Play, run: go("/?daily=1") },
       { id: "go-leaderboard", group: "Go to", label: "Leaderboard", keywords: "ranked ranking top", icon: Trophy, run: go("/leaderboard") },
       { id: "go-analytics", group: "Go to", label: "Keyboard Analytics", keywords: "heatmap keys weak", icon: Keyboard, run: go("/analytics/keyboard") },
       { id: "go-history", group: "Go to", label: "History", keywords: "stats statistics runs", icon: BarChart3, run: go("/history") },

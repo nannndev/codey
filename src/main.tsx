@@ -14,6 +14,7 @@ import Donate from './routes/Donate';
 import Contributors from './routes/Contributors';
 import Duel from './routes/Duel';
 import Arcade from './routes/Arcade';
+import Daily from './routes/Daily';
 import KeyboardAnalytics from './routes/KeyboardAnalytics';
 import { RadioProvider } from './components/RadioProvider';
 import { FlowRadioWidget } from './components/FlowRadioWidget';
@@ -35,6 +36,7 @@ createRoot(document.getElementById('root')!).render(
                 <Route path="/statistics" element={<History />} />
                 <Route path="/stats" element={<History />} />
                 <Route path="/leaderboard" element={<Leaderboard />} />
+                <Route path="/daily" element={<Daily />} />
                 <Route path="/profile" element={<Profile />} />
                 <Route path="/profile/:userId" element={<Profile />} />
                 <Route path="/duel" element={<Duel />} />

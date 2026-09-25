@@ -16,7 +16,9 @@ import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { useAuth } from "@/components/AuthProvider";
 import { uploadRun } from "@/lib/cloud";
-import { useGame, useKeyboardSound, useGhostRunner, useRankedGame } from "@/hooks";
+import { useGame, useKeyboardSound, useGhostRunner, useRankedGame, useDailyGame } from "@/hooks";
+import { DailyChallengeCard, DailyModeBanner, DailyResultBanner } from "@/components/daily/DailyWidgets";
+import { useSearchParams } from "react-router-dom";
 import { useSnippets } from "@/hooks/useSnippets";
 import { getLanguages } from "@/data";
 import {
@@ -44,8 +46,10 @@ import { DevPracticeSelector, type DevPracticeCategory } from "@/components/DevP
 import { SYMBOL_DRILLS, TERMINAL_COMMANDS, ALGORITHM_SNIPPETS, PR_DIFF_SNIPPETS, type CategorySnippet } from "@/data/dev-practice-snippets";
 
 export default function App() {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const ranked = useRankedGame();
+  const daily = useDailyGame();
+  const [searchParams, setSearchParams] = useSearchParams();
   const {
     isRanked,
     challenge: rankedChallenge,
@@ -64,6 +68,8 @@ export default function App() {
   const [customSnippet, setCustomSnippet] = useState<import("@/types").Snippet | null>(null);
   const { getRandomSnippet: getPublicSnippet, loading: isLoadingSource } = useSnippets(language, preferences.snippetLength);
   const getRandomSnippet = useCallback(() => {
+    // Daily mode wins over every other source so resets keep today's code.
+    if (daily.snippetRef.current) return daily.snippetRef.current;
     if (customSnippet) return customSnippet;
     if (devCategory === "diff") {
       const list = PR_DIFF_SNIPPETS;
@@ -263,9 +269,66 @@ export default function App() {
     if (!rankedChallenge) submittedRankedSessionRef.current = null;
   }, [rankedChallenge]);
 
+  // Daily attempts submit once per session; the hook ignores repeats.
+  useEffect(() => {
+    if (status !== "finished" || !result || !daily.active) return;
+    void daily.submit({
+      completedCode: input,
+      mistakes,
+      keystrokes: result.charsTyped,
+      correctChars: result.totalCorrect,
+      totalMs: Math.round(elapsedMs),
+    });
+  }, [status, result, daily.active, daily.submit, input, mistakes, elapsedMs]);
+
+  const enterDaily = useCallback(async () => {
+    if (ranked.isRanked) ranked.exitRanked();
+    resetPhysicalKeypresses();
+    setCustomSnippet(null);
+    setResult(null);
+    setMode("snippet");
+    setDuration(null);
+    // Keep the selection effect from resetting away from the daily snippet.
+    previousSelectionRef.current = { language, mode: "snippet", duration: null, devCategory, snippetLength: preferences.snippetLength };
+    const snippet = await daily.enter(user?.$id ?? null);
+    if (snippet) {
+      loadSnippet(snippet);
+      focusWorkspace();
+    }
+  }, [ranked, daily, user, language, devCategory, preferences.snippetLength, loadSnippet, focusWorkspace, resetPhysicalKeypresses]);
+
+  const exitDaily = useCallback(() => {
+    daily.exit();
+    resetPhysicalKeypresses();
+    setResult(null);
+    loadSnippet(getPublicSnippet());
+    focusWorkspace();
+  }, [daily, getPublicSnippet, loadSnippet, focusWorkspace, resetPhysicalKeypresses]);
+
+  // /?daily=1 (from the daily board) jumps straight into today's challenge.
+  const dailyParam = searchParams.get("daily");
+  const dailyParamHandledRef = useRef(false);
+  useEffect(() => {
+    // Wait for sign-in to resolve so a signed-in player gets a verified attempt.
+    if (!dailyParam || authLoading || dailyParamHandledRef.current) return;
+    dailyParamHandledRef.current = true;
+    setSearchParams((params) => {
+      params.delete("daily");
+      return params;
+    }, { replace: true });
+    void enterDaily();
+  }, [dailyParam, authLoading, setSearchParams, enterDaily]);
+
   const handleRetry = useCallback(() => {
     setResult(null);
     resetPhysicalKeypresses();
+
+    if (daily.active) {
+      void daily.retry(Boolean(user));
+      reset();
+      focusWorkspace();
+      return;
+    }
 
     if (isRanked && user) {
       void ranked.fetchChallenge({
@@ -287,10 +350,11 @@ export default function App() {
 
     reset();
     focusWorkspace();
-  }, [isRanked, user, ranked, language, mode, preferences.snippetLength, duration, loadSnippet, reset, focusWorkspace, resetPhysicalKeypresses]);
+  }, [isRanked, user, ranked, daily, language, mode, preferences.snippetLength, duration, loadSnippet, reset, focusWorkspace, resetPhysicalKeypresses]);
 
   const handleDevCategoryChange = useCallback(
     (cat: DevPracticeCategory) => {
+      if (daily.active) daily.exit();
       resetPhysicalKeypresses();
       setDevCategory(cat);
       setCustomSnippet(null);
@@ -298,16 +362,17 @@ export default function App() {
       reset();
       focusWorkspace();
     },
-    [reset, focusWorkspace, resetPhysicalKeypresses],
+    [daily, reset, focusWorkspace, resetPhysicalKeypresses],
   );
 
   const handleLanguageChange = useCallback(
     (lang: string) => {
+      if (daily.active) daily.exit();
       setLanguage(lang);
       setCustomSnippet(null);
       focusWorkspace();
     },
-    [focusWorkspace],
+    [daily, focusWorkspace],
   );
 
   const handleModeChange = useCallback(
@@ -405,6 +470,7 @@ export default function App() {
       if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
         e.preventDefault();
         if (ranked.isRanked) ranked.recordKeypress();
+        if (daily.active) daily.recordKeypress();
         playKeyboardSound(e.key);
         engineHandleKey(e.key);
         return;
@@ -413,6 +479,7 @@ export default function App() {
       if (e.key === "Backspace") {
         e.preventDefault();
         if (ranked.isRanked) ranked.recordKeypress();
+        if (daily.active) daily.recordKeypress();
         playKeyboardSound("Backspace");
         engineHandleKey("Backspace");
         return;
@@ -425,6 +492,7 @@ export default function App() {
           return;
         }
         if (ranked.isRanked) ranked.recordKeypress();
+        if (daily.active) daily.recordKeypress();
         playKeyboardSound("Tab");
         engineHandleKey("\t");
         return;
@@ -433,11 +501,12 @@ export default function App() {
       if (e.key === "Enter") {
         e.preventDefault();
         if (ranked.isRanked) ranked.recordKeypress();
+        if (daily.active) daily.recordKeypress();
         playKeyboardSound("Enter");
         engineHandleKey("\n");
       }
     },
-    [status, mode, input, snippet.code, engineHandleKey, handleRetry, stop, playKeyboardSound, editorFocusMode, preferences.focusShortcut, preferences.restartShortcut, flushPhysicalKeypresses],
+    [status, mode, input, snippet.code, engineHandleKey, handleRetry, stop, playKeyboardSound, editorFocusMode, preferences.focusShortcut, preferences.restartShortcut, flushPhysicalKeypresses, ranked, daily.active, daily.recordKeypress],
   );
 
   const charStates = useMemo(() => computeCharStates(snippet.code, input), [snippet.code, input]);
@@ -503,19 +572,24 @@ export default function App() {
   const handleNextSnippet = useCallback(() => {
     setResult(null);
     resetPhysicalKeypresses();
+    if (daily.active) {
+      exitDaily();
+      return;
+    }
     if (customSnippet) {
       exitCustomPractice();
       return;
     }
     reset();
     focusWorkspace();
-  }, [customSnippet, exitCustomPractice, reset, focusWorkspace, resetPhysicalKeypresses]);
+  }, [daily.active, exitDaily, customSnippet, exitCustomPractice, reset, focusWorkspace, resetPhysicalKeypresses]);
 
   const rankedSwitchPending = rankedStatus === "requesting_challenge";
   const rankedSwitchEngaged = isRanked || rankedSwitchPending;
   const handleActivityModeToggle = useCallback(() => {
     if (rankedStatus === "requesting_challenge") return;
     resetPhysicalKeypresses();
+    if (daily.active) daily.exit();
 
     if (status === "running" || status === "finished") {
       setResult(null);
@@ -545,7 +619,7 @@ export default function App() {
         sourceType: "public",
       });
     }).catch(() => undefined);
-  }, [status, rankedStatus, isRanked, ranked, user, language, mode, preferences.snippetLength, duration, loadSnippet, reset, resetPhysicalKeypresses]);
+  }, [status, rankedStatus, isRanked, ranked, daily, user, language, mode, preferences.snippetLength, duration, loadSnippet, reset, resetPhysicalKeypresses]);
 
   return (
     <div
@@ -557,6 +631,7 @@ export default function App() {
       <div className="relative mx-auto max-w-5xl px-4 py-8 sm:px-6 sm:py-14">
         <Header />
 
+        {result && daily.active && <DailyResultBanner status={daily.status} outcome={daily.outcome} error={daily.error} />}
         {result ? (
           <ResultsScreen
             result={result}
@@ -659,11 +734,22 @@ export default function App() {
               </div>
             )}
 
+            {daily.active ? (
+              <DailyModeBanner challenge={daily.challenge} status={daily.status} error={daily.error} onExit={exitDaily} />
+            ) : (
+              !ranked.isRanked && !customSnippet && (
+                <DailyChallengeCard userId={user?.$id} onPlay={() => void enterDaily()} disabled={status === "running" || daily.status === "loading"} />
+              )
+            )}
+            {!daily.active && daily.status === "rejected" && daily.error && (
+              <p className="-mt-3 text-center text-xs text-red-500">{daily.error}</p>
+            )}
+
             <ModeSelector
               mode={mode}
               duration={duration}
               onSelect={handleModeChange}
-              disabled={status === "running"}
+              disabled={status === "running" || daily.active}
               isRunningZen={mode === "zen" && status === "running"}
               onStopZen={handleZenStop}
             />
@@ -678,14 +764,14 @@ export default function App() {
                     <button
                       key={item}
                       type="button"
-                      disabled={status === "running" || Boolean(customSnippet)}
+                      disabled={status === "running" || Boolean(customSnippet) || daily.active}
                       onClick={() => setPreference("snippetLength", item)}
                       className={cn(
                         "rounded-lg px-3 py-1 text-xs font-semibold capitalize transition-all cursor-pointer",
                         preferences.snippetLength === item
                           ? "bg-foreground text-background shadow-xs font-bold"
                           : "text-muted-foreground hover:bg-muted/70 hover:text-foreground",
-                        (status === "running" || Boolean(customSnippet)) && "opacity-40 pointer-events-none"
+                        (status === "running" || Boolean(customSnippet) || daily.active) && "opacity-40 pointer-events-none"
                       )}
                     >
                       {item}

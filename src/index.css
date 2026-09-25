@@ -1309,3 +1309,12 @@ html {
   .perfect-sweep { animation-name: strike-banner-fade; }
   @keyframes strike-banner-fade { 0%, 80% { opacity: 1; } 100% { opacity: 0; } }
 }
+
+/* Daily challenge */
+.daily-card__glow {
+  background:
+    radial-gradient(ellipse 40% 120% at 0% 50%, rgba(245, 158, 11, 0.14), transparent 70%),
+    radial-gradient(ellipse 30% 100% at 100% 0%, rgba(249, 115, 22, 0.1), transparent 70%);
+}
+.daily-result { animation: podium-card-in 500ms cubic-bezier(0.2, 1, 0.3, 1) both; }
+@media (prefers-reduced-motion: reduce) { .daily-result { animation: none; } }
