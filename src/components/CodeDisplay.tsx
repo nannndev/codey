@@ -91,7 +91,6 @@ export function CodeDisplay({
   const windowRef = useRef<HTMLDivElement>(null);
   /** Lines where a mistake happened this run, even if later corrected. */
   const errorLinesRef = useRef(new Set<number>());
-  const [strikeId, setStrikeId] = useState(0);
   const [perfectLine, setPerfectLine] = useState<{ line: number; id: number } | null>(null);
   const [strikeBanner, setStrikeBanner] = useState<{ text: string; tier: "flow" | "fever" | "overdrive"; id: number } | null>(null);
 
@@ -151,7 +150,6 @@ export function CodeDisplay({
       if (combo >= 100) shakeWindow(2.2, 110);
       else if (combo >= 50) shakeWindow(1.2, 90);
     }
-    setStrikeId((id) => id + 1);
 
     // A correct newline in this keystroke closes a line.
     for (let i = previous; i < input.length; i++) {
@@ -475,7 +473,7 @@ export function CodeDisplay({
                 {line.map(({ state: c, syntax, globalIndex }, ci) => {
                   const isGhostHere = showGhost && globalIndex === effectiveGhostIndex;
                   // Whitespace is skipped: inline-block on a newline would break the line.
-                  const isStruck = preferences.comboEffects && strikeId > 0 && globalIndex === input.length - 1 && c.char.trim() !== "";
+                  const isStruck = preferences.comboEffects && globalIndex === input.length - 1 && c.char.trim() !== "";
 
                   if (c.isCurrent) {
                     return (
@@ -496,8 +494,9 @@ export function CodeDisplay({
 
                   return (
                     <span
-                      // Re-keyed on each keystroke so the strike animation replays.
-                      key={isStruck ? `${li}-${ci}-s${strikeId}` : `${li}-${ci}`}
+                      // Keyed by input length so the strike animation replays on
+                      // each keystroke without an extra state update per key.
+                      key={isStruck ? `${li}-${ci}-s${input.length}` : `${li}-${ci}`}
                       className={cn(
                         "syntax-char transition-all duration-100 relative",
                         isStruck && (c.status === "incorrect" ? "is-strike-miss" : "is-strike"),
