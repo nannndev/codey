@@ -8,6 +8,7 @@ import { RefreshCw, ArrowRight, Trophy, ImageDown, Zap, ShieldCheck, GitPullRequ
 import { useAuth, githubUsernameFromUser } from "@/components/AuthProvider";
 import type { ShareCardOptions } from "@/lib/share-result";
 import { SharePreviewDialog } from "@/components/SharePreviewDialog";
+import { HoloResultCard, resultTier } from "@/components/HoloResultCard";
 import { rankRejectionReason, describeRankRejection } from "@/utils/ranking";
 import type { RankedStatus } from "@/hooks/useRankedGame";
 import { cn } from "@/lib/utils";
@@ -49,20 +50,17 @@ export function ResultsScreen({
   const isCustom = result.sourceType === "custom";
   const rejection = rankRejectionReason(result);
 
-  const tier =
-    result.wpm >= 100
-      ? { label: "Grandmaster", color: "text-purple-400 border-purple-500/30 bg-purple-500/10" }
-      : result.wpm >= 80
-      ? { label: "Master Typist", color: "text-amber-400 border-amber-500/30 bg-amber-500/10" }
-      : result.wpm >= 60
-      ? { label: "Pro Coder", color: "text-blue-400 border-blue-500/30 bg-blue-500/10" }
-      : { label: "Apprentice", color: "text-emerald-400 border-emerald-500/30 bg-emerald-500/10" };
+  const tier = resultTier(result.wpm);
+  const username = user ? githubUsernameFromUser(user) || user.name || undefined : undefined;
 
   return (
     <div className="mt-8 flex animate-fade-in-up flex-col gap-6 max-w-3xl mx-auto">
       {/* Title & Badge */}
       <div className="text-center flex flex-col items-center gap-2">
-        <div className={cn("inline-flex items-center gap-1.5 px-3 py-1 rounded-full border text-xs font-bold uppercase tracking-wider font-mono", tier.color)}>
+        <div
+          className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border text-xs font-bold uppercase tracking-wider font-mono"
+          style={{ color: tier.accent, borderColor: `${tier.accent}55`, backgroundColor: `${tier.accent}1a` }}
+        >
           <span>⚡ {tier.label}</span>
         </div>
         <h2 className="text-2xl font-black tracking-tight text-foreground font-sans">
@@ -73,42 +71,12 @@ export function ResultsScreen({
         </p>
       </div>
 
-      {/* Hero Stats */}
-      <div className="grid grid-cols-2 gap-4">
-        {/* WPM Card */}
-        <div className="relative rounded-2xl glass-card p-6 text-center shadow-lg transition-all duration-200 hover:border-foreground/20">
-          {!isCustom && isNewWpmRecord && (
-            <div className="absolute -top-3 right-4 flex items-center gap-1 rounded-full bg-amber-500 text-zinc-950 font-black px-2.5 py-0.5 text-[10px] shadow-sm">
-              <Trophy className="size-3" /> NEW PB
-            </div>
-          )}
-          <p className="text-xs uppercase font-bold tracking-wider text-muted-foreground mb-1 font-sans">Words Per Minute</p>
-          <p className="text-5xl sm:text-6xl font-black font-mono tracking-tight text-foreground">{result.wpm.toFixed(1)}</p>
-          {previousBest && (
-            <p className="text-[11px] font-mono text-muted-foreground mt-2">
-              Previous PB: {previousBest.bestWpm.toFixed(1)} WPM
-            </p>
-          )}
-        </div>
-
-        {/* Accuracy Card */}
-        <div className="relative rounded-2xl glass-card p-6 text-center shadow-lg transition-all duration-200 hover:border-foreground/20">
-          {!isCustom && isNewAccuracyRecord && result.accuracy > 0 && (
-            <div className="absolute -top-3 right-4 flex items-center gap-1 rounded-full bg-emerald-500 text-zinc-950 font-black px-2.5 py-0.5 text-[10px] shadow-sm">
-              <Trophy className="size-3" /> BEST ACC
-            </div>
-          )}
-          <p className="text-xs uppercase font-bold tracking-wider text-muted-foreground mb-1 font-sans">Accuracy</p>
-          <p className={cn("text-5xl sm:text-6xl font-black font-mono tracking-tight", result.accuracy >= 95 ? "text-emerald-500 dark:text-emerald-400" : "text-amber-500")}>
-            {result.accuracy.toFixed(1)}%
-          </p>
-          {previousBest && (
-            <p className="text-[11px] font-mono text-muted-foreground mt-2">
-              Previous: {previousBest.bestAccuracy.toFixed(1)}%
-            </p>
-          )}
-        </div>
-      </div>
+      <HoloResultCard
+        result={result}
+        previousBest={previousBest}
+        modeLabel={modeLabel}
+        username={username}
+      />
 
       {/* Ranked Score Banner / Verification */}
       {verifiedResult?.verified && (
@@ -222,10 +190,7 @@ export function ResultsScreen({
         <div className="flex flex-col sm:flex-row gap-2.5 w-full">
           <Button
             onClick={() =>
-              setShareOptions({
-                result,
-                username: user ? githubUsernameFromUser(user) || user.name || undefined : undefined,
-              })
+              setShareOptions({ result, username })
             }
             variant="outline"
             size="lg"

@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { Check, Copy, Download, LoaderCircle, Share2, Sparkles, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { createResultCard, SHARE_THEMES, type ShareCardOptions, type ShareCardTheme } from "@/lib/share-result";
+import { usePreferences } from "@/components/PreferencesProvider";
+import { getColorway } from "@/lib/keycaps";
 
 interface SharePreviewDialogProps {
   options: ShareCardOptions | null;
@@ -15,12 +17,15 @@ export function SharePreviewDialog({ options, onClose }: SharePreviewDialogProps
   const [status, setStatus] = useState<"loading" | "ready" | "shared" | "error">("loading");
   const [copiedImage, setCopiedImage] = useState(false);
   const [copiedCaption, setCopiedCaption] = useState(false);
+  const { preferences } = usePreferences();
+  const { keycapTheme, keycapOverrides } = preferences;
 
   useEffect(() => {
     if (!options) return;
     let active = true;
     setStatus("loading");
-    void createResultCard({ ...options, theme }).then((nextBlob) => {
+    const keycaps = { colorway: getColorway(keycapTheme), overrides: keycapOverrides };
+    void createResultCard({ ...options, theme, keycaps }).then((nextBlob) => {
       if (!active) return;
       setBlob(nextBlob);
       setPreviewUrl(URL.createObjectURL(nextBlob));
@@ -34,7 +39,7 @@ export function SharePreviewDialog({ options, onClose }: SharePreviewDialogProps
         return null;
       });
     };
-  }, [options, theme]);
+  }, [options, theme, keycapTheme, keycapOverrides]);
 
   useEffect(() => {
     if (!options) return;

@@ -1,4 +1,6 @@
 import type { RunResult } from "@/types";
+import { KEYBOARD_ROWS, missedKeys } from "@/lib/keyboard-layout";
+import { resolveKeyColors, type KeycapColorway, type KeycapOverrides } from "@/lib/keycaps";
 
 export type ShareCardTheme = "dark" | "tokyo" | "catppuccin" | "dracula" | "light";
 
@@ -8,6 +10,8 @@ export interface ShareCardOptions {
   heading?: string;
   rank?: number;
   theme?: ShareCardTheme;
+  /** The viewer's keycap colorway and per-key paint, drawn as a mini keyboard. */
+  keycaps?: { colorway: KeycapColorway | null; overrides: KeycapOverrides };
 }
 
 const WIDTH = 1200;
@@ -170,7 +174,68 @@ function drawTrend(context: CanvasRenderingContext2D, values: number[], x: numbe
   context.stroke();
 }
 
-export async function createResultCard({ result, username, heading, rank, theme = "dark" }: ShareCardOptions): Promise<Blob> {
+/**
+ * Mini keyboard in the viewer's keycap colors with missed keys ringed red.
+ * Keys without a colorway color fall back to the card palette.
+ */
+function drawKeyboard(
+  context: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  unit: number,
+  palette: ThemePalette,
+  keycaps: ShareCardOptions["keycaps"],
+  missed: Map<string, number>,
+) {
+  const gap = Math.round(unit * 0.12);
+  const depth = Math.max(2, Math.round(unit * 0.14));
+  const maxMissed = Math.max(1, ...missed.values());
+  KEYBOARD_ROWS.forEach((row, rowIndex) => {
+    let cursor = x;
+    const top = y + rowIndex * (unit + gap + depth);
+    for (const key of row) {
+      const width = unit * (key.w ?? 1) + gap * ((key.w ?? 1) - 1);
+      const colors = keycaps ? resolveKeyColors(key.id, keycaps.colorway, keycaps.overrides) : {};
+      const cap = colors.cap ?? palette.subCodeColor;
+      const legend = colors.legend ?? palette.secondaryText;
+      const misses = missed.get(key.id) ?? 0;
+
+      roundedRect(context, cursor, top + depth, width, unit, 6);
+      context.fillStyle = "rgba(0, 0, 0, 0.45)";
+      context.fill();
+      roundedRect(context, cursor, top, width, unit, 6);
+      context.fillStyle = cap;
+      context.fill();
+      context.strokeStyle = "rgba(0, 0, 0, 0.25)";
+      context.lineWidth = 1;
+      context.stroke();
+
+      if (misses > 0) {
+        context.save();
+        context.shadowColor = "rgba(239, 68, 68, 0.9)";
+        context.shadowBlur = 8 + (misses / maxMissed) * 14;
+        roundedRect(context, cursor - 1, top - 1, width + 2, unit + 2, 7);
+        context.strokeStyle = "#ef4444";
+        context.lineWidth = 2.5;
+        context.stroke();
+        context.restore();
+      }
+
+      if (key.label) {
+        context.fillStyle = legend;
+        context.font = `700 ${Math.round(unit * (key.label.length > 1 ? 0.3 : 0.42))}px monospace`;
+        context.textAlign = "center";
+        context.textBaseline = "middle";
+        context.fillText(key.label, cursor + width / 2, top + unit / 2 + 1);
+        context.textAlign = "left";
+        context.textBaseline = "alphabetic";
+      }
+      cursor += width + gap;
+    }
+  });
+}
+
+export async function createResultCard({ result, username, heading, rank, theme = "dark", keycaps }: ShareCardOptions): Promise<Blob> {
   const canvas = document.createElement("canvas");
   canvas.width = WIDTH;
   canvas.height = HEIGHT;
@@ -299,44 +364,58 @@ export async function createResultCard({ result, username, heading, rank, theme 
 
   } else {
     // --- STANDARD TYPING RESULT CARD LAYOUT ---
-    label(context, heading ?? "Typing result", 72, 178, palette.secondaryText);
+    const modeText = result.mode === "timed" ? `${Math.round(result.duration / 1000)}s timed` : result.mode === "snippet" && result.snippetLength ? `${result.snippetLength} snippet` : result.mode;
+    label(context, heading ?? `${result.language} · ${modeText}`, 72, 178, palette.secondaryText);
     context.fillStyle = palette.primaryText;
-    context.font = "800 122px monospace";
-    context.fillText(result.wpm.toFixed(1), 65, 315);
+    context.font = "800 128px monospace";
+    context.fillText(result.wpm.toFixed(1), 65, 312);
+    const wpmWidth = context.measureText(result.wpm.toFixed(1)).width;
     context.fillStyle = palette.accentText;
     context.font = "700 30px monospace";
-    context.fillText("WPM", 405, 305);
+    context.fillText("WPM", 65 + wpmWidth + 14, 304);
 
-    // Speed Trace Box
-    roundedRect(context, 72, 365, 680, 172, 24);
+    // 2x2 stat tiles under the WPM
+    const tiles = [
+      ["Accuracy", `${result.accuracy.toFixed(1)}%`],
+      ["Consistency", `${result.consistency.toFixed(1)}%`],
+      ["Max streak", result.maxCombo === undefined ? "—" : String(result.maxCombo)],
+      ["Raw speed", `${result.rawWpm.toFixed(1)}`],
+    ];
+    tiles.forEach(([name, value], index) => {
+      const tileX = 72 + (index % 2) * 248;
+      const tileY = 352 + Math.floor(index / 2) * 96;
+      roundedRect(context, tileX, tileY, 232, 82, 18);
+      context.fillStyle = palette.cardBg;
+      context.fill();
+      context.strokeStyle = palette.cardBorder;
+      context.lineWidth = 2;
+      context.stroke();
+      label(context, name, tileX + 20, tileY + 32, palette.secondaryText);
+      context.fillStyle = index === 0 ? palette.accentText : palette.primaryText;
+      context.font = "800 28px monospace";
+      context.fillText(value, tileX + 20, tileY + 66);
+    });
+
+    // Right card: speed trace on top, keycap keyboard below
+    const panelX = 600;
+    const panelY = 160;
+    const panelW = 528;
+    roundedRect(context, panelX, panelY, panelW, 378, 28);
     context.fillStyle = palette.cardBg;
     context.fill();
     context.strokeStyle = palette.cardBorder;
     context.lineWidth = 2;
     context.stroke();
-    label(context, "Speed trace", 104, 410, palette.secondaryText);
-    drawTrend(context, result.wpmSnapshots ?? [], 104, 442, 616, 62, palette.lineColor);
+    label(context, "Speed trace", panelX + 28, panelY + 44, palette.secondaryText);
+    drawTrend(context, result.wpmSnapshots ?? [], panelX + 28, panelY + 62, panelW - 56, 58, palette.lineColor);
 
-    // Stats Card
-    roundedRect(context, 790, 160, 338, 377, 28);
-    context.fillStyle = palette.cardBg;
-    context.fill();
-    context.strokeStyle = palette.cardBorder;
-    context.stroke();
-
-    const stats = [
-      ["Accuracy", `${result.accuracy.toFixed(1)}%`],
-      ["Consistency", `${result.consistency.toFixed(1)}%`],
-      ["Language", result.language],
-      ["Mode", result.mode === "timed" ? `${Math.round(result.duration / 1000)}s timed` : result.mode === "snippet" && result.snippetLength ? `${result.snippetLength} snippet` : result.mode],
-    ];
-    stats.forEach(([name, value], index) => {
-      const y = 210 + index * 78;
-      label(context, name, 826, y, palette.secondaryText);
-      context.fillStyle = index === 0 ? palette.accentText : palette.primaryText;
-      context.font = `${index < 2 ? "800 30px" : "700 24px"} monospace`;
-      context.fillText(value, 826, y + 37);
-    });
+    const missed = new Map(missedKeys(result.errorPositions, 10).map(({ id, count }) => [id, count]));
+    // Cloud runs don't store per-key errors, so "clean" only when we know it.
+    const keyboardTitle = missed.size ? "Missed keys" : result.totalErrors === 0 ? "Clean run · no missed keys" : "Your keycaps";
+    label(context, keyboardTitle, panelX + 28, panelY + 162, palette.secondaryText);
+    const unit = 28;
+    const keyboardWidth = unit * 15 + Math.round(unit * 0.12) * 14;
+    drawKeyboard(context, panelX + (panelW - keyboardWidth) / 2, panelY + 180, unit, palette, keycaps, missed);
 
     context.fillStyle = palette.secondaryText;
     context.font = "500 15px monospace";
