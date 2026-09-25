@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import {
   BarChart3,
+  CalendarDays,
   Flame,
   Gamepad2,
   Headphones,
@@ -89,6 +90,20 @@ export function Header() {
               >
                 <Gamepad2 className="size-3.5 shrink-0" />
                 <span className="whitespace-nowrap leading-none">Arcade</span>
+              </Link>
+
+              <Link
+                to="/daily"
+                className={cn(
+                  "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap shrink-0 transition-all duration-150",
+                  isActive("/daily")
+                    ? "bg-primary text-primary-foreground font-bold shadow-xs"
+                    : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
+                )}
+                title="Daily Challenge"
+              >
+                <CalendarDays className="size-3.5 shrink-0" />
+                <span className="whitespace-nowrap leading-none">Daily</span>
               </Link>
 
               <Link
@@ -309,6 +324,18 @@ export function Header() {
             >
               <Gamepad2 className="size-4" />
               <span>Arcade</span>
+            </Link>
+
+            <Link
+              to="/daily"
+              onClick={() => setMobileMenuOpen(false)}
+              className={cn(
+                "flex items-center gap-2 p-2.5 rounded-xl text-xs font-semibold border transition-all",
+                isActive("/daily") ? "bg-primary/20 border-primary/40 text-primary" : "bg-card/70 border-border/40 text-foreground"
+              )}
+            >
+              <CalendarDays className="size-4 text-amber-500" />
+              <span>Daily</span>
             </Link>
 
             <Link

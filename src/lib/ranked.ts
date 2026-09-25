@@ -6,7 +6,7 @@ const needsRemoteServerlessApi = typeof window !== 'undefined'
   && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || window.location.protocol === 'file:');
 const API_BASE_URL = configuredApiBase || (needsRemoteServerlessApi ? 'https://codey-opal.vercel.app' : '');
 
-function rankedApiUrl(path: string): string {
+export function rankedApiUrl(path: string): string {
   return `${API_BASE_URL}${path}`;
 }
 
@@ -50,7 +50,7 @@ export interface RankedStart {
   expiresAt: string;
 }
 
-async function getJwtToken(): Promise<string | null> {
+export async function getJwtToken(): Promise<string | null> {
   if (!account) return null;
   try {
     const session = await account.createJWT();
@@ -60,7 +60,7 @@ async function getJwtToken(): Promise<string | null> {
   }
 }
 
-async function apiError(response: Response, fallback: string): Promise<Error> {
+export async function apiError(response: Response, fallback: string): Promise<Error> {
   try {
     const payload = await response.json() as { error?: string };
     return new Error(payload.error || fallback);

@@ -108,3 +108,61 @@ Permissions:
 - Create/update/delete: server API key only
 
 No index is required because each user document is fetched directly by its document ID.
+
+## `daily_challenges`
+
+Document ID: the UTC date, `YYYY-MM-DD`. The first request of the day picks a
+snippet live from GitHub (the same pipeline as `/api/snippets`) and creates this
+document; every later request reads it, so all players type identical code.
+Nothing is created if GitHub has no usable snippet, and the next request retries.
+
+| Attribute | Type | Required |
+| --- | --- | --- |
+| `date` | string (10) | yes |
+| `language` | string (64) | yes |
+| `code` | string (4000) | yes |
+| `filename` | string (255) | yes |
+| `sourceRepo` | string (255) | yes |
+| `sourceUrl` | string (512) | yes |
+
+Permissions:
+
+- Read: `any`
+- Create/update/delete: server API key only
+
+No index is required; documents are fetched by ID.
+
+## `daily_runs`
+
+One document per player per day holding their best verified run. Document ID:
+first 32 hex characters of `sha256("<date>:<userId>")`.
+
+| Attribute | Type | Required |
+| --- | --- | --- |
+| `date` | string (10) | yes |
+| `userId` | string (36) | yes |
+| `language` | string (64) | yes |
+| `wpm` | float | yes |
+| `rawWpm` | float | yes |
+| `accuracy` | float | yes |
+| `durationMs` | integer | yes |
+| `mistakes` | integer | yes |
+| `keystrokes` | integer | yes |
+| `attempts` | integer | yes, default `1` |
+| `bestAt` | datetime | yes |
+
+Permissions:
+
+- Read: `any`
+- Create/update/delete: server API key only
+
+Indexes:
+
+- `date`, `wpm` descending (daily board and rank)
+- `userId`, `date` descending (streaks)
+
+Daily attempts reuse `run_sessions`: `/api/daily/start` creates a session whose
+`challenge` is `sha256("daily:<date>:<userId>:<sessionId>")`, which binds the
+attempt to one player and one day. `/api/daily/submit` checks it, closes the
+session, and applies the same accuracy, WPM and timing checks as Ranked.
+

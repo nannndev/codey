@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState, useCallback } from "react";
 import type { KeycapOverrides } from "@/lib/keycaps";
+import type { StrikeIntensity } from "@/components/SparkCanvas";
 
 export type FontSize = "12" | "14" | "16" | "18" | "20" | "22" | "24";
 export type FontFamily = "jetbrains" | "fira" | "cascadia" | "source";
@@ -42,6 +43,8 @@ export interface Preferences {
   /** Colorway id from KEYCAP_COLORWAYS, or "editor" to follow the editor theme. */
   keycapTheme: string;
   keycapOverrides: KeycapOverrides;
+  /** Strength of per-keystroke strike effects; "full" adds impact shake. */
+  strikeIntensity: StrikeIntensity;
 }
 
 export const DEFAULT_SOUND_TUNING: KeyboardSoundTuning = {
@@ -80,6 +83,7 @@ const DEFAULTS: Preferences = {
   keyboard3d: true,
   keycapTheme: "editor",
   keycapOverrides: {},
+  strikeIntensity: "full",
 };
 
 const FONT_SIZE_MAP: Record<FontSize, string> = {

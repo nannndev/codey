@@ -10,6 +10,7 @@
     { "source": "/stats", "destination": "/index.html" },
     { "source": "/settings", "destination": "/index.html" },
     { "source": "/leaderboard", "destination": "/index.html" },
+    { "source": "/daily", "destination": "/index.html" },
     { "source": "/profile", "destination": "/index.html" },
     { "source": "/profile/:userId", "destination": "/index.html" },
     { "source": "/duel", "destination": "/index.html" },
