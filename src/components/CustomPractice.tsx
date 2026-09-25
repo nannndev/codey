@@ -59,14 +59,14 @@ export function CustomPractice({ onLoad }: { onLoad: (snippet: Snippet) => void 
 
   if (!open) {
     return (
-      <Button type="button" variant="outline" size="sm" onClick={() => setOpen(true)} className="btn-3d gap-1.5 text-xs font-bold border">
-        <FileUp className="size-3.5 text-amber-500" /> Custom / Gist Practice
+      <Button type="button" variant="outline" size="sm" onClick={() => setOpen(true)} className="btn-3d h-8 gap-1.5 text-xs font-bold border" title="Practice your own code or a GitHub Gist">
+        <FileUp className="size-3.5 text-amber-500" /> Custom code
       </Button>
     );
   }
 
   return (
-    <section className="rounded-2xl border bg-card/90 p-5 backdrop-blur-md shadow-xl transition-all animate-scale-in">
+    <section className="w-full rounded-2xl border bg-card/90 p-5 backdrop-blur-md shadow-xl transition-all animate-scale-in">
       <div className="mb-4 flex items-start justify-between gap-4">
         <div>
           <h2 className="text-sm font-bold text-foreground">📁 Custom Code & Import Gist</h2>
