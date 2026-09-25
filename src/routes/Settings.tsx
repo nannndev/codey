@@ -212,6 +212,31 @@ export default function Settings() {
                 />
               </div>
 
+              {/* Strike intensity */}
+              {preferences.comboEffects && (
+                <div className="flex items-center justify-between gap-4 pb-3 pl-6.5">
+                  <div className="min-w-0">
+                    <p className="text-xs font-semibold text-foreground">Strike intensity</p>
+                    <p className="text-[11px] leading-snug text-muted-foreground">
+                      Full adds impact shake at high combos and on misses. Subtle keeps particles light, no shake.
+                    </p>
+                  </div>
+                  <div className="flex shrink-0 rounded-lg border bg-card/70 p-0.5 text-xs font-semibold">
+                    {(["subtle", "full"] as const).map((level) => (
+                      <button
+                        key={level}
+                        type="button"
+                        onClick={() => setPreference("strikeIntensity", level)}
+                        aria-pressed={preferences.strikeIntensity === level}
+                        className={`rounded-md px-2.5 py-1 capitalize transition-colors ${preferences.strikeIntensity === level ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground"}`}
+                      >
+                        {level}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {/* Auto-indent */}
               <div className="flex items-center justify-between py-3 gap-4">
                 <div className="flex items-start gap-2.5 min-w-0">

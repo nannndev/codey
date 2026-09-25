@@ -174,6 +174,8 @@ export function CommandPalette() {
 
       { id: "toggle-sound", group: "Toggles", label: "Keyboard sound", keywords: "audio click switch mute", icon: Volume2, state: onOff(preferences.keyboardSound), run: toggle("keyboardSound") },
       { id: "toggle-combo", group: "Toggles", label: "Combo sparks", keywords: "effects glow streak", icon: Flame, state: onOff(preferences.comboEffects), run: toggle("comboEffects") },
+      { id: "strike-full", group: "Appearance", label: "Strike effects: Full", keywords: "shake impact particles typing", icon: Flame, state: preferences.strikeIntensity === "full" ? "active" : undefined, run: () => setPreference("strikeIntensity", "full") },
+      { id: "strike-subtle", group: "Appearance", label: "Strike effects: Subtle", keywords: "calm no shake particles typing", icon: Flame, state: preferences.strikeIntensity === "subtle" ? "active" : undefined, run: () => setPreference("strikeIntensity", "subtle") },
       { id: "toggle-ghost", group: "Toggles", label: "Ghost runner", keywords: "personal best pb pace", icon: Flame, state: onOff(preferences.ghostRunner), run: toggle("ghostRunner") },
       { id: "toggle-indent", group: "Toggles", label: "Auto-indent", keywords: "whitespace tab enter", icon: IndentIncrease, state: onOff(preferences.autoIndent), run: toggle("autoIndent") },
       { id: "toggle-keyboard3d", group: "Toggles", label: "3D keyboard", keywords: "keycaps visual hint", icon: Keyboard, state: onOff(preferences.keyboard3d), run: toggle("keyboard3d") },

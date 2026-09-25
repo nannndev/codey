@@ -88,22 +88,84 @@ export function CodeDisplay({
   const prevInputLenRef = useRef(input.length);
   const prevComboRef = useRef(combo);
   const [justLostCombo, setJustLostCombo] = useState(false);
+  const windowRef = useRef<HTMLDivElement>(null);
+  /** Lines where a mistake happened this run, even if later corrected. */
+  const errorLinesRef = useRef(new Set<number>());
+  const [strikeId, setStrikeId] = useState(0);
+  const [perfectLine, setPerfectLine] = useState<{ line: number; id: number } | null>(null);
+  const [strikeBanner, setStrikeBanner] = useState<{ text: string; tier: "flow" | "fever" | "overdrive"; id: number } | null>(null);
 
+  const strikeFull = preferences.strikeIntensity === "full";
+  const reducedMotion = typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  const cursorPoint = () => {
+    if (!cursorRef.current || !viewportRef.current) return null;
+    const cursorRect = cursorRef.current.getBoundingClientRect();
+    const viewportRect = viewportRef.current.getBoundingClientRect();
+    return {
+      x: cursorRect.left - viewportRect.left,
+      y: cursorRect.top - viewportRect.top + cursorRect.height / 2,
+    };
+  };
+
+  /** Tiny editor shake via the Web Animations API, so it never re-renders. */
+  const shakeWindow = (amplitude: number, duration: number) => {
+    const el = windowRef.current;
+    if (!el || reducedMotion || !strikeFull || typeof el.animate !== "function") return;
+    el.animate(
+      [
+        { transform: "translate3d(0, 0, 0)" },
+        { transform: `translate3d(${-amplitude}px, ${amplitude * 0.5}px, 0)` },
+        { transform: `translate3d(${amplitude}px, ${-amplitude * 0.4}px, 0)` },
+        { transform: "translate3d(0, 0, 0)" },
+      ],
+      { duration, easing: "ease-out" },
+    );
+  };
+
+  const lineOf = (index: number) => {
+    let line = 0;
+    for (let i = 0; i < index && i < chars.length; i++) if (chars[i].char === "\n") line++;
+    return line;
+  };
+
+  // Per-keystroke strike: particles and ring at the cursor, a miss burst on
+  // wrong keys, impact shake at high combos, and "perfect line" when a line
+  // is finished without any mistakes.
   useEffect(() => {
-    if (!preferences.comboEffects) return;
+    const previous = prevInputLenRef.current;
+    prevInputLenRef.current = input.length;
+    if (input.length === 0) errorLinesRef.current.clear();
+    if (!preferences.comboEffects || input.length <= previous) return;
 
-    if (input.length > prevInputLenRef.current) {
-      if (cursorRef.current && viewportRef.current && sparkCanvasRef.current) {
-        const cursorRect = cursorRef.current.getBoundingClientRect();
-        const viewportRect = viewportRef.current.getBoundingClientRect();
-        const x = cursorRect.left - viewportRect.left + cursorRect.width / 2;
-        const y = cursorRect.top - viewportRect.top + cursorRect.height / 2;
+    const lastIndex = input.length - 1;
+    const last = chars[lastIndex];
+    const point = cursorPoint();
 
-        sparkCanvasRef.current.spawn(x, y, combo);
+    if (last?.status === "incorrect") {
+      errorLinesRef.current.add(lineOf(lastIndex));
+      if (point) sparkCanvasRef.current?.miss(point.x, point.y);
+      shakeWindow(3, 180);
+    } else {
+      if (point) sparkCanvasRef.current?.spawn(point.x, point.y, combo);
+      if (combo >= 100) shakeWindow(2.2, 110);
+      else if (combo >= 50) shakeWindow(1.2, 90);
+    }
+    setStrikeId((id) => id + 1);
+
+    // A correct newline in this keystroke closes a line.
+    for (let i = previous; i < input.length; i++) {
+      if (chars[i]?.char !== "\n" || chars[i].status !== "correct") continue;
+      const line = lineOf(i);
+      const lineChars = lines[line] ?? [];
+      const meaningful = lineChars.filter(({ state }) => state.char.trim() !== "").length;
+      if (meaningful >= 3 && !errorLinesRef.current.has(line)) {
+        setPerfectLine({ line, id: Date.now() });
       }
     }
-    prevInputLenRef.current = input.length;
-  }, [input, combo, preferences.comboEffects]);
+    // Refs and helpers are read at keystroke time; input drives this effect.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [input]);
 
   useEffect(() => {
     if (!preferences.comboEffects) return;
@@ -111,6 +173,12 @@ export function CodeDisplay({
     if (combo > prevComboRef.current) {
       if (combo === 25 || combo === 50 || combo === 100 || (combo > 100 && combo % 50 === 0)) {
         playComboMilestoneSound(combo, preferences.keyboardSoundVolume);
+        setStrikeBanner({
+          text: combo === 25 ? "25 Strike!" : combo === 50 ? "Fever ×50" : combo === 100 ? "Overdrive ×100" : `Unstoppable ×${combo}`,
+          tier: combo >= 100 ? "overdrive" : combo >= 50 ? "fever" : "flow",
+          id: combo,
+        });
+        shakeWindow(combo >= 100 ? 4 : 3, 260);
         if (cursorRef.current && viewportRef.current && sparkCanvasRef.current) {
           const cursorRect = cursorRef.current.getBoundingClientRect();
           const viewportRect = viewportRef.current.getBoundingClientRect();
@@ -226,6 +294,7 @@ export function CodeDisplay({
 
   return (
     <div
+      ref={windowRef}
       className={cn(
         "code-window relative overflow-hidden rounded-2xl border border-border/80 shadow-2xl focus-within:ring-2 focus-within:ring-amber-500/50 focus-within:ring-offset-2 focus-within:ring-offset-background transition-all duration-300",
         focusMode && "code-window-focus",
@@ -254,6 +323,17 @@ export function CodeDisplay({
           <span>
             {combo}x {combo >= 100 ? "OVERDRIVE" : combo >= 50 ? "FEVER" : "STREAK"}
           </span>
+        </div>
+      )}
+
+      {strikeBanner && preferences.comboEffects && (
+        <div
+          key={strikeBanner.id}
+          className={cn("strike-banner pointer-events-none absolute inset-x-0 top-[38%] z-30 text-center select-none", `is-${strikeBanner.tier}`)}
+          onAnimationEnd={() => setStrikeBanner(null)}
+          aria-hidden="true"
+        >
+          {strikeBanner.text}
         </div>
       )}
 
@@ -357,7 +437,7 @@ export function CodeDisplay({
 
       {/* Code viewport */}
       <div ref={viewportRef} className="code-viewport relative min-w-0 overflow-auto py-5">
-        <SparkCanvas ref={sparkCanvasRef} disabled={!preferences.comboEffects} />
+        <SparkCanvas ref={sparkCanvasRef} disabled={!preferences.comboEffects} intensity={preferences.strikeIntensity} />
         <div className="min-w-max">
           {lines.map((line, li) => {
             const lineStr = line.map((item) => item.state.char).join("");
@@ -369,7 +449,7 @@ export function CodeDisplay({
               <div
                 key={li}
                 className={cn(
-                  "code-row",
+                  "code-row relative",
                   li === currentLineIndex && "is-current-line",
                   isDiffAdd && "git-diff-add",
                   isDiffDel && "git-diff-del",
@@ -379,9 +459,21 @@ export function CodeDisplay({
               <span className={cn("code-line-number", li === currentLineIndex && "is-current text-amber-500 font-bold")}>
                 {li + 1}
               </span>
+              {perfectLine?.line === li && preferences.comboEffects && (
+                <span
+                  key={perfectLine.id}
+                  className="perfect-sweep pointer-events-none"
+                  onAnimationEnd={() => setPerfectLine(null)}
+                  aria-hidden="true"
+                >
+                  <span className="perfect-tag">Perfect</span>
+                </span>
+              )}
               <div className="whitespace-pre px-4">
                 {line.map(({ state: c, syntax, globalIndex }, ci) => {
                   const isGhostHere = showGhost && globalIndex === effectiveGhostIndex;
+                  // Whitespace is skipped: inline-block on a newline would break the line.
+                  const isStruck = preferences.comboEffects && strikeId > 0 && globalIndex === input.length - 1 && c.char.trim() !== "";
 
                   if (c.isCurrent) {
                     return (
@@ -402,9 +494,11 @@ export function CodeDisplay({
 
                   return (
                     <span
-                      key={`${li}-${ci}`}
+                      // Re-keyed on each keystroke so the strike animation replays.
+                      key={isStruck ? `${li}-${ci}-s${strikeId}` : `${li}-${ci}`}
                       className={cn(
                         "syntax-char transition-all duration-100 relative",
+                        isStruck && (c.status === "incorrect" ? "is-strike-miss" : "is-strike"),
                         `syntax-${syntax}`,
                         c.status === "correct" && "is-typed",
                         c.status === "incorrect" && "is-error",
