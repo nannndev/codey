@@ -5,14 +5,14 @@ export type StrikeIntensity = "subtle" | "full";
 export interface SparkCanvasHandle {
   /** Per-keystroke strike at the cursor; scales with combo. */
   spawn: (x: number, y: number, combo: number) => void;
-  /** Milestone burst with a big shockwave. */
+  /** Milestone burst. */
   burst: (x: number, y: number, combo: number) => void;
-  /** Wrong key: red shards and ring. */
+  /** Wrong key: a few red sparks. */
   miss: (x: number, y: number) => void;
 }
 
 interface Particle {
-  kind: "dot" | "shard" | "ring";
+  kind: "dot" | "shard";
   x: number;
   y: number;
   vx: number;
@@ -21,9 +21,6 @@ interface Particle {
   alpha: number;
   color: string;
   decay: number;
-  /** Rings: current and max radius. */
-  radius?: number;
-  maxRadius?: number;
 }
 
 const TIER_COLORS = {
@@ -74,38 +71,27 @@ export const SparkCanvas = forwardRef<SparkCanvasHandle, { disabled?: boolean; i
       ctx.save();
       ctx.globalAlpha = Math.max(0, p.alpha);
 
-      if (p.kind === "ring") {
-        // Ease the ring out toward its max radius.
-        p.radius! += (p.maxRadius! - p.radius!) * 0.18;
+      p.x += p.vx;
+      p.y += p.vy;
+      // Light gravity so sparks fade out above the line instead of falling onto it.
+      p.vy += 0.03;
+      p.vx *= 0.95;
+      ctx.shadowBlur = p.size * 2;
+      ctx.shadowColor = p.color;
+      if (p.kind === "shard") {
+        // Streak along the velocity so shards read as flying debris.
         ctx.strokeStyle = p.color;
-        ctx.lineWidth = Math.max(0.5, p.size * p.alpha);
-        ctx.shadowBlur = 10;
-        ctx.shadowColor = p.color;
+        ctx.lineWidth = p.size;
+        ctx.lineCap = "round";
         ctx.beginPath();
-        ctx.arc(p.x, p.y, p.radius!, 0, Math.PI * 2);
+        ctx.moveTo(p.x, p.y);
+        ctx.lineTo(p.x - p.vx * 1.6, p.y - p.vy * 1.6);
         ctx.stroke();
       } else {
-        p.x += p.vx;
-        p.y += p.vy;
-        p.vy += p.kind === "shard" ? 0.12 : 0.08;
-        p.vx *= 0.95;
-        ctx.shadowBlur = p.size * 3;
-        ctx.shadowColor = p.color;
-        if (p.kind === "shard") {
-          // Streak along the velocity so shards read as flying debris.
-          ctx.strokeStyle = p.color;
-          ctx.lineWidth = p.size;
-          ctx.lineCap = "round";
-          ctx.beginPath();
-          ctx.moveTo(p.x, p.y);
-          ctx.lineTo(p.x - p.vx * 2.6, p.y - p.vy * 2.6);
-          ctx.stroke();
-        } else {
-          ctx.fillStyle = p.color;
-          ctx.beginPath();
-          ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-          ctx.fill();
-        }
+        ctx.fillStyle = p.color;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+        ctx.fill();
       }
       ctx.restore();
     }
@@ -121,53 +107,43 @@ export const SparkCanvas = forwardRef<SparkCanvasHandle, { disabled?: boolean; i
     if (animFrameRef.current === null) animFrameRef.current = requestAnimationFrame(renderLoop);
   }, [renderLoop]);
 
-  const ring = useCallback((x: number, y: number, color: string, maxRadius: number, width: number, decay: number) => {
-    if (reducedMotion.current) return;
-    push({ kind: "ring", x, y, vx: 0, vy: 0, size: width, alpha: 0.9, color, decay, radius: 2, maxRadius });
-  }, [push]);
-
+  // Sparks start just above the cursor and fly upward in a narrow cone, so
+  // they never cover the characters still to be typed.
   const debris = useCallback((x: number, y: number, colors: string[], count: number, speedScale: number, kinds: Array<"dot" | "shard">) => {
+    if (reducedMotion.current) return;
     for (let i = 0; i < count; i++) {
-      const angle = Math.random() * Math.PI * 2;
-      const speed = (Math.random() * 2.4 + 1) * speedScale;
+      const angle = -Math.PI / 2 + (Math.random() - 0.5) * (Math.PI * 0.6);
+      const speed = (Math.random() * 1.4 + 0.9) * speedScale;
       push({
         kind: kinds[i % kinds.length],
-        x,
-        y,
+        x: x + (Math.random() - 0.5) * 6,
+        y: y - 10,
         vx: Math.cos(angle) * speed,
-        vy: Math.sin(angle) * speed - 1.3,
-        size: Math.random() * 1.6 + 1.1,
-        alpha: 1,
+        vy: Math.sin(angle) * speed,
+        size: Math.random() * 0.9 + 0.8,
+        alpha: 0.75,
         color: colors[Math.floor(Math.random() * colors.length)],
-        decay: Math.random() * 0.03 + 0.03,
+        decay: Math.random() * 0.03 + 0.05,
       });
     }
   }, [push]);
 
   const spawn = useCallback((x: number, y: number, combo: number) => {
     if (disabled) return;
-    const full = intensity === "full";
-    const colors = tierColors(combo);
-    const base = combo >= 100 ? 7 : combo >= 50 ? 5 : combo >= 20 ? 4 : combo >= 5 ? 3 : 2;
-    const count = full ? base : Math.max(1, Math.round(base / 2));
-    debris(x, y, colors, count, combo >= 100 ? 1.4 : 1, combo >= 20 ? ["shard", "dot"] : ["dot"]);
-    // Small impact ring on every strike; bigger as the combo climbs.
-    ring(x, y, colors[0], 10 + Math.min(combo, 120) * 0.12, full ? 1.6 : 1, full ? 0.07 : 0.1);
-  }, [disabled, intensity, debris, ring]);
+    const base = combo >= 100 ? 4 : combo >= 50 ? 3 : combo >= 20 ? 2 : 1;
+    const count = intensity === "full" ? base : Math.max(1, base - 1);
+    debris(x, y, tierColors(combo), count, combo >= 100 ? 1.2 : 1, combo >= 50 ? ["shard", "dot"] : ["dot"]);
+  }, [disabled, intensity, debris]);
 
   const burst = useCallback((x: number, y: number, combo: number) => {
     if (disabled) return;
-    const colors = tierColors(combo);
-    debris(x, y, colors, intensity === "full" ? 24 : 12, 1.8, ["shard", "dot"]);
-    ring(x, y, colors[0], 60, 2.5, 0.035);
-    ring(x, y, colors[1] ?? colors[0], 38, 2, 0.045);
-  }, [disabled, intensity, debris, ring]);
+    debris(x, y, tierColors(combo), intensity === "full" ? 10 : 6, 1.5, ["shard", "dot"]);
+  }, [disabled, intensity, debris]);
 
   const miss = useCallback((x: number, y: number) => {
     if (disabled) return;
-    debris(x, y, TIER_COLORS.miss, intensity === "full" ? 6 : 3, 1.1, ["shard"]);
-    ring(x, y, TIER_COLORS.miss[0], 16, 2, 0.08);
-  }, [disabled, intensity, debris, ring]);
+    debris(x, y, TIER_COLORS.miss, intensity === "full" ? 3 : 2, 0.9, ["dot"]);
+  }, [disabled, intensity, debris]);
 
   useImperativeHandle(ref, () => ({ spawn, burst, miss }), [spawn, burst, miss]);
 
