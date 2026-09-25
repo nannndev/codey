@@ -18,7 +18,7 @@ interface ThemeOption {
   function: string;
 }
 
-const THEMES: ThemeOption[] = [
+export const THEMES: ThemeOption[] = [
   { id: "codey", name: "Codey Dark (Default)", author: "Codey", bg: "#09090b", fg: "#f4f4f5", keyword: "#38bdf8", string: "#facc15", comment: "#71717a", function: "#34d399" },
   { id: "tokyo", name: "Tokyo Night", author: "folke", bg: "#1a1b26", fg: "#a9b1d6", keyword: "#bb9af7", string: "#9ece6a", comment: "#565f89", function: "#7aa2f7" },
   { id: "catppuccin", name: "Catppuccin Macchiato", author: "Catppuccin", bg: "#1e1e2e", fg: "#cdd6f4", keyword: "#cba6f7", string: "#a6e3a1", comment: "#6c7086", function: "#89b4fa" },

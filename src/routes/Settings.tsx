@@ -1,4 +1,6 @@
 import { ArrowLeft, Command, Flame, Headphones, Maximize2, Play, RotateCcw, Volume2, VolumeX, Type, Sparkles, Target } from "lucide-react";
+import { openKeycapStudio } from "@/components/KeycapStudioModal";
+import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { useEffect, useRef, useState } from "react";
 import { useFlowRadio } from "@/components/RadioProvider";
@@ -208,6 +210,47 @@ export default function Settings() {
                   onCheckedChange={() => setPreference("comboEffects", !preferences.comboEffects)}
                   label="Toggle combo effects"
                 />
+              </div>
+
+              {/* Auto-indent */}
+              <div className="flex items-center justify-between py-3 gap-4">
+                <div className="flex items-start gap-2.5 min-w-0">
+                  <span className="mt-0.5 font-mono text-xs text-muted-foreground shrink-0">⇥</span>
+                  <div>
+                    <p className="text-xs font-semibold text-foreground">Auto-indent</p>
+                    <p className="text-[11px] text-muted-foreground leading-snug">
+                      Skip leading whitespace after Enter, like an editor. Turn off to type every space yourself.
+                    </p>
+                  </div>
+                </div>
+                <SettingSwitch
+                  checked={preferences.autoIndent}
+                  onCheckedChange={() => setPreference("autoIndent", !preferences.autoIndent)}
+                  label="Toggle auto-indent"
+                />
+              </div>
+
+              {/* 3D Keyboard */}
+              <div className="flex items-center justify-between py-3 gap-4">
+                <div className="flex items-start gap-2.5 min-w-0">
+                  <span className="mt-0.5 text-sm shrink-0">⌨️</span>
+                  <div>
+                    <p className="text-xs font-semibold text-foreground">3D Live Keyboard</p>
+                    <p className="text-[11px] text-muted-foreground leading-snug">
+                      Keycaps press as you type, the next key glows, and mistakes flash red. Shown on wider screens.
+                    </p>
+                  </div>
+                </div>
+                <div className="flex shrink-0 items-center gap-2">
+                <Button type="button" variant="outline" size="sm" className="h-7 px-2.5 text-xs" onClick={openKeycapStudio}>
+                  Customize keycaps
+                </Button>
+                <SettingSwitch
+                  checked={preferences.keyboard3d}
+                  onCheckedChange={() => setPreference("keyboard3d", !preferences.keyboard3d)}
+                  label="Toggle 3D keyboard"
+                />
+                </div>
               </div>
 
               {/* Ghost Runner */}
