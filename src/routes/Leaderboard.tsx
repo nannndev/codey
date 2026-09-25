@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
-import { ArrowLeft, LoaderCircle, Share2, Timer, Trophy, Zap } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
+import { ArrowDown, ArrowLeft, LoaderCircle, Share2, Timer, Trophy, Zap } from "lucide-react";
+import { Podium3D } from "@/components/leaderboard/Podium3D";
 import { Footer } from "@/components/Footer";
 import { getLanguages } from "@/data";
 import { type CloudProfile, type CloudRun } from "@/lib/cloud";
@@ -158,8 +159,98 @@ function generateDemoRuns(): { runs: CloudRun[]; profiles: Map<string, CloudProf
   return { runs: demoRuns, profiles: demoProfiles };
 }
 
+const RANK_COLORS = { 1: "#f5b400", 2: "#c3cad6", 3: "#d08a4c" } as const;
+
+function PodiumCard({ run, rank, profile, name, isMe, onShare }: {
+  run: CloudRun;
+  rank: 1 | 2 | 3;
+  profile?: CloudProfile;
+  name: string;
+  isMe: boolean;
+  onShare: () => void;
+}) {
+  return (
+    <article
+      className="group relative flex flex-col items-center rounded-xl border bg-card/90 px-2 py-2.5 text-center shadow-lg sm:px-3"
+      style={{ borderColor: `${RANK_COLORS[rank]}66`, boxShadow: `0 10px 30px -12px ${RANK_COLORS[rank]}66` }}
+    >
+      <Link to={`/profile/${run.userId}`} className="flex min-w-0 max-w-full flex-col items-center">
+        <div
+          className="grid size-10 place-items-center overflow-hidden rounded-full bg-muted text-sm font-bold ring-2 sm:size-11"
+          style={{ ["--tw-ring-color" as string]: RANK_COLORS[rank] }}
+        >
+          {profile?.avatarUrl ? <img src={profile.avatarUrl} alt="" className="size-full object-cover" /> : <span>{name.slice(0, 1).toUpperCase()}</span>}
+        </div>
+        <p className="mt-1.5 max-w-full truncate text-xs font-bold sm:text-sm">
+          {name}
+          {isMe && <span className="ml-1 text-[9px] font-black uppercase text-amber-500">you</span>}
+        </p>
+      </Link>
+      <div className="mt-1 hidden sm:block">
+        <DivisionBadge bestWpm={run.wpm} avgAccuracy={run.accuracy} size="sm" />
+      </div>
+      <p className="mt-1 font-mono text-lg font-black tabular-nums tracking-tight sm:text-xl" style={{ color: rank === 1 ? RANK_COLORS[1] : undefined }}>
+        {run.wpm.toFixed(1)}
+        <span className="ml-1 text-[10px] font-bold uppercase text-muted-foreground">wpm</span>
+      </p>
+      <p className="truncate text-[10px] text-muted-foreground">
+        {run.accuracy.toFixed(1)}% · <span className="capitalize">{run.language}</span>
+      </p>
+      {isMe && (
+        <button
+          type="button"
+          onClick={onShare}
+          className="absolute right-1.5 top-1.5 grid size-6 place-items-center rounded-full border bg-background/80 text-muted-foreground transition-colors hover:text-foreground"
+          aria-label={`Share rank ${rank}`}
+        >
+          <Share2 className="size-3" />
+        </button>
+      )}
+    </article>
+  );
+}
+
+/** Sticky summary of where the signed-in typist stands on this board. */
+function YourRankBar({ runs, userId }: { runs: CloudRun[]; userId?: string }) {
+  if (!userId) return null;
+  const index = runs.findIndex((run) => run.userId === userId);
+  if (index === -1) {
+    return (
+      <div className="leaderboard-you-bar sticky bottom-[76px] z-20 flex items-center justify-between gap-3 rounded-2xl border bg-card/95 px-4 py-3 text-xs shadow-xl backdrop-blur-md">
+        <span className="text-muted-foreground">You're not on this board yet.</span>
+        <Link to="/" className="rounded-lg bg-foreground px-3 py-1.5 font-bold text-background transition-opacity hover:opacity-85">Play ranked</Link>
+      </div>
+    );
+  }
+  const rank = index + 1;
+  const mine = runs[index];
+  const ahead = index > 0 ? runs[index - 1] : null;
+  const gap = ahead ? Math.max(0.1, ahead.wpm - mine.wpm) : 0;
+  const jump = () => {
+    const target = rank <= 3 ? document.querySelector(".podium-3d, .leaderboard-podium") : document.getElementById(`leaderboard-rank-${rank}`);
+    target?.scrollIntoView({ behavior: "smooth", block: "center" });
+  };
+  return (
+    <div className="leaderboard-you-bar sticky bottom-[76px] z-20 flex items-center gap-3 rounded-2xl border border-amber-500/40 bg-card/95 px-4 py-3 shadow-xl backdrop-blur-md">
+      <RankMark rank={rank} size="md" />
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-sm font-bold">
+          You're #{rank} <span className="font-mono font-black tabular-nums">· {mine.wpm.toFixed(1)} WPM</span>
+        </p>
+        <p className="truncate text-[11px] text-muted-foreground">
+          {ahead ? `${gap.toFixed(1)} WPM behind #${rank - 1}. One clean run could do it.` : "You hold the top spot. Defend it!"}
+        </p>
+      </div>
+      <button type="button" onClick={jump} className="flex shrink-0 items-center gap-1 rounded-lg border px-2.5 py-1.5 text-xs font-bold transition-colors hover:bg-muted">
+        <ArrowDown className="size-3.5" /> Show me
+      </button>
+    </div>
+  );
+}
+
 export default function Leaderboard() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [board, setBoard] = useState<Board>("snippet");
   const [language, setLanguage] = useState("All");
   const [snippetLength, setSnippetLength] = useState<SnippetLength>("medium");
@@ -322,7 +413,36 @@ export default function Leaderboard() {
           </div>
         ) : (
           <main className="animate-fade-in-up space-y-6">
-            {/* Compact Podium */}
+            <Podium3D
+              entries={[...podium.map((run, index) => {
+                const rank = (index + 1) as 1 | 2 | 3;
+                return {
+                  rank,
+                  onSelect: () => navigate(`/profile/${run.userId}`),
+                  card: (
+                    <PodiumCard
+                      run={run}
+                      rank={rank}
+                      profile={profiles.get(run.userId)}
+                      name={displayName(run, profiles)}
+                      isMe={user?.$id === run.userId}
+                      onShare={() => setShareOptions({ result: cloudRunAsResult(run), username: profiles.get(run.userId)?.githubUsername || displayName(run, profiles), heading: boardTitle, rank })}
+                    />
+                  ),
+                };
+              }), ...([1, 2, 3] as const).filter((rank) => rank > podium.length).map((rank) => ({
+                rank,
+                empty: true,
+                onSelect: () => navigate("/"),
+                card: (
+                  <Link to="/" className="flex flex-col items-center rounded-xl border border-dashed bg-card/60 px-2 py-5 text-center text-muted-foreground transition-colors hover:text-foreground">
+                    <span className="text-lg font-black">#{rank}</span>
+                    <span className="text-[11px] font-semibold">Open spot</span>
+                    <span className="text-[10px]">Claim it with a ranked run</span>
+                  </Link>
+                ),
+              }))]}
+              fallback={
             <section className="leaderboard-podium rounded-2xl border bg-card/65 p-3 backdrop-blur-sm sm:p-4" aria-label="Top three typists">
               <div className={`grid gap-2 sm:gap-3 ${podiumOrder.length === 1 ? "grid-cols-1 max-w-md mx-auto" : podiumOrder.length === 2 ? "grid-cols-2 max-w-2xl mx-auto" : "grid-cols-3"}`}>
                 {podiumOrder.map((run, position) => {
@@ -387,6 +507,8 @@ export default function Leaderboard() {
                 })}
               </div>
             </section>
+              }
+            />
 
             {/* Compact Ranking List */}
             {remaining.length > 0 && (
@@ -406,7 +528,8 @@ export default function Leaderboard() {
                   return (
                     <div
                       key={run.$id}
-                      className="group grid grid-cols-[40px_1fr_70px_70px] items-center gap-3 border-b px-4 py-2.5 last:border-0 hover:bg-muted/30 sm:grid-cols-[48px_1fr_90px_90px_90px]"
+                      id={`leaderboard-rank-${rank}`}
+                      className={`group grid scroll-mt-24 grid-cols-[40px_1fr_70px_70px] items-center gap-3 border-b px-4 py-2.5 last:border-0 hover:bg-muted/30 sm:grid-cols-[48px_1fr_90px_90px_90px] ${canShare ? "leaderboard-row-me" : ""}`}
                     >
                       <RankMark rank={rank} size="sm" />
                       <Link to={`/profile/${run.userId}`} className="flex min-w-0 items-center gap-2.5">
@@ -420,6 +543,7 @@ export default function Leaderboard() {
                         <div className="min-w-0">
                           <div className="flex items-center gap-1.5 min-w-0">
                             <p className="truncate text-sm font-medium">{name}</p>
+                            {canShare && <span className="shrink-0 rounded bg-amber-500/15 px-1.5 py-0.5 text-[9px] font-black uppercase tracking-wider text-amber-500">You</span>}
                             <DivisionBadge bestWpm={run.wpm} avgAccuracy={run.accuracy} size="sm" />
                           </div>
                         </div>
@@ -452,10 +576,12 @@ export default function Leaderboard() {
                 })}
               </section>
             )}
+
+            <YourRankBar runs={runs} userId={user?.$id} />
           </main>
         )}
 
-        <p className="mt-4 text-center text-xs text-muted-foreground">Community scores are public and not anti-cheat verified yet.</p>
+        <p className="mt-4 text-center text-xs text-muted-foreground">Only anti-cheat verified ranked runs appear here. Scores are public.</p>
       </div>
       <Footer />
       <SharePreviewDialog options={shareOptions} onClose={() => setShareOptions(null)} />
