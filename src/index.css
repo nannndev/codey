@@ -955,7 +955,6 @@ html {
   --kb-depth: calc(var(--kb-u) * 0.16);
   --kb-accent: var(--syntax-function);
   --kb-cap: color-mix(in oklab, var(--editor-bg) 82%, white 18%);
-  --kb-side: color-mix(in oklab, var(--editor-bg) 70%, black 30%);
   perspective: 1400px;
   perspective-origin: 50% 0%;
   padding: 4px 0 calc(var(--kb-u) * 0.9);
@@ -964,6 +963,7 @@ html {
 }
 
 .kb3d-board {
+  --kb-plate: var(--editor-chrome);
   --kb-tilt-x: 0deg;
   --kb-tilt-y: 0deg;
   width: max-content;
@@ -979,10 +979,10 @@ html {
   gap: var(--kb-gap);
   padding: calc(var(--kb-u) * 0.32);
   border-radius: calc(var(--kb-u) * 0.36);
-  background: linear-gradient(180deg, var(--editor-chrome), color-mix(in oklab, var(--editor-chrome) 80%, black 20%));
-  border: 1px solid var(--editor-border);
+  background: linear-gradient(180deg, var(--kb-plate), color-mix(in oklab, var(--kb-plate) 80%, black 20%));
+  border: 1px solid color-mix(in oklab, var(--kb-plate) 75%, var(--editor-border));
   box-shadow:
-    0 calc(var(--kb-u) * 0.28) 0 color-mix(in oklab, var(--editor-chrome) 55%, black 45%),
+    0 calc(var(--kb-u) * 0.28) 0 color-mix(in oklab, var(--kb-plate) 55%, black 45%),
     0 calc(var(--kb-u) * 0.6) calc(var(--kb-u) * 1.2) -8px rgb(0 0 0 / 0.55),
     0 calc(var(--kb-u) * 0.4) calc(var(--kb-u) * (0.6 + var(--kb-glow, 0) * 1.4)) calc(var(--kb-glow, 0) * 6px) color-mix(in oklab, var(--kb-accent) calc(var(--kb-glow, 0) * 70%), transparent);
   transition: box-shadow 500ms ease;
@@ -991,6 +991,15 @@ html {
 .kb3d-row { display: flex; gap: var(--kb-gap); }
 
 .kb3d-key {
+  /* Per-key colors; inline styles override these for colorways and paints. */
+  --kc-cap: var(--kb-cap);
+  --kc-legend: var(--syntax-plain);
+  --kb-side: color-mix(in oklab, var(--kc-cap) 62%, black 38%);
+  display: block;
+  margin: 0;
+  border: 0;
+  background: none;
+  font: inherit;
   width: calc(var(--kb-u) * var(--w) + var(--kb-gap) * (var(--w) - 1));
   height: var(--kb-u);
   flex: none;
@@ -1006,9 +1015,9 @@ html {
   justify-content: center;
   height: 100%;
   border-radius: calc(var(--kb-u) * 0.16);
-  background: linear-gradient(180deg, color-mix(in oklab, var(--kb-cap) 88%, white 12%), var(--kb-cap));
-  border: 1px solid color-mix(in oklab, var(--editor-border) 70%, transparent);
-  color: var(--syntax-plain);
+  background: linear-gradient(180deg, color-mix(in oklab, var(--kc-cap) 88%, white 12%), var(--kc-cap));
+  border: 1px solid color-mix(in oklab, var(--kc-cap) 70%, black 12%);
+  color: var(--kc-legend);
   font-family: var(--font-mono);
   font-size: calc(var(--kb-u) * 0.3);
   font-weight: 700;
@@ -1039,8 +1048,7 @@ html {
 
 .kb3d-key.is-pressed .kb3d-cap {
   transform: translateY(var(--kb-depth));
-  background: linear-gradient(180deg, color-mix(in oklab, var(--kb-accent) 45%, var(--kb-cap)), color-mix(in oklab, var(--kb-accent) 30%, var(--kb-cap)));
-  color: var(--editor-bg);
+  background: linear-gradient(180deg, color-mix(in oklab, var(--kb-accent) 45%, var(--kc-cap)), color-mix(in oklab, var(--kb-accent) 30%, var(--kc-cap)));
   box-shadow: 0 0 0 var(--kb-side), 0 0 calc(var(--kb-u) * 0.6) color-mix(in oklab, var(--kb-accent) 70%, transparent);
   animation: none;
 }
@@ -1051,6 +1059,18 @@ html {
   color: #fff;
   box-shadow: 0 0 0 var(--kb-side), 0 0 calc(var(--kb-u) * 0.7) rgb(239 68 68 / 0.75);
   animation: none;
+}
+
+.kb3d.is-interactive { pointer-events: auto; padding-bottom: 12px; }
+.kb3d.is-interactive .kb3d-board { transform: rotateX(16deg); }
+.kb3d.is-interactive .kb3d-key { cursor: pointer; }
+.kb3d.is-interactive .kb3d-key:hover .kb3d-cap { transform: translateY(-2px); }
+.kb3d.is-interactive .kb3d-key:focus-visible { outline: none; }
+.kb3d.is-interactive .kb3d-key:focus-visible .kb3d-cap { outline: 2px solid var(--kb-accent); outline-offset: 2px; }
+.kb3d-key.is-selected .kb3d-cap {
+  outline: 2px solid var(--kb-accent);
+  outline-offset: 2px;
+  box-shadow: 0 var(--kb-depth) 0 var(--kb-side), 0 0 calc(var(--kb-u) * 0.5) color-mix(in oklab, var(--kb-accent) 60%, transparent);
 }
 
 @keyframes kb3d-hint {

@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useState, useCallback } from "react";
+import type { KeycapOverrides } from "@/lib/keycaps";
 
 export type FontSize = "12" | "14" | "16" | "18" | "20" | "22" | "24";
 export type FontFamily = "jetbrains" | "fira" | "cascadia" | "source";
@@ -38,6 +39,9 @@ export interface Preferences {
   comboEffects: boolean;
   autoIndent: boolean;
   keyboard3d: boolean;
+  /** Colorway id from KEYCAP_COLORWAYS, or "editor" to follow the editor theme. */
+  keycapTheme: string;
+  keycapOverrides: KeycapOverrides;
 }
 
 export const DEFAULT_SOUND_TUNING: KeyboardSoundTuning = {
@@ -74,6 +78,8 @@ const DEFAULTS: Preferences = {
   comboEffects: true,
   autoIndent: true,
   keyboard3d: true,
+  keycapTheme: "editor",
+  keycapOverrides: {},
 };
 
 const FONT_SIZE_MAP: Record<FontSize, string> = {
@@ -113,6 +119,7 @@ function loadPreferences(): Preferences {
         // Nested object, so a shallow spread would let a partial or absent
         // tuning through and leave individual knobs undefined.
         keyboardSoundTuning: { ...DEFAULT_SOUND_TUNING, ...(parsed.keyboardSoundTuning ?? {}) },
+        keycapOverrides: parsed.keycapOverrides && typeof parsed.keycapOverrides === "object" ? parsed.keycapOverrides : {},
       };
     }
   } catch {

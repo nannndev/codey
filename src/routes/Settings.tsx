@@ -1,4 +1,6 @@
 import { ArrowLeft, Command, Flame, Headphones, Maximize2, Play, RotateCcw, Volume2, VolumeX, Type, Sparkles, Target } from "lucide-react";
+import { openKeycapStudio } from "@/components/KeycapStudioModal";
+import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { useEffect, useRef, useState } from "react";
 import { useFlowRadio } from "@/components/RadioProvider";
@@ -239,11 +241,16 @@ export default function Settings() {
                     </p>
                   </div>
                 </div>
+                <div className="flex shrink-0 items-center gap-2">
+                <Button type="button" variant="outline" size="sm" className="h-7 px-2.5 text-xs" onClick={openKeycapStudio}>
+                  Customize keycaps
+                </Button>
                 <SettingSwitch
                   checked={preferences.keyboard3d}
                   onCheckedChange={() => setPreference("keyboard3d", !preferences.keyboard3d)}
                   label="Toggle 3D keyboard"
                 />
+                </div>
               </div>
 
               {/* Ghost Runner */}

@@ -28,6 +28,8 @@ import { usePreferences } from "./PreferencesProvider";
 import { useFlowRadio } from "./RadioProvider";
 import { useTheme } from "./ThemeProvider";
 import { THEMES } from "./ThemeStudioModal";
+import { openKeycapStudio } from "./KeycapStudioModal";
+import { EDITOR_KEYCAPS, KEYCAP_COLORWAYS } from "@/lib/keycaps";
 import { cn } from "@/lib/utils";
 
 /** Dispatch on window to open the palette from anywhere (e.g. a header button). */
@@ -157,6 +159,17 @@ export function CommandPalette() {
         icon: Palette,
         state: preferences.editorTheme === option.id ? "active" : undefined,
         run: () => setPreference("editorTheme", option.id),
+      })),
+      { id: "keycap-studio", group: "Appearance", label: "Keycap Studio", keywords: "customize paint keyboard 3d colors", icon: Keyboard, run: openKeycapStudio },
+      { id: "keycaps-editor", group: "Appearance", label: "Keycaps: Editor theme", keywords: "colorway keyboard", icon: Keyboard, state: preferences.keycapTheme === EDITOR_KEYCAPS ? "active" : undefined, run: () => setPreference("keycapTheme", EDITOR_KEYCAPS) },
+      ...KEYCAP_COLORWAYS.map((option): Command => ({
+        id: `keycaps-${option.id}`,
+        group: "Appearance",
+        label: `Keycaps: ${option.name}`,
+        keywords: "colorway keyboard",
+        icon: Keyboard,
+        state: preferences.keycapTheme === option.id ? "active" : undefined,
+        run: () => setPreference("keycapTheme", option.id),
       })),
 
       { id: "toggle-sound", group: "Toggles", label: "Keyboard sound", keywords: "audio click switch mute", icon: Volume2, state: onOff(preferences.keyboardSound), run: toggle("keyboardSound") },
