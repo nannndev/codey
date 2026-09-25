@@ -103,7 +103,7 @@ export default function App() {
     loadSnippet,
     combo,
     maxCombo,
-  } = useGame({ config, getSnippet: getRandomSnippet });
+  } = useGame({ config, getSnippet: getRandomSnippet, autoIndent: preferences.autoIndent });
 
   const [result, setResult] = useState<RunResult | null>(null);
   const [previousBest, setPreviousBest] = useState<PersonalBest | null>(null);
@@ -423,14 +423,15 @@ export default function App() {
           stop();
           return;
         }
+        if (ranked.isRanked) ranked.recordKeypress();
         playKeyboardSound("Tab");
-        engineHandleKey(" ");
-        engineHandleKey(" ");
+        engineHandleKey("\t");
         return;
       }
 
       if (e.key === "Enter") {
         e.preventDefault();
+        if (ranked.isRanked) ranked.recordKeypress();
         playKeyboardSound("Enter");
         engineHandleKey("\n");
       }

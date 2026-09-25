@@ -210,6 +210,24 @@ export default function Settings() {
                 />
               </div>
 
+              {/* Auto-indent */}
+              <div className="flex items-center justify-between py-3 gap-4">
+                <div className="flex items-start gap-2.5 min-w-0">
+                  <span className="mt-0.5 font-mono text-xs text-muted-foreground shrink-0">⇥</span>
+                  <div>
+                    <p className="text-xs font-semibold text-foreground">Auto-indent</p>
+                    <p className="text-[11px] text-muted-foreground leading-snug">
+                      Skip leading whitespace after Enter, like an editor. Turn off to type every space yourself.
+                    </p>
+                  </div>
+                </div>
+                <SettingSwitch
+                  checked={preferences.autoIndent}
+                  onCheckedChange={() => setPreference("autoIndent", !preferences.autoIndent)}
+                  label="Toggle auto-indent"
+                />
+              </div>
+
               {/* Ghost Runner */}
               <div className="flex items-center justify-between py-3 gap-4">
                 <div className="flex items-start gap-2.5 min-w-0">

@@ -36,6 +36,7 @@ export interface Preferences {
   focusShortcut: AppShortcut;
   ghostRunner: boolean;
   comboEffects: boolean;
+  autoIndent: boolean;
 }
 
 export const DEFAULT_SOUND_TUNING: KeyboardSoundTuning = {
@@ -70,6 +71,7 @@ const DEFAULTS: Preferences = {
   focusShortcut: "mod+shift+f",
   ghostRunner: true,
   comboEffects: true,
+  autoIndent: true,
 };
 
 const FONT_SIZE_MAP: Record<FontSize, string> = {
