@@ -1151,15 +1151,6 @@ html {
   opacity: calc(0.18 + var(--holo-active) * 0.3);
   transition: opacity 300ms ease;
 }
-.holo-card.is-rainbow .holo-foil {
-  background:
-    repeating-linear-gradient(115deg,
-      #ff6b6b33 0%, #ffd93d33 6%, #6bff9533 12%, #4dd9ff33 18%, #b36bff33 24%, #ff6b6b33 30%),
-    linear-gradient(115deg, transparent 20%, rgb(255 255 255 / 0.22) 45%, transparent 70%);
-  background-size: 300% 300%, 200% 200%;
-  background-position: var(--holo-mx) var(--holo-my), var(--holo-mx) var(--holo-my);
-  opacity: calc(0.55 + var(--holo-active) * 0.35);
-}
 
 .holo-glare {
   position: absolute;

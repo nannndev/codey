@@ -8,13 +8,12 @@ import { cn } from "@/lib/utils";
 
 export interface ResultTier {
   label: string;
-  /** Foil accent; Grandmaster gets the full rainbow. */
+  /** Foil and highlight color. */
   accent: string;
-  rainbow?: boolean;
 }
 
 export function resultTier(wpm: number): ResultTier {
-  if (wpm >= 100) return { label: "Grandmaster", accent: "#c084fc", rainbow: true };
+  if (wpm >= 100) return { label: "Grandmaster", accent: "#c084fc" };
   if (wpm >= 80) return { label: "Master Typist", accent: "#f59e0b" };
   if (wpm >= 60) return { label: "Pro Coder", accent: "#60a5fa" };
   return { label: "Apprentice", accent: "#34d399" };
@@ -146,7 +145,7 @@ export function HoloResultCard({ result, previousBest, modeLabel, username }: Ho
           onClick={() => setFlipped((value) => !value)}
           aria-pressed={flipped}
           aria-label={flipped ? "Result card, back side. Press to show the front." : "Result card. Press to flip for the run breakdown."}
-          className={cn("holo-card", flipped && "is-flipped", tier.rainbow && "is-rainbow")}
+          className={cn("holo-card", flipped && "is-flipped")}
         >
           {/* Front */}
           <div className="holo-face holo-front" aria-hidden={flipped}>
