@@ -329,11 +329,13 @@ export function CodeDisplay({
       {strikeBanner && preferences.comboEffects && (
         <div
           key={strikeBanner.id}
-          className={cn("strike-banner pointer-events-none absolute inset-x-0 top-[38%] z-30 text-center select-none", `is-${strikeBanner.tier}`)}
-          onAnimationEnd={() => setStrikeBanner(null)}
+          // Sits in the title bar, never over the code being typed.
+          className="pointer-events-none absolute inset-x-0 top-0 z-30 flex h-[52px] items-center justify-center select-none"
           aria-hidden="true"
         >
-          {strikeBanner.text}
+          <span className={cn("strike-banner", `is-${strikeBanner.tier}`)} onAnimationEnd={() => setStrikeBanner(null)}>
+            {strikeBanner.text}
+          </span>
         </div>
       )}
 

@@ -1245,28 +1245,29 @@ html {
 }
 
 .strike-banner {
+  display: inline-block;
+  border-radius: 999px;
+  border: 1px solid currentColor;
+  background: rgb(10 12 18 / 0.85);
+  padding: 4px 16px;
   font-family: var(--font-mono);
-  font-size: clamp(1.4rem, 4vw, 2.6rem);
+  font-size: clamp(0.8rem, 1.8vw, 1.05rem);
   font-weight: 900;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.14em;
+  line-height: 1.4;
   text-transform: uppercase;
-  animation: strike-banner 950ms cubic-bezier(0.2, 1, 0.3, 1) forwards;
+  backdrop-filter: blur(8px);
+  animation: strike-banner 1100ms cubic-bezier(0.2, 1, 0.3, 1) forwards;
 }
-.strike-banner.is-flow { color: #67e8f9; text-shadow: 0 0 18px rgba(56, 189, 248, 0.8), 0 0 40px rgba(56, 189, 248, 0.4); }
-.strike-banner.is-fever { color: #fde047; text-shadow: 0 0 18px rgba(245, 158, 11, 0.9), 0 0 44px rgba(245, 158, 11, 0.45); }
-.strike-banner.is-overdrive {
-  background: linear-gradient(90deg, #f59e0b, #ec4899, #a855f7);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-  filter: drop-shadow(0 0 16px rgba(236, 72, 153, 0.7));
-}
+.strike-banner.is-flow { color: #67e8f9; box-shadow: 0 0 18px rgba(56, 189, 248, 0.45); text-shadow: 0 0 10px rgba(56, 189, 248, 0.8); }
+.strike-banner.is-fever { color: #fde047; box-shadow: 0 0 20px rgba(245, 158, 11, 0.5); text-shadow: 0 0 10px rgba(245, 158, 11, 0.9); }
+.strike-banner.is-overdrive { color: #f9a8d4; box-shadow: 0 0 22px rgba(236, 72, 153, 0.55); text-shadow: 0 0 10px rgba(236, 72, 153, 0.9); }
 @keyframes strike-banner {
-  0% { opacity: 0; transform: scale(2.2); }
-  18% { opacity: 1; transform: scale(0.92); }
-  30% { transform: scale(1.04); }
-  70% { opacity: 1; transform: scale(1); }
-  100% { opacity: 0; transform: scale(1.08) translateY(-10px); }
+  0% { opacity: 0; transform: translateY(-14px) scale(0.8); }
+  16% { opacity: 1; transform: translateY(0) scale(1.12); }
+  28% { transform: scale(1); }
+  80% { opacity: 1; transform: scale(1); }
+  100% { opacity: 0; transform: translateY(-6px) scale(0.96); }
 }
 
 /* Perfect line: a light sweep across a line finished with zero mistakes. */

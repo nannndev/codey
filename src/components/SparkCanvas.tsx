@@ -159,8 +159,8 @@ export const SparkCanvas = forwardRef<SparkCanvasHandle, { disabled?: boolean; i
     if (disabled) return;
     const colors = tierColors(combo);
     debris(x, y, colors, intensity === "full" ? 24 : 12, 1.8, ["shard", "dot"]);
-    ring(x, y, colors[0], 90, 3, 0.03);
-    ring(x, y, colors[1] ?? colors[0], 55, 2, 0.04);
+    ring(x, y, colors[0], 60, 2.5, 0.035);
+    ring(x, y, colors[1] ?? colors[0], 38, 2, 0.045);
   }, [disabled, intensity, debris, ring]);
 
   const miss = useCallback((x: number, y: number) => {
