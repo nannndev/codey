@@ -19,6 +19,7 @@ import { uploadRun } from "@/lib/cloud";
 import { useGame, useKeyboardSound, useGhostRunner, useRankedGame, useDailyGame } from "@/hooks";
 import { DailyChallengeCard, DailyModeBanner, DailyResultBanner } from "@/components/daily/DailyWidgets";
 import { useSearchParams } from "react-router-dom";
+import { buildDrillSnippet } from "@/utils/drill";
 import { useSnippets } from "@/hooks/useSnippets";
 import { getLanguages } from "@/data";
 import {
@@ -568,6 +569,18 @@ export default function App() {
     loadSnippet(nextSnippet);
     focusWorkspace();
   }, [getPublicSnippet, loadSnippet, focusWorkspace, preferences.snippetLength, resetPhysicalKeypresses]);
+
+  // /?drill=<char> (from keyboard analytics) opens a drill for that key.
+  const drillParam = searchParams.get("drill");
+  useEffect(() => {
+    if (!drillParam) return;
+    setSearchParams((params) => {
+      params.delete("drill");
+      return params;
+    }, { replace: true });
+    const drill = buildDrillSnippet([drillParam]);
+    if (drill) handleCustomSnippet(drill);
+  }, [drillParam, setSearchParams, handleCustomSnippet]);
 
   const handleNextSnippet = useCallback(() => {
     setResult(null);
