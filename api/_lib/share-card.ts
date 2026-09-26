@@ -8,7 +8,7 @@ import { parseTrace } from '../../src/utils/speed-trace.js';
  * the card always match the database.
  */
 
-export const CARD_VERSION = 3;
+export const CARD_VERSION = 4;
 
 export const RUN_ID_PATTERN = /^[A-Za-z0-9_]{1,36}$/;
 
