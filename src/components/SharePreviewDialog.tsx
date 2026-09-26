@@ -6,38 +6,69 @@ import { usePreferences } from "@/components/PreferencesProvider";
 import { getColorway } from "@/lib/keycaps";
 import { useAuth } from "@/components/AuthProvider";
 import { shareableRunId } from "@/lib/cloud";
-import { platformShareUrl, runShareUrl, SHARE_PLATFORMS, shareCaption, shareText, type SharePlatform } from "@/lib/share-links";
+import { platformShareUrl, runCardUrl, runShareUrl, SHARE_PLATFORMS, shareCaption, shareText, type SharePlatform } from "@/lib/share-links";
 
 interface SharePreviewDialogProps {
   options: ShareCardOptions | null;
   onClose: () => void;
 }
 
+type CardStyle = "card" | "detailed";
+
 export function SharePreviewDialog({ options, onClose }: SharePreviewDialogProps) {
   const [theme, setTheme] = useState<ShareCardTheme>("dark");
+  const [style, setStyle] = useState<CardStyle>("card");
+  const [cardFailed, setCardFailed] = useState(false);
   const [blob, setBlob] = useState<Blob | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [status, setStatus] = useState<"loading" | "ready" | "shared" | "error">("loading");
   const [copiedImage, setCopiedImage] = useState(false);
   const [copiedCaption, setCopiedCaption] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
-  const [shareUrl, setShareUrl] = useState<string | null>(null);
+  // undefined while the link is being prepared; null when the run has no public page.
+  const [runId, setRunId] = useState<string | null | undefined>(undefined);
   const { preferences } = usePreferences();
   const { user } = useAuth();
   const userId = user?.$id ?? null;
   const { keycapTheme, keycapOverrides } = preferences;
+  const shareUrl = runId === undefined ? null : runShareUrl(window.location.origin, runId);
+  // The link's own preview card when the run has one; the detailed card otherwise.
+  const cardStyle: CardStyle | null = runId === undefined ? null : runId && !cardFailed ? style : "detailed";
 
+  // The public link: the run's own page when it is in the cloud, otherwise the site.
   useEffect(() => {
     if (!options) return;
     let active = true;
+    setRunId(undefined);
+    setCardFailed(false);
+    void shareableRunId(userId, options.result).then((id) => {
+      if (active) setRunId(id);
+    });
+    return () => { active = false; };
+  }, [options, userId]);
+
+  useEffect(() => {
+    if (!options || !cardStyle) return;
+    let active = true;
     setStatus("loading");
-    const keycaps = { colorway: getColorway(keycapTheme), overrides: keycapOverrides };
-    void createResultCard({ ...options, theme, keycaps }).then((nextBlob) => {
+    const render = cardStyle === "card" && runId
+      ? fetch(runCardUrl(window.location.origin, runId)).then(async (response) => {
+          const type = response.headers.get("content-type") ?? "";
+          if (!response.ok || !type.startsWith("image/")) throw new Error(`Card unavailable (${response.status})`);
+          return response.blob();
+        })
+      : createResultCard({ ...options, theme, keycaps: { colorway: getColorway(keycapTheme), overrides: keycapOverrides } });
+    void render.then((nextBlob) => {
       if (!active) return;
       setBlob(nextBlob);
       setPreviewUrl(URL.createObjectURL(nextBlob));
       setStatus("ready");
-    }).catch(() => active && setStatus("error"));
+    }).catch(() => {
+      if (!active) return;
+      // No server card (offline, local dev): fall back to drawing one here.
+      if (cardStyle === "card") setCardFailed(true);
+      else setStatus("error");
+    });
     return () => {
       active = false;
       setBlob(null);
@@ -46,18 +77,7 @@ export function SharePreviewDialog({ options, onClose }: SharePreviewDialogProps
         return null;
       });
     };
-  }, [options, theme, keycapTheme, keycapOverrides]);
-
-  // The public link: the run's own page when it is in the cloud, otherwise the site.
-  useEffect(() => {
-    if (!options) return;
-    let active = true;
-    setShareUrl(null);
-    void shareableRunId(userId, options.result).then((runId) => {
-      if (active) setShareUrl(runShareUrl(window.location.origin, runId));
-    });
-    return () => { active = false; };
-  }, [options, userId]);
+  }, [options, cardStyle, runId, theme, keycapTheme, keycapOverrides]);
 
   useEffect(() => {
     if (!options) return;
@@ -67,7 +87,7 @@ export function SharePreviewDialog({ options, onClose }: SharePreviewDialogProps
   }, [options, onClose]);
 
   if (!options) return null;
-  const filename = `codetype-${Math.round(options.result.wpm)}wpm.png`;
+  const filename = `codey-${Math.round(options.result.wpm)}wpm.png`;
   const canNativeShare = typeof navigator.share === "function";
 
   const download = () => {
@@ -133,25 +153,46 @@ export function SharePreviewDialog({ options, onClose }: SharePreviewDialogProps
             <h2 className="text-sm font-bold flex items-center gap-2">
               <Sparkles className="size-4 text-purple-500" /> Share Result Card
             </h2>
-            <p className="text-[11px] text-muted-foreground">Customize card theme and export image for social media.</p>
+            <p className="text-[11px] text-muted-foreground">{cardStyle === "card" ? "The same card your link shows on Threads, X and WhatsApp." : "Pick a theme and export the image for social media."}</p>
           </div>
           
-          {/* Theme Selector */}
-          <div className="order-last flex w-full items-center gap-1 overflow-x-auto rounded-lg border bg-muted/60 p-1 sm:order-none sm:w-auto">
-            {(Object.keys(SHARE_THEMES) as ShareCardTheme[]).map((tKey) => (
-              <button
-                key={tKey}
-                type="button"
-                onClick={() => setTheme(tKey)}
-                className={`shrink-0 whitespace-nowrap rounded-md px-2.5 py-1 text-[10px] font-semibold transition-all ${
-                  theme === tKey
-                    ? "bg-foreground text-background shadow-xs"
-                    : "text-muted-foreground hover:bg-muted hover:text-foreground"
-                }`}
-              >
-                {SHARE_THEMES[tKey].name}
-              </button>
-            ))}
+          <div className="order-last flex w-full flex-wrap items-center gap-2 empty:hidden">
+            {runId && !cardFailed && (
+              <div className="flex items-center gap-1 rounded-lg border bg-muted/60 p-1" role="group" aria-label="Card style">
+                {([["card", "Codey card"], ["detailed", "Detailed"]] as const).map(([key, label]) => (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => setStyle(key)}
+                    aria-pressed={style === key}
+                    className={`shrink-0 whitespace-nowrap rounded-md px-2.5 py-1 text-[10px] font-semibold transition-all ${
+                      style === key ? "bg-foreground text-background shadow-xs" : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            )}
+            {cardStyle === "detailed" && (
+              <div className="flex max-w-full items-center gap-1 overflow-x-auto rounded-lg border bg-muted/60 p-1" role="group" aria-label="Card theme">
+                {(Object.keys(SHARE_THEMES) as ShareCardTheme[]).map((tKey) => (
+                  <button
+                    key={tKey}
+                    type="button"
+                    onClick={() => setTheme(tKey)}
+                    aria-pressed={theme === tKey}
+                    className={`shrink-0 whitespace-nowrap rounded-md px-2.5 py-1 text-[10px] font-semibold transition-all ${
+                      theme === tKey
+                        ? "bg-foreground text-background shadow-xs"
+                        : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                    }`}
+                  >
+                    {SHARE_THEMES[tKey].name}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           <button type="button" onClick={onClose} className="rounded-lg p-2 text-muted-foreground hover:bg-muted hover:text-foreground" aria-label="Close preview">
@@ -160,7 +201,7 @@ export function SharePreviewDialog({ options, onClose }: SharePreviewDialogProps
         </div>
 
         <div className="grid min-h-64 place-items-center bg-muted/35 p-3 sm:p-6">
-          {status === "loading" ? (
+          {status === "loading" || !cardStyle ? (
             <LoaderCircle className="size-7 animate-spin text-muted-foreground" />
           ) : previewUrl ? (
             <img src={previewUrl} alt="Generated Codey statistics card" className="max-h-[60vh] w-full rounded-xl border object-contain shadow-2xl transition-all" />
@@ -195,7 +236,7 @@ export function SharePreviewDialog({ options, onClose }: SharePreviewDialogProps
           </div>
           <p className="mt-2.5 flex items-start gap-1.5 text-[11px] leading-relaxed text-muted-foreground">
             <ImageDown className="mt-px size-3.5 shrink-0" />
-            {shareUrl && shareUrl !== window.location.origin
+            {runId
               ? "The link shows your score card as its preview. For Instagram stories, download the image and post it there."
               : "Sign in to get a link with your own score card. For Instagram, download the image and post it there."}
           </p>

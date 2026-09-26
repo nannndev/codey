@@ -1,5 +1,7 @@
 import { APPWRITE, adminDatabases } from './appwrite-admin.js';
 import { parseTrace } from '../../src/utils/speed-trace.js';
+import { CARD_VERSION } from '../../src/utils/share-card-version.js';
+
 
 /**
  * Public share links for a run: /r/<runId> serves Open Graph tags so Threads,
@@ -7,8 +9,6 @@ import { parseTrace } from '../../src/utils/speed-trace.js';
  * /api/og/<runId> renders that preview from the stored run, so the numbers on
  * the card always match the database.
  */
-
-export const CARD_VERSION = 4;
 
 export const RUN_ID_PATTERN = /^[A-Za-z0-9_]{1,36}$/;
 
@@ -109,7 +109,6 @@ export function shareHtml(run: SharedRun | null, origin: string, id: string) {
   const target = run ? `${origin}/profile/${encodeURIComponent(run.userId)}` : origin;
   const title = run ? shareTitle(run) : 'Codey: type real code, faster';
   const description = run ? shareDescription(run) : 'Typing practice with real code from GitHub, daily challenges and live duels.';
-  // Bump CARD_VERSION when the card design changes: platforms cache images by URL.
   const image = run ? `${origin}/api/og/${encodeURIComponent(id)}?v=${CARD_VERSION}` : `${origin}/og-default.png?v=${CARD_VERSION}`;
   const url = `${origin}/r/${encodeURIComponent(id)}`;
   const meta = (property: string, content: string, attr = 'property') => `<meta ${attr}="${property}" content="${escapeHtml(content)}">`;

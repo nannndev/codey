@@ -319,7 +319,7 @@ export default function Leaderboard() {
                       profile={profiles.get(run.userId)}
                       name={displayName(run, profiles)}
                       isMe={user?.$id === run.userId}
-                      onShare={() => setShareOptions({ result: cloudRunAsResult(run), username: profiles.get(run.userId)?.githubUsername || displayName(run, profiles), heading: boardTitle, rank })}
+                      onShare={() => setShareOptions({ result: cloudRunAsResult(run), username: profiles.get(run.userId)?.githubUsername, heading: boardTitle, rank })}
                     />
                   ),
                 };
@@ -388,7 +388,7 @@ export default function Leaderboard() {
                       {user?.$id === run.userId && (
                         <button
                           type="button"
-                          onClick={() => setShareOptions({ result: cloudRunAsResult(run), username: profile?.githubUsername || name, heading: boardTitle, rank: actualRank })}
+                          onClick={() => setShareOptions({ result: cloudRunAsResult(run), username: profile?.githubUsername, heading: boardTitle, rank: actualRank })}
                           className="absolute right-2 top-2 grid size-7 place-items-center rounded-full border bg-background/70 text-muted-foreground opacity-0 transition-all hover:text-foreground group-hover:opacity-100"
                           aria-label={`Share rank ${actualRank}`}
                         >
@@ -456,7 +456,7 @@ export default function Leaderboard() {
                         {canShare && (
                           <button
                             type="button"
-                            onClick={() => setShareOptions({ result: cloudRunAsResult(run), username: profile?.githubUsername || name, heading: boardTitle, rank })}
+                            onClick={() => setShareOptions({ result: cloudRunAsResult(run), username: profile?.githubUsername, heading: boardTitle, rank })}
                             className="grid size-7 place-items-center rounded-md border text-muted-foreground opacity-0 transition-all hover:bg-muted hover:text-foreground group-hover:opacity-100"
                             aria-label={`Share rank ${rank}`}
                           >

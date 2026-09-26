@@ -94,7 +94,7 @@ export default function History() {
     [mode, language, historyVersion]
   );
   const recent = [...filtered].reverse().slice(0, showAll ? 50 : 8);
-  const shareName = user ? githubUsernameFromUser(user) || user.name || undefined : undefined;
+  const shareName = user ? githubUsernameFromUser(user) : undefined;
 
   return (
     <div className="workspace-shell min-h-screen bg-background transition-colors duration-300">

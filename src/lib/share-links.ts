@@ -1,4 +1,5 @@
 import type { RunResult } from "@/types";
+import { CARD_VERSION } from "@/utils/share-card-version";
 
 /**
  * Captions and "share to" links. Platforms only take text and a URL from the
@@ -21,6 +22,11 @@ export const SHARE_PLATFORMS: { id: SharePlatform; name: string; color: string }
 
 export function runShareUrl(origin: string, runId: string | null) {
   return runId ? `${origin}/r/${encodeURIComponent(runId)}` : origin;
+}
+
+/** The card the link previews with, drawn by the server from the stored run. */
+export function runCardUrl(origin: string, runId: string) {
+  return `${origin}/api/og/${encodeURIComponent(runId)}?v=${CARD_VERSION}`;
 }
 
 function rankLine(rank: number) {
