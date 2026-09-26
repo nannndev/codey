@@ -5,7 +5,20 @@ import { getLanguages } from "@/data";
 import { fetchCodeFromGistOrUrl, detectLanguageFromFilename } from "@/utils/gist-fetcher";
 import type { Snippet } from "@/types";
 
-export function CustomPractice({ onLoad }: { onLoad: (snippet: Snippet) => void }) {
+export function CustomPractice({
+  onLoad,
+  triggerLabel = "Custom code",
+  submitLabel = "Start Code Practice",
+  maxChars = 100_000,
+  triggerClassName,
+}: {
+  onLoad: (snippet: Snippet) => void;
+  triggerLabel?: string;
+  submitLabel?: string;
+  /** Longer code is cut at the last full line before this many characters. */
+  maxChars?: number;
+  triggerClassName?: string;
+}) {
   const [open, setOpen] = useState(false);
   const [tab, setTab] = useState<"paste" | "gist">("paste");
   const [filename, setFilename] = useState("practice.txt");
@@ -38,7 +51,7 @@ export function CustomPractice({ onLoad }: { onLoad: (snippet: Snippet) => void 
     setLoadingGist(true);
     try {
       const fetchedSnippet = await fetchCodeFromGistOrUrl(gistUrl);
-      onLoad(fetchedSnippet);
+      onLoad({ ...fetchedSnippet, code: fit(fetchedSnippet.code) });
       setOpen(false);
       setGistUrl("");
     } catch (err: unknown) {
@@ -48,19 +61,26 @@ export function CustomPractice({ onLoad }: { onLoad: (snippet: Snippet) => void 
     }
   };
 
+  const fit = (text: string) => {
+    const trimmed = text.replace(/\r\n/g, "\n").trimEnd();
+    if (trimmed.length <= maxChars) return trimmed;
+    const cut = trimmed.slice(0, maxChars);
+    return cut.slice(0, Math.max(cut.lastIndexOf("\n"), 1)).trimEnd();
+  };
+
   const start = () => {
     if (code.trim().length < 20) {
       setError("At least 20 code characters required to start practice.");
       return;
     }
-    onLoad({ id: `custom-${Date.now()}`, filename, language, code: code.trimEnd(), sourceType: "custom" });
+    onLoad({ id: `custom-${Date.now()}`, filename, language, code: fit(code), sourceType: "custom" });
     setOpen(false);
   };
 
   if (!open) {
     return (
-      <Button type="button" variant="outline" size="sm" onClick={() => setOpen(true)} className="btn-3d h-8 gap-1.5 text-xs font-bold border" title="Practice your own code or a GitHub Gist">
-        <FileUp className="size-3.5 text-amber-500" /> Custom code
+      <Button type="button" variant="outline" size="sm" onClick={() => setOpen(true)} className={triggerClassName ?? "btn-3d h-8 gap-1.5 text-xs font-bold border"} title="Use your own code or a GitHub Gist">
+        <FileUp className="size-3.5 text-amber-500" /> {triggerLabel}
       </Button>
     );
   }
@@ -144,10 +164,12 @@ export function CustomPractice({ onLoad }: { onLoad: (snippet: Snippet) => void 
           />
           <div className="mt-3 flex items-center justify-between gap-3">
             <span className={`text-[11px] font-medium ${error ? "text-destructive font-bold" : "text-muted-foreground"}`}>
-              {error || `${code.length.toLocaleString()} characters · max limit 100 KB`}
+              {error || (maxChars < 100_000
+                ? `${code.length.toLocaleString()} / ${maxChars.toLocaleString()} characters${code.length > maxChars ? " · the rest is cut at a line break" : ""}`
+                : `${code.length.toLocaleString()} characters · max limit 100 KB`)}
             </span>
             <Button type="button" size="sm" onClick={start} className="font-bold">
-              Start Code Practice
+              {submitLabel}
             </Button>
           </div>
         </>
@@ -165,7 +187,7 @@ export function CustomPractice({ onLoad }: { onLoad: (snippet: Snippet) => void 
               className="h-10 flex-1 rounded-xl border bg-background px-3 text-xs font-mono outline-none focus:ring-2 focus:ring-primary/40"
             />
             <Button type="button" size="sm" onClick={handleFetchGist} disabled={loadingGist} className="font-bold h-10 px-4">
-              {loadingGist ? <LoaderCircle className="size-4 animate-spin" /> : "Fetch & Practice Code"}
+              {loadingGist ? <LoaderCircle className="size-4 animate-spin" /> : maxChars < 100_000 ? "Fetch code" : "Fetch & Practice Code"}
             </Button>
           </div>
           {error && <p className="text-xs text-destructive font-semibold">{error}</p>}

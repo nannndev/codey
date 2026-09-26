@@ -8,6 +8,9 @@ export interface DuelRecord {
   oppAccuracy: number;
   language: string;
   outcome: 'victory' | 'defeat' | 'draw';
+  /** Finishing place and room size; absent on 1v1 records from before multi-player rooms. */
+  placement?: number;
+  playerCount?: number;
 }
 
 const DUEL_HISTORY_KEY = 'codey_duel_history_v1';
