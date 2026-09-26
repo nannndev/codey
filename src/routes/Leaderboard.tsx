@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { ArrowLeft, LoaderCircle, Share2, Timer, Trophy, Zap } from "lucide-react";
 import { Podium3D } from "@/components/leaderboard/Podium3D";
 import { PodiumCard, YourRankBar } from "@/components/leaderboard/BoardParts";
+import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { getLanguages } from "@/data";
 import { type CloudProfile, type CloudRun } from "@/lib/cloud";
@@ -229,7 +230,8 @@ export default function Leaderboard() {
 
   return (
     <div className="workspace-shell min-h-screen bg-background transition-colors duration-300">
-      <div className="relative mx-auto max-w-5xl px-4 py-8 sm:px-6 sm:py-14">
+      <div className="relative mx-auto max-w-5xl px-4 py-8 sm:px-6 sm:py-12">
+        <Header />
         <Link to="/" className="mb-6 inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground">
           <ArrowLeft className="size-4" /> Back to typing
         </Link>

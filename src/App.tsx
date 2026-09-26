@@ -1,11 +1,10 @@
-import { useState, useCallback, useEffect, useRef, useMemo } from "react";
+import { useState, useCallback, useEffect, useRef, useMemo, lazy, Suspense } from "react";
 import { Coffee, CornerDownLeft, IndentIncrease, LoaderCircle, RotateCcw, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Keyboard3D } from "@/components/Keyboard3D";
 import { CodeDisplay } from "@/components/CodeDisplay";
 import { StatsBar } from "@/components/StatsBar";
-import { ResultsScreen } from "@/components/ResultsScreen";
 import { LanguagePicker } from "@/components/LanguagePicker";
 import { ModeSelector } from "@/components/ModeSelector";
 import { CustomPractice } from "@/components/CustomPractice";
@@ -45,6 +44,9 @@ import type { TestMode, TimedDuration, RunResult, PersonalBest } from "@/types";
 import { RankedAuthModal } from "@/components/RankedAuthModal";
 import { DevPracticeSelector, type DevPracticeCategory } from "@/components/DevPracticeSelector";
 import { SYMBOL_DRILLS, TERMINAL_COMMANDS, ALGORITHM_SNIPPETS, PR_DIFF_SNIPPETS, type CategorySnippet } from "@/data/dev-practice-snippets";
+
+// The results screen only shows after a run, so it loads on demand (and is warmed while idle).
+const ResultsScreen = lazy(() => import("@/components/ResultsScreen").then((module) => ({ default: module.ResultsScreen })));
 
 export default function App() {
   const { user, loading: authLoading } = useAuth();
@@ -646,6 +648,7 @@ export default function App() {
 
         {result && daily.active && <DailyResultBanner status={daily.status} outcome={daily.outcome} error={daily.error} />}
         {result ? (
+          <Suspense fallback={<div className="mt-6 h-96 animate-pulse rounded-2xl border bg-card/50" aria-busy="true" />}>
           <ResultsScreen
             result={result}
             previousBest={previousBest}
@@ -656,6 +659,7 @@ export default function App() {
             onNext={handleNextSnippet}
             onDrill={handleCustomSnippet}
           />
+          </Suspense>
         ) : (
           <main className="mt-6 flex flex-col gap-4 animate-scale-in">
             {/* Ranked Competitive Banner */}

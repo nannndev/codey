@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { ArrowLeft, Code2, ExternalLink, GitCommit, GitPullRequest, Heart, LoaderCircle, ShieldCheck, Sparkles, Trophy, Users } from "lucide-react";
+import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 
@@ -65,7 +66,8 @@ export default function Contributors() {
 
   return (
     <div className="workspace-shell min-h-screen bg-background transition-colors duration-300">
-      <div className="relative mx-auto max-w-5xl px-4 py-8 sm:px-6 sm:py-14">
+      <div className="relative mx-auto max-w-5xl px-4 py-8 sm:px-6 sm:py-12">
+        <Header />
         <Link to="/" className="mb-8 inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground">
           <ArrowLeft className="size-4" /> Back to typing
         </Link>

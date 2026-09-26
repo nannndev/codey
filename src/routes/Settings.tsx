@@ -16,6 +16,7 @@ import {
   type KeyboardSoundTuning,
   type SoundBaseProfile,
 } from "@/components/PreferencesProvider";
+import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { getSettings, saveSettings } from "@/utils/storage";
@@ -167,7 +168,10 @@ export default function Settings() {
 
   return (
     <div className="workspace-shell min-h-screen">
-      <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6">
+      <div className="mx-auto max-w-5xl px-4 pt-8 sm:px-6 sm:pt-12">
+        <Header />
+      </div>
+      <div className="mx-auto max-w-3xl px-4 pb-8 sm:px-6">
         {/* Navigation & Header */}
         <div className="mb-6 flex items-center justify-between">
           <Link
