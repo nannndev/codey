@@ -82,7 +82,7 @@ export function languageSummary(runs: RunLike[]): LanguageSummary[] {
 }
 
 /** Consecutive days with at least one run, ending today or yesterday. */
-export function streakFromRuns(runs: RunLike[], now = Date.now()): { current: number; best: number } {
+export function streakFromRuns(runs: Pick<RunLike, "timestamp">[], now = Date.now()): { current: number; best: number } {
   const days = new Set(runs.map((run) => dayKey(run.timestamp)));
   let best = 0;
   let run = 0;

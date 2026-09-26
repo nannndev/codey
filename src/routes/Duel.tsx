@@ -42,6 +42,7 @@ import {
 import { useKeyboardSound } from "@/hooks/useKeyboardSound";
 import { getLanguages, maxSnippetCharsForLanguage } from "@/data";
 import { publishRoom, unpublishRoom, type PublicRoom } from "@/lib/duel-rooms";
+import { checkAchievements } from "@/lib/achievement-snapshot";
 import { cn } from "@/lib/utils";
 import { SNIPPET_LENGTH_SPEC } from "@/utils/ranking";
 import { computeCharStates, computeWpm } from "@/utils";
@@ -263,8 +264,9 @@ export default function Duel() {
       playerCount: standings.length,
     };
     setHistory(saveDuelRecord(record));
+    checkAchievements(user?.$id);
     setStats(getDuelStats());
-  }, [outcome, myWpm, myAcc, others, standings, selfId, snippet.language, myPlace]);
+  }, [outcome, myWpm, myAcc, others, standings, selfId, snippet.language, myPlace, user?.$id]);
 
   function handleEditorKeyDown(e: React.KeyboardEvent) {
     if (duelState !== "racing" || myFinished) return;

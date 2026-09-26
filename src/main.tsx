@@ -12,9 +12,10 @@ import { RadioProvider } from './components/RadioProvider';
 import { FlowRadioWidget } from './components/FlowRadioWidget';
 import { CommandPalette } from './components/CommandPalette';
 import { KeycapStudioModal } from './components/KeycapStudioModal';
+import { AchievementToaster } from './components/achievements/AchievementToaster';
 import './index.css';
 
-const { Settings, History, Leaderboard, Profile, Donate, Contributors, Duel, Arcade, Daily, KeyboardAnalytics } = Pages;
+const { Settings, History, Leaderboard, Profile, Donate, Contributors, Duel, Arcade, Daily, KeyboardAnalytics, Achievements } = Pages;
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
@@ -38,6 +39,7 @@ createRoot(document.getElementById('root')!).render(
                 <Route path="/race" element={<Duel />} />
                 <Route path="/arcade" element={<Arcade />} />
                 <Route path="/analytics/keyboard" element={<KeyboardAnalytics />} />
+                <Route path="/achievements" element={<Achievements />} />
                 <Route path="/donate" element={<Donate />} />
                 <Route path="/support" element={<Donate />} />
                 <Route path="/contributors" element={<Contributors />} />
@@ -46,6 +48,7 @@ createRoot(document.getElementById('root')!).render(
               <FlowRadioWidget />
               <CommandPalette />
               <KeycapStudioModal />
+              <AchievementToaster />
             </BrowserRouter>
             <Analytics />
           </RadioProvider>

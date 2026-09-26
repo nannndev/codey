@@ -1,6 +1,7 @@
 import { lazy, Suspense, useEffect, useRef, useState, type ReactNode } from "react";
 import { Link, useLocation } from "react-router-dom";
 import {
+  Award,
   BarChart3,
   CalendarDays,
   Flame,
@@ -147,7 +148,8 @@ export function Header() {
         Combo effects
       </MenuItem>
       <div className="my-1 h-px bg-border" />
-      <MenuItem icon={BarChart3} to="/history" onClick={close}>History</MenuItem>
+      <MenuItem icon={BarChart3} to="/history" onClick={close}>Stats</MenuItem>
+      <MenuItem icon={Award} to="/achievements" onClick={close}>Achievements</MenuItem>
       <MenuItem icon={Settings} to="/settings" onClick={close}>Settings</MenuItem>
       <MenuItem icon={Users} to="/contributors" onClick={close}>Contributors</MenuItem>
       <MenuItem icon={Heart} to="/donate" onClick={close} className="text-amber-600 dark:text-amber-400">Support Codey</MenuItem>

@@ -35,6 +35,9 @@ import { average, dailyBuckets, formatMinutes, formatRelative, languageSummary, 
 import { drillCharFor, rankKeys } from "@/lib/key-metrics";
 import { keyLabel } from "@/lib/keyboard-layout";
 import { cn } from "@/lib/utils";
+import { AchievementBadge } from "@/components/achievements/Badge";
+import { TIER_NAMES, evaluate } from "@/lib/achievements";
+import { cloudSnapshot, localSnapshot } from "@/lib/achievement-snapshot";
 
 function cloudRunAsResult(run: CloudRun): RunResult {
   return {
@@ -175,6 +178,17 @@ export default function Profile() {
   }, [viewedUserId, runs, isOwnProfile, cloudKeyStats]);
   const weakKeys = useMemo(() => rankKeys(userKeyStats, "accuracy", 5), [userKeyStats]);
 
+  // Own profile: everything this device knows. Others: what their synced runs show.
+  const badges = useMemo(() => {
+    const evaluation = evaluate(isOwnProfile ? localSnapshot(user?.$id) : cloudSnapshot(runs));
+    const tiers = evaluation.families
+      .filter((item) => item.tier > 0)
+      .sort((a, b) => b.tier - a.tier)
+      .map((item) => ({ key: item.family.id, kind: item.family.id, tier: item.tier || undefined, name: `${item.family.name}`, sub: TIER_NAMES[item.tier as 1 | 2 | 3 | 4] }));
+    const feats = evaluation.singles.filter((item) => item.unlocked).map((item) => ({ key: item.single.id, kind: item.single.id, tier: undefined, name: item.single.name, sub: "Feat" }));
+    return { shown: [...tiers, ...feats], earned: evaluation.earned.size, total: evaluation.families.length * 4 + evaluation.singles.length };
+  }, [isOwnProfile, user?.$id, runs]);
+
   const syncLabel = syncStatus === "syncing" ? "Syncing" : syncStatus === "error" ? "Sync failed · retry" : "Synced";
   const SyncIcon = syncStatus === "syncing" ? LoaderCircle : syncStatus === "error" ? CloudOff : Cloud;
 
@@ -288,6 +302,32 @@ export default function Profile() {
                     </ul>
                   </Card>
                 </div>
+
+                <Card
+                  title="Achievements"
+                  sub={`${badges.earned} of ${badges.total} earned${isOwnProfile ? "" : " · from synced runs"}`}
+                  action={
+                    isOwnProfile ? (
+                      <Link to="/achievements" className="inline-flex items-center gap-1 text-xs font-semibold text-muted-foreground hover:text-foreground">
+                        All badges <ArrowUpRight className="size-3.5" />
+                      </Link>
+                    ) : undefined
+                  }
+                >
+                  {badges.shown.length === 0 ? (
+                    <p className="py-4 text-center text-sm text-muted-foreground">No badges yet. Finish a few runs to earn the first ones.</p>
+                  ) : (
+                    <ul className="grid grid-cols-3 gap-x-2 gap-y-3 sm:grid-cols-5 lg:grid-cols-8">
+                      {badges.shown.slice(0, 16).map((badge) => (
+                        <li key={badge.key} className="flex flex-col items-center text-center">
+                          <AchievementBadge kind={badge.kind} tier={badge.tier} size={60} label={`${badge.name} ${badge.sub}`} />
+                          <span className="mt-1 max-w-full truncate text-[11px] font-semibold">{badge.name}</span>
+                          <span className="text-[10px] text-muted-foreground">{badge.sub}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </Card>
 
                 <Card title="Speed over time" sub={`WPM across the last ${trend.length} runs`} action={<TrendLegend color={SPEED_COLOR} />}>
                   <TrendChart points={trend} color={SPEED_COLOR} unit="wpm" label="Speed" averageWindow={8} />

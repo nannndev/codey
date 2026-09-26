@@ -8,6 +8,8 @@ import { StatsBar } from "@/components/StatsBar";
 import { LanguagePicker } from "@/components/LanguagePicker";
 import { ModeSelector } from "@/components/ModeSelector";
 import { CustomPractice } from "@/components/CustomPractice";
+import { checkAchievements } from "@/lib/achievement-snapshot";
+import { recordDailyCompletion, recordRankedVerified } from "@/lib/achievements";
 import { WeakKeyDrillModal } from "@/components/WeakKeyDrillModal";
 import { DailyGoals } from "@/components/DailyGoals";
 import { usePreferences } from "@/components/PreferencesProvider";
@@ -252,6 +254,7 @@ export default function App() {
       if (!isCustom) try {
         saveResult(r);
         updateStreak();
+        checkAchievements(userIdRef.current);
         setGoalRefreshKey((key) => key + 1);
         if (!isRanked && userIdRef.current && isRankEligible(r)) {
           void uploadRun(userIdRef.current, r)
@@ -303,6 +306,21 @@ export default function App() {
       totalMs: Math.round(elapsedMs),
     });
   }, [status, result, daily.active, daily.submit, input, mistakes, elapsedMs]);
+
+  // Badges: record once on load (silently the first time), then after verified Ranked and Daily runs.
+  useEffect(() => {
+    checkAchievements(userIdRef.current);
+  }, []);
+  useEffect(() => {
+    if (!verifiedResult?.verified) return;
+    recordRankedVerified(verifiedResult.runId);
+    checkAchievements(userIdRef.current);
+  }, [verifiedResult]);
+  useEffect(() => {
+    if (!daily.outcome?.verified || !daily.challenge) return;
+    recordDailyCompletion(daily.challenge.date);
+    checkAchievements(userIdRef.current);
+  }, [daily.outcome, daily.challenge]);
 
   const enterDaily = useCallback(async () => {
     if (ranked.isRanked) ranked.exitRanked();
