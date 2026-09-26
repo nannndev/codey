@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Link, useLocation } from "react-router-dom";
 import {
   BarChart3,
@@ -14,15 +14,16 @@ import {
   Palette,
   Search,
   Settings,
+  SlidersHorizontal,
   Swords,
   Trophy,
   UserRound,
   Users,
   Volume2,
   X,
+  type LucideIcon,
 } from "lucide-react";
 import { ThemeToggle } from "./ThemeToggle";
-import { Button } from "./ui/button";
 import { useAuth } from "./AuthProvider";
 import { usePreferences } from "./PreferencesProvider";
 import { useFlowRadio } from "./RadioProvider";
@@ -30,6 +31,99 @@ import { SoundPackModal } from "./SoundPackModal";
 import { ThemeStudioModal } from "./ThemeStudioModal";
 import { isMac, openCommandPalette } from "./CommandPalette";
 import { cn } from "@/lib/utils";
+
+const NAV: { to: string; label: string; icon: LucideIcon; title: string }[] = [
+  { to: "/duel", label: "Duel", icon: Swords, title: "1v1 live code race" },
+  { to: "/arcade", label: "Arcade", icon: Gamepad2, title: "Code Rain Arcade" },
+  { to: "/daily", label: "Daily", icon: CalendarDays, title: "Daily Challenge" },
+  { to: "/leaderboard", label: "Leaderboard", icon: Trophy, title: "Global ranked leaderboard" },
+  { to: "/analytics/keyboard", label: "Analytics", icon: Keyboard, title: "Keyboard analytics" },
+];
+
+const iconButton =
+  "grid size-8 shrink-0 place-items-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground cursor-pointer";
+
+/** A small anchored popover that closes on outside click, Escape or selection. */
+function HeaderMenu({ label, trigger, triggerClassName, children }: {
+  label: string;
+  trigger: ReactNode;
+  triggerClassName?: string;
+  children: (close: () => void) => ReactNode;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const onPointer = (event: PointerEvent) => {
+      if (!ref.current?.contains(event.target as Node)) setOpen(false);
+    };
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setOpen(false);
+    };
+    document.addEventListener("pointerdown", onPointer);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("pointerdown", onPointer);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
+
+  return (
+    <div ref={ref} className="relative shrink-0">
+      <button
+        type="button"
+        onClick={() => setOpen((prev) => !prev)}
+        className={cn(triggerClassName ?? iconButton, open && "bg-muted text-foreground")}
+        aria-label={label}
+        aria-haspopup="menu"
+        aria-expanded={open}
+        title={label}
+      >
+        {trigger}
+      </button>
+      {open && (
+        <div role="menu" className="absolute right-0 top-[calc(100%+10px)] z-50 w-60 animate-scale-in rounded-xl border bg-popover p-1.5 text-popover-foreground shadow-xl">
+          {children(() => setOpen(false))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function MenuItem({ icon: Icon, children, onClick, to, trailing, className }: {
+  icon: LucideIcon;
+  children: ReactNode;
+  onClick?: () => void;
+  to?: string;
+  trailing?: ReactNode;
+  className?: string;
+}) {
+  const classes = cn(
+    "flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-sm transition-colors hover:bg-muted cursor-pointer",
+    className
+  );
+  const body = (
+    <>
+      <Icon className="size-4 shrink-0 text-muted-foreground" />
+      <span className="min-w-0 flex-1 truncate">{children}</span>
+      {trailing}
+    </>
+  );
+  return to ? (
+    <Link role="menuitem" to={to} onClick={onClick} className={classes}>{body}</Link>
+  ) : (
+    <button role="menuitem" type="button" onClick={onClick} className={classes}>{body}</button>
+  );
+}
+
+function OnOff({ on }: { on: boolean }) {
+  return (
+    <span className={cn("rounded-md px-1.5 py-0.5 font-mono text-[10px] font-bold", on ? "bg-amber-500/15 text-amber-600 dark:text-amber-400" : "bg-muted text-muted-foreground")}>
+      {on ? "ON" : "OFF"}
+    </span>
+  );
+}
 
 export function Header() {
   const location = useLocation();
@@ -41,400 +135,149 @@ export function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const isActive = (path: string) => location.pathname === path;
+  const initial = (user?.name || "?").trim().charAt(0).toUpperCase();
+
+  const toolItems = (close: () => void) => (
+    <>
+      <MenuItem icon={Palette} onClick={() => { close(); setShowThemeModal(true); }}>Theme Studio</MenuItem>
+      <MenuItem icon={Volume2} onClick={() => { close(); setShowSoundModal(true); }}>Switch sounds</MenuItem>
+      <MenuItem icon={Headphones} onClick={radio.togglePlay} trailing={<OnOff on={radio.isPlaying} />}>Flow radio</MenuItem>
+      <MenuItem icon={Flame} onClick={() => setPreference("comboEffects", !preferences.comboEffects)} trailing={<OnOff on={preferences.comboEffects} />}>
+        Combo effects
+      </MenuItem>
+      <div className="my-1 h-px bg-border" />
+      <MenuItem icon={BarChart3} to="/history" onClick={close}>History</MenuItem>
+      <MenuItem icon={Settings} to="/settings" onClick={close}>Settings</MenuItem>
+      <MenuItem icon={Users} to="/contributors" onClick={close}>Contributors</MenuItem>
+    </>
+  );
 
   return (
     <header className="sticky top-4 z-40 mb-8">
-      <div className="glass-card rounded-2xl px-4 py-2.5 shadow-lg shadow-black/5 transition-all duration-300">
-        <div className="flex items-center justify-between gap-3">
-          {/* Left Group: Brand Logo & Navigation Links */}
-          <div className="flex items-center gap-2.5 sm:gap-3 shrink-0">
-            <Link to="/" className="group flex items-center gap-2 transition-transform hover:scale-[1.02] shrink-0" title="Codey - Home">
-              <div className="logo-mark size-8 rounded-xl flex items-center justify-center bg-amber-500/10 border border-amber-500/25 text-amber-500 shadow-xs group-hover:border-amber-500/50 transition-colors">
-                <img src="/favicon.svg" alt="" className="size-4.5 transition-transform group-hover:rotate-6" />
-              </div>
-              <div className="flex items-center gap-1.5 leading-none">
-                <span className="text-base font-black tracking-tight text-foreground font-sans">Codey</span>
-                <span className="size-1.5 rounded-full bg-amber-500 animate-pulse" />
-              </div>
-            </Link>
+      <div className="glass-card rounded-2xl px-3 py-2 shadow-lg shadow-black/5 transition-all duration-300">
+        {/* Three zones: brand | primary nav (centered) | actions. The outer
+            columns share the leftover space equally so the nav stays centered. */}
+        <div className="grid grid-cols-[1fr_auto] items-center gap-3 lg:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)]">
+          <Link to="/" className="group flex min-w-0 items-center gap-2 justify-self-start" title="Codey - Home">
+            <div className="logo-mark flex size-8 shrink-0 items-center justify-center rounded-xl border border-amber-500/25 bg-amber-500/10 shadow-xs transition-colors group-hover:border-amber-500/50">
+              <img src="/favicon.svg" alt="" className="size-4.5 transition-transform group-hover:rotate-6" />
+            </div>
+            <span className="text-base font-black tracking-tight text-foreground">Codey</span>
+          </Link>
 
-            {/* Subtle Divider */}
-            <div className="hidden lg:block h-4 w-px bg-border/60 mx-0.5 shrink-0" />
+          <nav className="hidden items-center gap-0.5 rounded-xl border border-border/60 bg-background/50 p-1 lg:flex" aria-label="Primary">
+            {NAV.map(({ to, label, icon: Icon, title }) => {
+              const active = isActive(to);
+              return (
+                <Link
+                  key={to}
+                  to={to}
+                  title={title}
+                  aria-label={label}
+                  aria-current={active ? "page" : undefined}
+                  className={cn(
+                    "relative flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-xs font-semibold whitespace-nowrap transition-colors xl:px-3",
+                    active ? "bg-foreground text-background shadow-xs" : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                  )}
+                >
+                  <Icon className={cn("size-4 shrink-0 xl:size-3.5", !active && to === "/duel" && "text-amber-500")} />
+                  <span className="hidden xl:inline">{label}</span>
+                </Link>
+              );
+            })}
+          </nav>
 
-            {/* Primary Nav Links (Grouped on Left) */}
-            <nav className="hidden lg:flex items-center gap-1 glass-pill rounded-xl p-1 shadow-inner shrink-0 whitespace-nowrap">
-              <Link
-                to="/duel"
-                className={cn(
-                  "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap shrink-0 transition-all duration-150",
-                  isActive("/duel")
-                    ? "bg-amber-500 text-zinc-950 font-bold shadow-xs"
-                    : "text-amber-500 hover:bg-amber-500/10 hover:text-amber-400"
-                )}
-                title="1v1 Live Real-time Code Race"
-              >
-                <Swords className="size-3.5 shrink-0" />
-                <span className="whitespace-nowrap leading-none">1v1 Duel</span>
-                <span className="size-1.5 rounded-full bg-amber-400 animate-ping hidden xl:inline-block shrink-0" />
-              </Link>
-
-              <Link
-                to="/arcade"
-                className={cn(
-                  "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap shrink-0 transition-all duration-150",
-                  isActive("/arcade")
-                    ? "bg-primary text-primary-foreground font-bold shadow-xs"
-                    : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
-                )}
-                title="Code Rain Arcade"
-              >
-                <Gamepad2 className="size-3.5 shrink-0" />
-                <span className="whitespace-nowrap leading-none">Arcade</span>
-              </Link>
-
-              <Link
-                to="/daily"
-                className={cn(
-                  "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap shrink-0 transition-all duration-150",
-                  isActive("/daily")
-                    ? "bg-primary text-primary-foreground font-bold shadow-xs"
-                    : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
-                )}
-                title="Daily Challenge"
-              >
-                <CalendarDays className="size-3.5 shrink-0" />
-                <span className="whitespace-nowrap leading-none">Daily</span>
-              </Link>
-
-              <Link
-                to="/leaderboard"
-                className={cn(
-                  "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap shrink-0 transition-all duration-150",
-                  isActive("/leaderboard")
-                    ? "bg-primary text-primary-foreground font-bold shadow-xs"
-                    : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
-                )}
-                title="Global Ranked Leaderboard"
-              >
-                <Trophy className="size-3.5 shrink-0" />
-                <span className="whitespace-nowrap leading-none">Leaderboard</span>
-              </Link>
-
-              <Link
-                to="/analytics/keyboard"
-                className={cn(
-                  "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap shrink-0 transition-all duration-150",
-                  isActive("/analytics/keyboard")
-                    ? "bg-primary text-primary-foreground font-bold shadow-xs"
-                    : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
-                )}
-                title="Keyboard Heatmap & Typing Telemetry"
-              >
-                <Keyboard className="size-3.5 shrink-0" />
-                <span className="whitespace-nowrap leading-none">Analytics</span>
-              </Link>
-            </nav>
-          </div>
-
-          {/* Quick Tools & Profile (Right side) */}
-        <div className="flex items-center gap-1.5 shrink-0">
-          {/* Quick Tools pill (Theme, Sound, History, Settings) */}
-          <div className="hidden md:flex items-center gap-0.5 rounded-xl border border-border/50 bg-background/50 p-0.5 shrink-0">
+          <div className="flex min-w-0 items-center justify-self-end gap-1">
             <button
               type="button"
               onClick={openCommandPalette}
-              className="flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-muted-foreground hover:text-foreground hover:bg-muted/80 transition-colors shrink-0 cursor-pointer"
+              className="hidden h-8 shrink-0 items-center gap-2 rounded-lg border border-border/60 bg-background/50 pl-2 pr-1.5 text-muted-foreground transition-colors hover:text-foreground sm:flex cursor-pointer"
               aria-label="Open command palette"
               title="Command palette"
             >
-              <Search className="size-4" />
-              <kbd className="hidden lg:inline font-mono text-[10px] font-semibold">{isMac() ? "⌘K" : "Ctrl K"}</kbd>
+              <Search className="size-3.5" />
+              <kbd className="rounded border border-border/70 bg-muted px-1 font-mono text-[10px] font-semibold leading-4">{isMac() ? "⌘K" : "Ctrl K"}</kbd>
             </button>
 
-            <button
-              type="button"
-              onClick={() => setShowThemeModal(true)}
-              className="rounded-lg p-2 text-muted-foreground hover:text-foreground hover:bg-muted/80 transition-colors shrink-0 cursor-pointer"
-              aria-label="Theme Studio"
-              title="IDE Theme Studio & Syntax Highlighter"
-            >
-              <Palette className="size-4" />
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setShowSoundModal(true)}
-              className="rounded-lg p-2 text-muted-foreground hover:text-foreground hover:bg-muted/80 transition-colors shrink-0 cursor-pointer"
-              aria-label="Sound Engine"
-              title="Mechanical Switch Sound Engine"
-            >
-              <Volume2 className="size-4" />
-            </button>
-
-            <button
-              type="button"
-              onClick={radio.togglePlay}
-              className={cn(
-                "rounded-lg p-2 transition-colors shrink-0 cursor-pointer",
-                radio.isPlaying
-                  ? "text-amber-500 bg-amber-500/15 shadow-xs"
-                  : "text-muted-foreground hover:text-foreground hover:bg-muted/80"
-              )}
-              aria-label="Flow State Radio"
-              title={
-                radio.isPlaying
-                  ? `Flow Radio: Playing (${radio.stationInfo.name}) - Click to Pause`
-                  : "Flow Radio: Click to Play Ambient Lo-Fi / Synthwave"
-              }
-            >
-              <Headphones className={cn("size-4", radio.isPlaying && "animate-pulse")} />
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setPreference("comboEffects", !preferences.comboEffects)}
-              className={cn(
-                "rounded-lg p-2 transition-colors shrink-0 cursor-pointer",
-                preferences.comboEffects
-                  ? "text-amber-500 hover:bg-amber-500/10"
-                  : "text-muted-foreground/60 hover:text-foreground hover:bg-muted/80"
-              )}
-              aria-label="Toggle Combo Sparks"
-              title={preferences.comboEffects ? "Combo Sparks & Glow: ON (Click to disable)" : "Combo Sparks & Glow: OFF (Click to enable)"}
-            >
-              <Flame className="size-4" />
-            </button>
-
-            <Link
-              to="/history"
-              className={cn(
-                "rounded-lg p-2 transition-colors shrink-0",
-                isActive("/history") ? "bg-muted text-foreground" : "text-muted-foreground hover:text-foreground hover:bg-muted/80"
-              )}
-              aria-label="History"
-              title="Typing Run History"
-            >
-              <BarChart3 className="size-4" />
-            </Link>
-
-            <Link
-              to="/settings"
-              className={cn(
-                "rounded-lg p-2 transition-colors shrink-0",
-                isActive("/settings") ? "bg-muted text-foreground" : "text-muted-foreground hover:text-foreground hover:bg-muted/80"
-              )}
-              aria-label="Settings"
-              title="Settings & Preferences"
-            >
-              <Settings className="size-4" />
-            </Link>
-          </div>
-
-          {/* Support / Donate */}
-          <Link
-            to="/donate"
-            className={cn(
-              "hidden sm:flex items-center gap-1.5 rounded-xl px-2.5 py-1.5 text-xs font-semibold whitespace-nowrap shrink-0 transition-all duration-150 border border-amber-500/25 bg-amber-500/10 text-amber-500 hover:bg-amber-500/20 hover:border-amber-500/40",
-              isActive("/donate") && "bg-amber-500/25 border-amber-500/50"
-            )}
-            title="Support Codey development"
-          >
-            <Heart className="size-3.5 fill-current animate-pulse shrink-0" />
-            <span className="hidden 2xl:inline whitespace-nowrap">Donate</span>
-          </Link>
-
-            {/* Theme Toggle */}
-            <div className="border-l border-border/40 pl-1.5 ml-0.5 shrink-0">
-              <ThemeToggle />
+            <div className="hidden md:block">
+              <HeaderMenu label="Tools" trigger={<SlidersHorizontal className="size-4" />}>{toolItems}</HeaderMenu>
             </div>
 
-            {/* Auth / Profile */}
-            {configured && (
-              <div className="flex items-center pl-0.5 shrink-0">
-                {user ? (
-                  <div className="flex items-center gap-0.5 rounded-xl border border-border/50 bg-background/50 p-0.5 shrink-0">
-                    <Link
-                      to="/profile"
-                      className="flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs font-semibold hover:bg-muted transition-colors max-w-[110px] whitespace-nowrap shrink-0"
-                      aria-label="Open profile"
-                    >
-                      <UserRound className="size-3.5 text-amber-500 shrink-0" />
-                      <span className="truncate">{user.name || "Profile"}</span>
-                    </Link>
-                    <button
-                      type="button"
-                      onClick={() => void logout()}
-                      className="size-7 grid place-items-center rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors shrink-0 cursor-pointer"
-                      aria-label="Sign out"
-                      title="Sign out"
-                    >
-                      <LogOut className="size-3.5" />
-                    </button>
-                  </div>
-                ) : (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={login}
-                    disabled={loading}
-                    className="h-8 gap-1.5 rounded-xl border-border/70 text-xs font-semibold hover:border-foreground/30 shadow-xs shrink-0"
-                  >
-                    <LogIn className="size-3.5 text-amber-500 shrink-0" />
-                    <span className="whitespace-nowrap">{loading ? "Checking..." : "GitHub Sign in"}</span>
-                  </Button>
-                )}
-              </div>
-            )}
+            <Link
+              to="/donate"
+              className={cn(iconButton, "hidden text-amber-500 hover:bg-amber-500/10 hover:text-amber-500 sm:grid", isActive("/donate") && "bg-amber-500/15")}
+              aria-label="Support Codey"
+              title="Support Codey development"
+            >
+              <Heart className="size-4 fill-current" />
+            </Link>
 
-            {/* Mobile Menu Trigger */}
+            <ThemeToggle />
+
+            {configured && (user ? (
+              <HeaderMenu
+                label="Account"
+                triggerClassName="ml-0.5 grid size-8 shrink-0 place-items-center rounded-full bg-amber-500 text-sm font-black text-zinc-950 ring-2 ring-amber-500/25 transition-shadow hover:ring-amber-500/50 cursor-pointer"
+                trigger={initial}
+              >
+                {(close) => (
+                  <>
+                    <div className="px-2.5 pb-2 pt-1.5">
+                      <p className="truncate text-sm font-semibold">{user.name || "Typist"}</p>
+                      {user.email && <p className="truncate text-xs text-muted-foreground">{user.email}</p>}
+                    </div>
+                    <div className="mb-1 h-px bg-border" />
+                    <MenuItem icon={UserRound} to="/profile" onClick={close}>Profile</MenuItem>
+                    <MenuItem icon={BarChart3} to="/history" onClick={close}>History</MenuItem>
+                    <div className="my-1 h-px bg-border" />
+                    <MenuItem icon={LogOut} onClick={() => { close(); void logout(); }} className="text-destructive">Sign out</MenuItem>
+                  </>
+                )}
+              </HeaderMenu>
+            ) : (
+              <button
+                type="button"
+                onClick={login}
+                disabled={loading}
+                className="ml-0.5 flex h-8 shrink-0 items-center gap-1.5 rounded-lg bg-foreground px-3 text-xs font-semibold text-background transition-opacity hover:opacity-90 disabled:opacity-60 cursor-pointer"
+              >
+                <LogIn className="size-3.5 shrink-0" />
+                <span className="whitespace-nowrap">{loading ? "Checking…" : "Sign in"}</span>
+              </button>
+            ))}
+
             <button
               type="button"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="lg:hidden size-8 grid place-items-center rounded-xl border border-border/50 bg-background/50 text-foreground transition-colors hover:bg-muted"
-              aria-label="Toggle Navigation Menu"
+              className={cn(iconButton, "lg:hidden")}
+              aria-label="Toggle navigation menu"
+              aria-expanded={mobileMenuOpen}
             >
               {mobileMenuOpen ? <X className="size-4" /> : <Menu className="size-4" />}
             </button>
           </div>
         </div>
 
-        {/* Mobile Dropdown Menu */}
         {mobileMenuOpen && (
-          <div className="lg:hidden mt-3 pt-3 border-t border-border/40 grid grid-cols-2 gap-2 animate-fade-in-up">
-            <Link
-              to="/duel"
-              onClick={() => setMobileMenuOpen(false)}
-              className={cn(
-                "flex items-center gap-2 p-2.5 rounded-xl text-xs font-semibold border transition-all",
-                isActive("/duel") ? "bg-amber-500/20 border-amber-500/40 text-amber-400" : "bg-card/70 border-border/40 text-foreground"
-              )}
-            >
-              <Swords className="size-4 text-amber-500" />
-              <span>1v1 Duel</span>
-            </Link>
-
-            <Link
-              to="/arcade"
-              onClick={() => setMobileMenuOpen(false)}
-              className={cn(
-                "flex items-center gap-2 p-2.5 rounded-xl text-xs font-semibold border transition-all",
-                isActive("/arcade") ? "bg-primary/20 border-primary/40 text-primary" : "bg-card/70 border-border/40 text-foreground"
-              )}
-            >
-              <Gamepad2 className="size-4" />
-              <span>Arcade</span>
-            </Link>
-
-            <Link
-              to="/daily"
-              onClick={() => setMobileMenuOpen(false)}
-              className={cn(
-                "flex items-center gap-2 p-2.5 rounded-xl text-xs font-semibold border transition-all",
-                isActive("/daily") ? "bg-primary/20 border-primary/40 text-primary" : "bg-card/70 border-border/40 text-foreground"
-              )}
-            >
-              <CalendarDays className="size-4 text-amber-500" />
-              <span>Daily</span>
-            </Link>
-
-            <Link
-              to="/leaderboard"
-              onClick={() => setMobileMenuOpen(false)}
-              className={cn(
-                "flex items-center gap-2 p-2.5 rounded-xl text-xs font-semibold border transition-all",
-                isActive("/leaderboard") ? "bg-primary/20 border-primary/40 text-primary" : "bg-card/70 border-border/40 text-foreground"
-              )}
-            >
-              <Trophy className="size-4 text-amber-500" />
-              <span>Leaderboard</span>
-            </Link>
-
-            <Link
-              to="/analytics/keyboard"
-              onClick={() => setMobileMenuOpen(false)}
-              className={cn(
-                "flex items-center gap-2 p-2.5 rounded-xl text-xs font-semibold border transition-all",
-                isActive("/analytics/keyboard") ? "bg-primary/20 border-primary/40 text-primary" : "bg-card/70 border-border/40 text-foreground"
-              )}
-            >
-              <Keyboard className="size-4" />
-              <span>Analytics</span>
-            </Link>
-
-            <button
-              type="button"
-              onClick={() => {
-                setMobileMenuOpen(false);
-                setShowThemeModal(true);
-              }}
-              className="flex items-center gap-2 p-2.5 rounded-xl text-xs font-semibold border bg-card/70 border-border/40 text-foreground text-left"
-            >
-              <Palette className="size-4 text-amber-500" />
-              <span>Themes</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => {
-                setMobileMenuOpen(false);
-                setShowSoundModal(true);
-              }}
-              className="flex items-center gap-2 p-2.5 rounded-xl text-xs font-semibold border bg-card/70 border-border/40 text-foreground text-left"
-            >
-              <Volume2 className="size-4 text-amber-500" />
-              <span>Sound Pack</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setPreference("comboEffects", !preferences.comboEffects)}
-              className="flex items-center justify-between p-2.5 rounded-xl text-xs font-semibold border bg-card/70 border-border/40 text-foreground text-left"
-            >
-              <span className="flex items-center gap-2">
-                <Flame className={cn("size-4", preferences.comboEffects ? "text-amber-500" : "text-muted-foreground")} />
-                <span>Combo Sparks</span>
-              </span>
-              <span className={cn("text-[10px] font-mono px-1.5 py-0.5 rounded-md border", preferences.comboEffects ? "bg-amber-500/15 border-amber-500/30 text-amber-500" : "bg-muted text-muted-foreground")}>
-                {preferences.comboEffects ? "ON" : "OFF"}
-              </span>
-            </button>
-
-            <Link
-              to="/history"
-              onClick={() => setMobileMenuOpen(false)}
-              className="flex items-center gap-2 p-2.5 rounded-xl text-xs font-semibold border bg-card/70 border-border/40 text-foreground"
-            >
-              <BarChart3 className="size-4" />
-              <span>History</span>
-            </Link>
-
-            <Link
-              to="/contributors"
-              onClick={() => setMobileMenuOpen(false)}
-              className="flex items-center gap-2 p-2.5 rounded-xl text-xs font-semibold border bg-card/70 border-border/40 text-foreground"
-            >
-              <Users className="size-4" />
-              <span>Contributors</span>
-            </Link>
-
-            <Link
-              to="/donate"
-              onClick={() => setMobileMenuOpen(false)}
-              className="flex items-center gap-2 p-2.5 rounded-xl text-xs font-semibold border bg-amber-500/10 border-amber-500/30 text-amber-500"
-            >
-              <Heart className="size-4 fill-current" />
-              <span>Donate</span>
-            </Link>
-
-            <Link
-              to="/settings"
-              onClick={() => setMobileMenuOpen(false)}
-              className="flex items-center gap-2 p-2.5 rounded-xl text-xs font-semibold border bg-card/70 border-border/40 text-foreground"
-            >
-              <Settings className="size-4" />
-              <span>Settings</span>
-            </Link>
+          <div className="mt-2 grid animate-fade-in-up grid-cols-2 gap-1.5 border-t border-border/50 pt-2 lg:hidden">
+            {NAV.map(({ to, label, icon: Icon }) => (
+              <Link
+                key={to}
+                to={to}
+                onClick={() => setMobileMenuOpen(false)}
+                className={cn(
+                  "flex items-center gap-2 rounded-xl border p-2.5 text-xs font-semibold transition-colors",
+                  isActive(to) ? "border-foreground bg-foreground text-background" : "border-border/50 bg-card/70 text-foreground"
+                )}
+              >
+                <Icon className="size-4" />
+                <span>{label}</span>
+              </Link>
+            ))}
+            <div className="col-span-2 mt-1 rounded-xl border border-border/50 bg-card/70 p-1 md:hidden">
+              {toolItems(() => setMobileMenuOpen(false))}
+              <MenuItem icon={Heart} to="/donate" onClick={() => setMobileMenuOpen(false)} className="text-amber-600 dark:text-amber-400">Donate</MenuItem>
+            </div>
           </div>
         )}
       </div>
