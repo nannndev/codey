@@ -8,6 +8,8 @@ export interface Snippet {
     url: string;
   };
   sourceType?: 'public' | 'custom';
+  /** Prose is shown wrapped, without line numbers. */
+  kind?: 'code' | 'text';
 }
 
 export type SnippetLength = 'short' | 'medium' | 'long';
