@@ -1,6 +1,7 @@
 import { ImageResponse } from '@vercel/og';
 import type { SharedRun } from './share-card.js';
 import type { SharedProfile } from './profile-card.js';
+import type { SharedChallenge } from './challenge-card.js';
 
 /**
  * 1200×630 preview card, drawn with Satori from plain element objects (no JSX
@@ -212,6 +213,52 @@ export function renderProfileImage(profile: SharedProfile, host: string): ImageR
       stat('Avg speed', profile.runs ? formatWpm(profile.avgWpm) : '–', 36),
       stat('Accuracy', profile.runs ? `${profile.avgAccuracy.toFixed(1)}%` : '–', 36),
       stat('Best streak', `${profile.bestStreak}d`, 36),
+    ),
+  );
+
+  const root = h('div', { width: 1200, height: 630, background: DARK, fontFamily: 'Geist' }, left, right);
+  return new ImageResponse(root as never, { width: 1200, height: 630 });
+}
+
+/** "Can you beat it?": the score to beat on the amber side, the snippet on the dark side. */
+export function renderChallengeImage(challenge: SharedChallenge, host: string): ImageResponse {
+  const wpm = formatWpm(challenge.wpm);
+  const left = h('div', { width: PANEL, height: 630, background: AMBER, flexDirection: 'column', justifyContent: 'space-between', padding: '56px 52px' },
+    h('div', { alignItems: 'center', gap: 16 },
+      avatar(challenge.name, challenge.avatarUrl),
+      h('div', { flexDirection: 'column', maxWidth: 280 },
+        h('div', { fontSize: 22, color: DEEP }, 'Challenge from'),
+        h('div', { fontSize: 32, color: COAL, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }, challenge.name),
+      ),
+    ),
+    h('div', { flexDirection: 'column' },
+      h('div', { fontSize: 34, color: DEEP, marginBottom: 6 }, 'Can you beat'),
+      h('div', { fontSize: wpmSize(wpm), lineHeight: 0.85, color: COAL, letterSpacing: -8 }, wpm),
+      h('div', { fontSize: 40, color: DEEP, marginTop: 10 }, 'wpm?'),
+    ),
+    h('div', { alignItems: 'center', gap: 14 }, mark(COAL, AMBER), h('div', { fontSize: 28, color: COAL }, 'Codey')),
+  );
+
+  const code = h('div', { flexDirection: 'column', gap: 8, padding: '22px 24px', borderRadius: 18, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' },
+    ...challenge.preview.map((line, index) => h('div', { gap: 18, fontSize: 22, color: index === 0 ? INK : MUTED, whiteSpace: 'pre' },
+      h('div', { width: 26, color: '#52525b' }, String(index + 1)),
+      h('div', { whiteSpace: 'pre' }, line || ' '),
+    )),
+    challenge.lines > challenge.preview.length
+      ? h('div', { fontSize: 18, color: '#52525b', marginTop: 4 }, `+ ${challenge.lines - challenge.preview.length} more lines`)
+      : h('div', {}),
+  );
+
+  const right = h('div', { flex: 1, flexDirection: 'column', justifyContent: 'space-between', padding: '56px 56px' },
+    h('div', { justifyContent: 'space-between', alignItems: 'center' },
+      pill(challenge.language === 'Mixed' ? 'Mixed code' : challenge.language, AMBER, false),
+      h('div', { fontSize: 22, color: MUTED }, host),
+    ),
+    code,
+    h('div', { gap: 56, alignItems: 'flex-end' },
+      stat('To beat', `${wpm} wpm`),
+      stat('Accuracy', `${challenge.accuracy.toFixed(1)}%`),
+      h('div', { marginLeft: 'auto', padding: '12px 22px', borderRadius: 14, background: AMBER, color: COAL, fontSize: 24 }, 'Accept'),
     ),
   );
 

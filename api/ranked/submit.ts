@@ -1,7 +1,7 @@
 import { Client, Databases, Account, Permission, Role } from 'node-appwrite';
 import { MIN_RANKED_ACCURACY, MIN_RANKED_WPM } from '../../src/utils/ranking.js';
 import type { SnippetLength, TestMode } from '../../src/types.js';
-import { encodeTrace, traceFromIntervals } from '../../src/utils/speed-trace.js';
+import { consistencyFromIntervals, encodeTrace, traceFromIntervals } from '../../src/utils/speed-trace.js';
 
 interface ApiRequest {
   method?: string;
@@ -198,7 +198,8 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
       wpm: calculatedWpm,
       rawWpm: calculatedRawWpm,
       accuracy: calculatedAccuracy,
-      consistency: 92.5,
+      // Measured from the keystroke timing, like the typing screen does.
+      consistency: consistencyFromIntervals(keyIntervals, totalMs) ?? 100,
       correctChars: finalCorrectChars,
       keystrokes: totalKeystrokes,
       mistakes,

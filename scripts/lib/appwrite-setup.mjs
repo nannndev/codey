@@ -38,13 +38,13 @@ export async function ensureCollection(spec) {
     console.log(`✓ collection ${spec.id} exists`);
   } catch (error) {
     if (!isNotFound(error)) throw error;
-    // Public read, no client writes: only the server API key writes documents.
+    // Default: public read, no client writes; only the server API key writes documents.
     await databases.createCollection({
       databaseId,
       collectionId: spec.id,
       name: spec.name,
-      permissions: [Permission.read(Role.any())],
-      documentSecurity: false,
+      permissions: spec.permissions ?? [Permission.read(Role.any())],
+      documentSecurity: spec.documentSecurity ?? false,
     });
     console.log(`+ created collection ${spec.id}`);
   }

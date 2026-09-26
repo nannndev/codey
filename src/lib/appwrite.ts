@@ -11,6 +11,7 @@ export const appwriteConfig = {
   runsCollectionId: import.meta.env.VITE_APPWRITE_RUNS_COLLECTION_ID?.trim() || "runs",
   runSessionsCollectionId: import.meta.env.VITE_APPWRITE_RUN_SESSIONS_COLLECTION_ID?.trim() || "run_sessions",
   dailyRunsCollectionId: import.meta.env.VITE_APPWRITE_DAILY_RUNS_COLLECTION_ID?.trim() || "daily_runs",
+  challengesCollectionId: import.meta.env.VITE_APPWRITE_CHALLENGES_COLLECTION_ID?.trim() || "challenges",
 };
 
 export const isAppwriteConfigured = Boolean(projectId);

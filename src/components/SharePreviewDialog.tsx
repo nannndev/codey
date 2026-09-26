@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
-import { Check, Copy, Download, LoaderCircle, Share2, Sparkles, X } from "lucide-react";
+import { Check, Copy, Download, LogIn, LoaderCircle, Share2, Sparkles, Swords, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { createResultCard, SHARE_THEMES, type ShareCardOptions, type ShareCardTheme } from "@/lib/share-result";
 import { usePreferences } from "@/components/PreferencesProvider";
 import { getColorway } from "@/lib/keycaps";
-import { useAuth } from "@/components/AuthProvider";
+import { githubUsernameFromUser, useAuth } from "@/components/AuthProvider";
+import { challengeShareText, challengeShareUrl, createChallenge } from "@/lib/challenges";
 import { shareableRunId } from "@/lib/cloud";
 import { runCardUrl, runShareUrl, shareCaption, shareText } from "@/lib/share-links";
 import { copyBlob, downloadBlob, fetchCardImage, shareBlob } from "@/lib/share-image";
@@ -29,7 +30,9 @@ export function SharePreviewDialog({ options, onClose }: SharePreviewDialogProps
   // undefined while the link is being prepared; null when the run has no public page.
   const [runId, setRunId] = useState<string | null | undefined>(undefined);
   const { preferences } = usePreferences();
-  const { user } = useAuth();
+  const { user, login } = useAuth();
+  const [tab, setTab] = useState<"score" | "challenge">("score");
+  const [challenge, setChallenge] = useState<{ status: "idle" | "creating" | "ready" | "error"; url?: string }>({ status: "idle" });
   const userId = user?.$id ?? null;
   const { keycapTheme, keycapOverrides } = preferences;
   const shareUrl = runId === undefined ? null : runShareUrl(window.location.origin, runId);
@@ -75,6 +78,20 @@ export function SharePreviewDialog({ options, onClose }: SharePreviewDialogProps
       });
     };
   }, [options, cardStyle, runId, theme, keycapTheme, keycapOverrides]);
+
+  useEffect(() => {
+    setTab(options?.startWithChallenge && options.challenge ? "challenge" : "score");
+    setChallenge({ status: "idle" });
+  }, [options]);
+
+  // The challenge is saved the first time its tab opens.
+  useEffect(() => {
+    if (!options?.challenge || tab !== "challenge" || !user || challenge.status !== "idle") return;
+    setChallenge({ status: "creating" });
+    void createChallenge({ id: user.$id, name: user.name || githubUsernameFromUser(user) || "", username: githubUsernameFromUser(user) }, options.challenge, options.result)
+      .then((id) => setChallenge({ status: "ready", url: challengeShareUrl(window.location.origin, id) }))
+      .catch(() => setChallenge({ status: "error" }));
+  }, [options, tab, user, challenge.status]);
 
   useEffect(() => {
     if (!options) return;
@@ -179,6 +196,43 @@ export function SharePreviewDialog({ options, onClose }: SharePreviewDialogProps
           )}
         </div>
 
+        {options.challenge && (
+          <div className="flex items-center gap-1 border-t px-4 pt-3 sm:px-5" role="tablist" aria-label="What to share">
+            {([["score", "Share score", Share2], ["challenge", "Challenge a friend", Swords]] as const).map(([key, label, Icon]) => (
+              <button
+                key={key}
+                type="button"
+                role="tab"
+                aria-selected={tab === key}
+                onClick={() => setTab(key)}
+                className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${tab === key ? "bg-foreground text-background" : "text-muted-foreground hover:bg-muted hover:text-foreground"}`}
+              >
+                <Icon className="size-3.5" /> {label}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {tab === "challenge" && options.challenge ? (
+          user ? (
+            challenge.status === "error" ? (
+              <div className="px-4 pt-4 text-xs text-red-500 sm:px-5">
+                Could not create the challenge. <button type="button" className="font-semibold underline" onClick={() => setChallenge({ status: "idle" })}>Try again</button>
+              </div>
+            ) : (
+              <SharePostPanel
+                text={challengeShareText({ wpm: options.result.wpm, language: options.result.language }, true)}
+                url={challenge.url ?? null}
+                hint="Your friend types this exact snippet against your score, then sees who was faster. No account needed to accept."
+              />
+            )
+          ) : (
+            <div className="mx-4 mt-4 flex flex-col items-start gap-2 rounded-xl border bg-muted/40 p-4 sm:mx-5 sm:flex-row sm:items-center sm:justify-between">
+              <p className="text-xs text-muted-foreground">Sign in to turn this run into a challenge link your friends can race.</p>
+              <Button type="button" size="sm" onClick={login}><LogIn data-icon="inline-start" /> Sign in with GitHub</Button>
+            </div>
+          )
+        ) : (
         <SharePostPanel
           text={text}
           url={shareUrl}
@@ -186,6 +240,7 @@ export function SharePreviewDialog({ options, onClose }: SharePreviewDialogProps
             ? "The link shows your score card as its preview. For Instagram stories, download the image and post it there."
             : "Sign in to get a link with your own score card. For Instagram, download the image and post it there."}
         />
+        )}
 
         <div className="flex flex-col-reverse gap-2 p-4 sm:flex-row sm:items-center sm:justify-between">
           <Button type="button" variant="ghost" size="sm" onClick={copyCaption} className="text-xs text-muted-foreground hover:text-foreground">

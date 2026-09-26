@@ -1,6 +1,7 @@
 import { isConfigured, type ApiRequest } from '../_lib/appwrite-admin.js';
 import { loadSharedRun, shareHtml } from '../_lib/share-card.js';
 import { loadSharedProfile, profileShareHtml } from '../_lib/profile-card.js';
+import { challengeShareHtml, loadChallenge } from '../_lib/challenge-card.js';
 
 interface HtmlResponse {
   status: (code: number) => HtmlResponse;
@@ -10,7 +11,7 @@ interface HtmlResponse {
 
 const first = (value: string | string[] | undefined) => (Array.isArray(value) ? value[0] : value) ?? '';
 
-/** GET /r/<runId> and /p/<userId> (rewritten here): Open Graph tags for crawlers, a redirect for people. */
+/** GET /r/<runId>, /p/<userId> and /c/<challengeId> (rewritten here): Open Graph tags for crawlers, a redirect for people. */
 export default async function handler(req: ApiRequest, res: HtmlResponse) {
   const id = first(req.query.id);
   const host = first(req.headers['x-forwarded-host']) || first(req.headers.host);
@@ -19,7 +20,12 @@ export default async function handler(req: ApiRequest, res: HtmlResponse) {
   const configured = isConfigured();
   let found: boolean;
   let html: string;
-  if (first(req.query.kind) === 'profile') {
+  const kind = first(req.query.kind);
+  if (kind === 'challenge') {
+    const challenge = configured ? await loadChallenge(id) : null;
+    found = Boolean(challenge);
+    html = challengeShareHtml(challenge, origin, id);
+  } else if (kind === 'profile') {
     const profile = configured ? await loadSharedProfile(id) : null;
     found = Boolean(profile);
     html = profileShareHtml(profile, origin, id);

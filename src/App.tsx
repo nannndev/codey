@@ -18,6 +18,8 @@ import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { useAuth } from "@/components/AuthProvider";
 import { uploadRun } from "@/lib/cloud";
+import { canChallenge, challengeSnippet, getChallenge, type Challenge } from "@/lib/challenges";
+import { ChallengeModeBanner, ChallengeResultBanner } from "@/components/ChallengeBanners";
 import { useGame, useKeyboardSound, useGhostRunner, useRankedGame, useDailyGame } from "@/hooks";
 import { DailyChallengeCard, DailyModeBanner, DailyResultBanner } from "@/components/daily/DailyWidgets";
 import { useSearchParams } from "react-router-dom";
@@ -72,6 +74,8 @@ export default function App() {
   const [mode, setMode] = useState<TestMode>("snippet");
   const [duration, setDuration] = useState<TimedDuration | null>(null);
   const [customSnippet, setCustomSnippet] = useState<import("@/types").Snippet | null>(null);
+  const [activeChallenge, setActiveChallenge] = useState<Challenge | null>(null);
+  const [challengeError, setChallengeError] = useState<string | null>(null);
   const { getRandomSnippet: getPublicSnippet, loading: isLoadingSource } = useSnippets(language, preferences.snippetLength);
   const getRandomSnippet = useCallback(() => {
     // Daily mode wins over every other source so resets keep today's code.
@@ -630,6 +634,30 @@ export default function App() {
     if (drill) handleCustomSnippet(drill);
   }, [drillParam, setSearchParams, handleCustomSnippet]);
 
+  // A challenge only lives while its snippet is loaded.
+  useEffect(() => {
+    if (!customSnippet || (activeChallenge && customSnippet.id !== `challenge-${activeChallenge.id}`)) setActiveChallenge(null);
+  }, [customSnippet, activeChallenge]);
+
+  // /?challenge=<id> (from a /c/<id> link) loads a friend's snippet and score to beat.
+  const challengeParam = searchParams.get("challenge");
+  useEffect(() => {
+    if (!challengeParam) return;
+    setSearchParams((params) => {
+      params.delete("challenge");
+      return params;
+    }, { replace: true });
+    setChallengeError(null);
+    void getChallenge(challengeParam).then((found) => {
+      if (!found) {
+        setChallengeError("That challenge link is not available. Here is a fresh snippet instead.");
+        return;
+      }
+      handleCustomSnippet(challengeSnippet(found));
+      setActiveChallenge(found);
+    });
+  }, [challengeParam, setSearchParams, handleCustomSnippet]);
+
   const handleNextSnippet = useCallback(() => {
     setResult(null);
     resetPhysicalKeypresses();
@@ -700,6 +728,7 @@ export default function App() {
         <Header />
 
         {result && daily.active && <DailyResultBanner status={daily.status} outcome={daily.outcome} error={daily.error} />}
+        {result && activeChallenge && <ChallengeResultBanner challenge={activeChallenge} result={result} />}
         {result ? (
           <Suspense fallback={<div className="mt-6 h-96 animate-pulse rounded-2xl border bg-card/50" aria-busy="true" />}>
           <ResultsScreen
@@ -711,6 +740,7 @@ export default function App() {
             onRetry={handleRetry}
             onNext={handleNextSnippet}
             onDrill={handleCustomSnippet}
+            challengeSnippet={!daily.active && canChallenge(snippet, result) ? snippet : null}
           />
           </Suspense>
         ) : (
@@ -748,6 +778,8 @@ export default function App() {
               </div>
             )}
 
+            {activeChallenge && <ChallengeModeBanner challenge={activeChallenge} onExit={exitCustomPractice} />}
+            {challengeError && !activeChallenge && <p className="text-center text-xs text-muted-foreground">{challengeError}</p>}
             {daily.active ? (
               <DailyModeBanner challenge={daily.challenge} status={daily.status} error={daily.error} onExit={exitDaily} />
             ) : (
@@ -851,7 +883,7 @@ export default function App() {
               <p className="-mt-2 text-center font-mono text-[10px] text-red-500">RANKED ERROR: {rankedError}</p>
             )}
 
-            {customSnippet && <div className="flex items-center justify-between gap-3 rounded-lg border border-dashed bg-card/60 px-3 py-2 text-xs"><span><strong>{customSnippet.id.startsWith("drill-") ? "Weak-key drill" : "Local practice"}</strong> · not saved or ranked</span><button type="button" onClick={exitCustomPractice} className="text-muted-foreground hover:text-foreground">Exit {customSnippet.id.startsWith("drill-") ? "drill" : "custom"}</button></div>}
+            {customSnippet && !activeChallenge && <div className="flex items-center justify-between gap-3 rounded-lg border border-dashed bg-card/60 px-3 py-2 text-xs"><span><strong>{customSnippet.id.startsWith("drill-") ? "Weak-key drill" : "Local practice"}</strong> · not saved or ranked</span><button type="button" onClick={exitCustomPractice} className="text-muted-foreground hover:text-foreground">Exit {customSnippet.id.startsWith("drill-") ? "drill" : "custom"}</button></div>}
 
             {"title" in snippet && (snippet as CategorySnippet).title && (
               <div

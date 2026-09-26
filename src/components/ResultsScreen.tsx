@@ -4,7 +4,7 @@ import { ErrorHeatmap } from "@/components/ErrorHeatmap";
 import { WeakKeys } from "@/components/WeakKeys";
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { RefreshCw, ArrowRight, Trophy, ImageDown, Zap, ShieldCheck, GitPullRequest } from "lucide-react";
+import { RefreshCw, ArrowRight, Trophy, ImageDown, Zap, ShieldCheck, GitPullRequest, Swords } from "lucide-react";
 import { useAuth, githubUsernameFromUser } from "@/components/AuthProvider";
 import type { ShareCardOptions } from "@/lib/share-result";
 import { SharePreviewDialog } from "@/components/SharePreviewDialog";
@@ -22,6 +22,8 @@ interface ResultsScreenProps {
   onRetry: () => void;
   onNext: () => void;
   onDrill: (snippet: Snippet) => void;
+  /** The snippet, when this run can be sent to friends as a challenge. */
+  challengeSnippet?: Snippet | null;
 }
 
 export function ResultsScreen({
@@ -33,8 +35,11 @@ export function ResultsScreen({
   onRetry,
   onNext,
   onDrill,
+  challengeSnippet,
 }: ResultsScreenProps) {
   const { user } = useAuth();
+  // A verified Ranked run is shared by the copy the server stored.
+  const shareResult = verifiedResult?.verified && verifiedResult.runId ? { ...result, cloudId: verifiedResult.runId } : result;
   const [shareOptions, setShareOptions] = useState<ShareCardOptions | null>(null);
 
   const modeLabel =
@@ -190,8 +195,7 @@ export function ResultsScreen({
         <div className="flex flex-col sm:flex-row gap-2.5 w-full">
           <Button
             onClick={() =>
-              // A verified Ranked run is shared by the copy the server stored.
-              setShareOptions({ result: verifiedResult?.verified && verifiedResult.runId ? { ...result, cloudId: verifiedResult.runId } : result, username })
+              setShareOptions({ result: shareResult, username, challenge: challengeSnippet ?? undefined })
             }
             variant="outline"
             size="lg"
@@ -199,6 +203,17 @@ export function ResultsScreen({
           >
             <ImageDown className="size-4 mr-2" /> Share Result Card
           </Button>
+
+          {challengeSnippet && (
+            <Button
+              onClick={() => setShareOptions({ result: shareResult, username, challenge: challengeSnippet, startWithChallenge: true })}
+              variant="outline"
+              size="lg"
+              className="flex-1 h-11 rounded-xl font-bold border-amber-500/40 hover:bg-amber-500/10"
+            >
+              <Swords className="size-4 mr-2 text-amber-500" /> Challenge a Friend
+            </Button>
+          )}
 
           <Button
             asChild

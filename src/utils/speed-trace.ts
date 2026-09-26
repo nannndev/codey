@@ -57,3 +57,30 @@ export function parseTrace(value: unknown): number[] {
   const values = value.split(",").slice(0, TRACE_BARS * 2).map(Number);
   return values.every((item) => Number.isFinite(item) && item >= 0 && item <= MAX_WPM) && values.length >= 3 ? values : [];
 }
+
+/**
+ * Consistency (0-100) from the gaps between keystrokes, measured the way the
+ * typing screen does: the running average WPM at each second, scored by how
+ * little it varies. Null when the run is too short to say.
+ */
+export function consistencyFromIntervals(intervals: number[], totalMs: number): number | null {
+  if (intervals.length < 10 || totalMs < 2000) return null;
+  const seconds = Math.floor(totalMs / 1000);
+  const perSecond = new Array<number>(seconds).fill(0);
+  let at = 0;
+  for (const gap of intervals) {
+    at += Math.max(0, gap);
+    const second = Math.min(seconds - 1, Math.floor(at / 1000));
+    perSecond[second] += 1;
+  }
+  const running: number[] = [];
+  let keys = 0;
+  for (let second = 0; second < seconds; second += 1) {
+    keys += perSecond[second];
+    running.push(keys / 5 / ((second + 1) / 60));
+  }
+  const average = running.reduce((sum, value) => sum + value, 0) / running.length;
+  if (average === 0) return 100;
+  const deviation = Math.sqrt(running.reduce((sum, value) => sum + (value - average) ** 2, 0) / running.length);
+  return Math.max(0, Math.min(100, Math.round((100 - (deviation / average) * 100) * 10) / 10));
+}
