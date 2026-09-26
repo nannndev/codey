@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { formatWpm } from "./og-image";
 import { formatLabel, loadSharedRun, shareHtml, type SharedRun } from "./share-card";
 
 function fakeDb(docs: Record<string, Record<string, unknown>>) {
@@ -73,7 +74,7 @@ describe("shareHtml", () => {
 
   it("points crawlers at the rendered card and people at the profile", () => {
     const html = shareHtml(shared, "https://codey.example", "run_abc");
-    expect(html).toContain('<meta property="og:image" content="https://codey.example/api/og/run_abc">');
+    expect(html).toContain('<meta property="og:image" content="https://codey.example/api/og/run_abc?v=2">');
     expect(html).toContain('<meta property="og:url" content="https://codey.example/r/run_abc">');
     expect(html).toContain('<meta name="twitter:card" content="summary_large_image">');
     expect(html).toContain('location.replace("https://codey.example/profile/user_1")');
@@ -91,5 +92,13 @@ describe("shareHtml", () => {
     const html = shareHtml(null, "https://codey.example", "nope");
     expect(html).toContain("https://codey.example/og-default.png");
     expect(html).toContain('location.replace("https://codey.example")');
+  });
+});
+
+describe("formatWpm", () => {
+  it("drops a trailing .0 and keeps one decimal otherwise", () => {
+    expect(formatWpm(120)).toBe("120");
+    expect(formatWpm(119.96)).toBe("120");
+    expect(formatWpm(88.44)).toBe("88.4");
   });
 });

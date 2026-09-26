@@ -7,6 +7,8 @@ import { APPWRITE, adminDatabases } from './appwrite-admin.js';
  * the card always match the database.
  */
 
+export const CARD_VERSION = 2;
+
 export const RUN_ID_PATTERN = /^[A-Za-z0-9_]{1,36}$/;
 
 export interface SharedRun {
@@ -97,7 +99,8 @@ export function shareHtml(run: SharedRun | null, origin: string, id: string) {
   const target = run ? `${origin}/profile/${encodeURIComponent(run.userId)}` : origin;
   const title = run ? shareTitle(run) : 'Codey: type real code, faster';
   const description = run ? shareDescription(run) : 'Typing practice with real code from GitHub, daily challenges and live duels.';
-  const image = run ? `${origin}/api/og/${encodeURIComponent(id)}` : `${origin}/og-default.png`;
+  // Bump CARD_VERSION when the card design changes: platforms cache images by URL.
+  const image = run ? `${origin}/api/og/${encodeURIComponent(id)}?v=${CARD_VERSION}` : `${origin}/og-default.png?v=${CARD_VERSION}`;
   const url = `${origin}/r/${encodeURIComponent(id)}`;
   const meta = (property: string, content: string, attr = 'property') => `<meta ${attr}="${property}" content="${escapeHtml(content)}">`;
   return `<!doctype html>
