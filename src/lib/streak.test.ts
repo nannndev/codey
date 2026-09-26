@@ -77,3 +77,17 @@ describe("streak freeze", () => {
     expect(status).toMatchObject({ current: 0, mood: "sleep", lost: 9 });
   });
 });
+
+describe("streak reminders", () => {
+  it("fires once, in the evening, only when today is not done", async () => {
+    const { reminderDue } = await import("./streak-reminder");
+    const on = { enabled: true, hour: 20 };
+    const evening = new Date(2026, 8, 26, 20, 30);
+    expect(reminderDue(on, { current: 5, practicedToday: false }, evening, null)).toBe(true);
+    expect(reminderDue(on, { current: 5, practicedToday: false }, evening, "2026-09-26")).toBe(false);
+    expect(reminderDue(on, { current: 5, practicedToday: true }, evening, null)).toBe(false);
+    expect(reminderDue(on, { current: 0, practicedToday: false }, evening, null)).toBe(false);
+    expect(reminderDue(on, { current: 5, practicedToday: false }, new Date(2026, 8, 26, 19, 59), null)).toBe(false);
+    expect(reminderDue({ ...on, enabled: false }, { current: 5, practicedToday: false }, evening, null)).toBe(false);
+  });
+});

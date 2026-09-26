@@ -3,6 +3,7 @@ import { Check, Crown, Play, Snowflake } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { FLAME_TIERS, streakMessage, type StreakStatus } from "@/lib/streak";
 import { KapMascot } from "./KapMascot";
+import { ReminderSettings } from "./ReminderSettings";
 
 function FlameGlyph({ color, core, className }: { color: string; core: string; className?: string }) {
   return (
@@ -99,6 +100,8 @@ export function StreakPanel({ status, onNavigate }: { status: StreakStatus; onNa
           })}
         </ol>
       </div>
+
+      <ReminderSettings />
 
       {!status.practicedToday && (
         <Link

@@ -54,7 +54,7 @@ export function StreakButton() {
         )}
       </button>
       {open && (
-        <div role="dialog" aria-label="Streak" className="fixed inset-x-3 top-20 z-50 max-h-[calc(100dvh-6rem)] overflow-y-auto rounded-2xl border bg-popover p-3 text-popover-foreground shadow-2xl animate-scale-in sm:absolute sm:inset-x-auto sm:right-0 sm:top-10 sm:max-h-none sm:overflow-visible">
+        <div role="dialog" aria-label="Streak" className="fixed inset-x-3 top-20 z-50 max-h-[calc(100dvh-6rem)] overflow-y-auto rounded-2xl border bg-popover p-3 text-popover-foreground shadow-2xl animate-scale-in sm:absolute sm:inset-x-auto sm:right-0 sm:top-10 sm:max-h-[calc(100dvh-7rem)]">
           <StreakPanel status={status} onNavigate={() => setOpen(false)} />
         </div>
       )}

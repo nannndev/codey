@@ -14,6 +14,7 @@ import { CommandPalette } from './components/CommandPalette';
 import { KeycapStudioModal } from './components/KeycapStudioModal';
 import { AchievementToaster } from './components/achievements/AchievementToaster';
 import { StreakCelebration } from './components/streak/StreakCelebration';
+import { StreakReminder } from './components/streak/StreakReminder';
 import './index.css';
 
 const { Settings, History, Leaderboard, Profile, Donate, Contributors, Duel, Arcade, Daily, KeyboardAnalytics, Achievements } = Pages;
@@ -51,6 +52,7 @@ createRoot(document.getElementById('root')!).render(
               <KeycapStudioModal />
               <AchievementToaster />
               <StreakCelebration />
+              <StreakReminder />
             </BrowserRouter>
             <Analytics />
           </RadioProvider>
