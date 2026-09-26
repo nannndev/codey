@@ -6,9 +6,9 @@ import { PodiumCard, YourRankBar } from "@/components/leaderboard/BoardParts";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { getLanguages } from "@/data";
-import { type CloudProfile, type CloudRun } from "@/lib/cloud";
+import { cloudRunAsResult, type CloudProfile, type CloudRun } from "@/lib/cloud";
 import { getLeaderboardView } from "@/lib/leaderboard-api";
-import type { SnippetLength, RunResult } from "@/types";
+import type { SnippetLength } from "@/types";
 import type { ShareCardOptions } from "@/lib/share-result";
 import { SharePreviewDialog } from "@/components/SharePreviewDialog";
 import { useAuth } from "@/components/AuthProvider";
@@ -61,27 +61,6 @@ function LeaderboardSkeleton() {
 function displayName(run: CloudRun, profiles: Map<string, CloudProfile>): string {
   const profile = profiles.get(run.userId);
   return profile?.displayName || profile?.githubUsername || `Typist ${run.userId.slice(0, 5)}`;
-}
-
-function cloudRunAsResult(run: CloudRun): RunResult {
-  return {
-    language: run.language,
-    mode: run.mode,
-    duration: run.mode === "timed" && run.durationSeconds ? run.durationSeconds * 1000 : run.durationMs,
-    wpm: run.wpm,
-    rawWpm: run.rawWpm,
-    accuracy: run.accuracy,
-    consistency: run.consistency,
-    totalCorrect: run.correctChars,
-    charsTyped: run.keystrokes,
-    totalErrors: run.mistakes,
-    snippetsCompleted: run.snippetsCompleted,
-    timestamp: new Date(run.$createdAt).getTime(),
-    perLineStats: [],
-    errorPositions: [],
-    sourceRepo: run.sourceRepo,
-    snippetLength: run.snippetLength,
-  };
 }
 
 // ──── DEMO MODE: set to false to use real data ────

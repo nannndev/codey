@@ -175,6 +175,21 @@ export function uploadRun(userId: string, run: RunResult): Promise<void> {
   return upload;
 }
 
+/**
+ * The public id for a run's share link (/r/<id>), uploading it first when this
+ * device has not yet. Custom-code runs stay private, so they have none.
+ */
+export async function shareableRunId(userId: string | null | undefined, run: RunResult): Promise<string | null> {
+  if (run.cloudId) return run.cloudId;
+  if (!userId || !databases || run.sourceType === "custom") return null;
+  try {
+    await uploadRun(userId, run);
+    return documentId(userId, run);
+  } catch {
+    return null;
+  }
+}
+
 export async function syncLocalRuns(userId: string, runs: RunResult[]): Promise<void> {
   try {
     if (!databases) return;

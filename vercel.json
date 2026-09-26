@@ -5,6 +5,7 @@
     }
   },
   "rewrites": [
+    { "source": "/r/:id", "destination": "/api/share/:id" },
     { "source": "/history", "destination": "/index.html" },
     { "source": "/statistics", "destination": "/index.html" },
     { "source": "/stats", "destination": "/index.html" },
@@ -20,6 +21,7 @@
     { "source": "/donate", "destination": "/index.html" },
     { "source": "/support", "destination": "/index.html" },
     { "source": "/contributors", "destination": "/index.html" },
+    { "source": "/achievements", "destination": "/index.html" },
     {
       "source": "/((?!api/|.*\\.[\\w]+$).*)",
       "destination": "/index.html"

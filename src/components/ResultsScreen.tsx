@@ -16,7 +16,7 @@ import { cn } from "@/lib/utils";
 interface ResultsScreenProps {
   result: RunResult;
   previousBest: PersonalBest | null;
-  verifiedResult?: { verified: boolean; wpm: number; accuracy: number } | null;
+  verifiedResult?: { verified: boolean; wpm: number; accuracy: number; runId?: string } | null;
   rankedStatus?: RankedStatus;
   rankedError?: string | null;
   onRetry: () => void;
@@ -190,7 +190,8 @@ export function ResultsScreen({
         <div className="flex flex-col sm:flex-row gap-2.5 w-full">
           <Button
             onClick={() =>
-              setShareOptions({ result, username })
+              // A verified Ranked run is shared by the copy the server stored.
+              setShareOptions({ result: verifiedResult?.verified && verifiedResult.runId ? { ...result, cloudId: verifiedResult.runId } : result, username })
             }
             variant="outline"
             size="lg"
