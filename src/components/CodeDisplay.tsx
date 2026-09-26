@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Code2, ExternalLink, FileCode2, Flame, GitBranch, GitPullRequest, Maximize2, Minimize2, Minus, Plus } from "lucide-react";
+import { BookOpen, Code2, ExternalLink, FileCode2, Flame, GitBranch, GitPullRequest, Maximize2, Minimize2, Minus, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { usePreferences } from "@/components/PreferencesProvider";
@@ -24,6 +24,8 @@ interface CodeDisplayProps {
   ghostWpm?: number | null;
   combo?: number;
   maxCombo?: number;
+  /** Plain text: wrapped like a paragraph, without line numbers. */
+  prose?: boolean;
 }
 
 type CursorPref = "block" | "underline" | "line";
@@ -75,13 +77,15 @@ export function CodeDisplay({
   ghostWpm = null,
   combo = 0,
   maxCombo: _maxCombo = 0,
+  prose = false,
 }: CodeDisplayProps) {
   const { preferences, setPreference } = usePreferences();
   const cursorStyle = preferences.cursorStyle as CursorPref;
   const CursorComponent = CURSOR_COMPONENTS[cursorStyle];
   const fontSizes = ["12", "14", "16", "18", "20", "22", "24"] as const;
   const fontIndex = fontSizes.indexOf(preferences.fontSize);
-  const syntaxTokens = useMemo(() => tokenizeCode(chars.map((char) => char.char).join("")), [chars]);
+  // Prose is not code: "if" and "for" in a sentence are just words.
+  const syntaxTokens = useMemo(() => (prose ? chars.map(() => "plain" as const) : tokenizeCode(chars.map((char) => char.char).join(""))), [chars, prose]);
   const viewportRef = useRef<HTMLDivElement>(null);
   const cursorRef = useRef<HTMLSpanElement>(null);
   const sparkCanvasRef = useRef<SparkCanvasHandle>(null);
@@ -438,7 +442,7 @@ export function CodeDisplay({
       {/* Code viewport */}
       <div ref={viewportRef} className="code-viewport relative min-w-0 overflow-auto py-5">
         <SparkCanvas ref={sparkCanvasRef} disabled={!preferences.comboEffects} intensity={preferences.strikeIntensity} />
-        <div className="min-w-max">
+        <div className={prose ? "min-w-0" : "min-w-max"}>
           {lines.map((line, li) => {
             const lineStr = line.map((item) => item.state.char).join("");
             const isDiffAdd = lineStr.startsWith("+");
@@ -450,15 +454,18 @@ export function CodeDisplay({
                 key={li}
                 className={cn(
                   "code-row relative",
-                  li === currentLineIndex && "is-current-line",
+                  prose && "code-row--prose",
+                  !prose && li === currentLineIndex && "is-current-line",
                   isDiffAdd && "git-diff-add",
                   isDiffDel && "git-diff-del",
                   isDiffHunk && "git-diff-hunk"
                 )}
               >
-              <span className={cn("code-line-number", li === currentLineIndex && "is-current text-amber-500 font-bold")}>
-                {li + 1}
-              </span>
+              {!prose && (
+                <span className={cn("code-line-number", li === currentLineIndex && "is-current text-amber-500 font-bold")}>
+                  {li + 1}
+                </span>
+              )}
               {perfectLine?.line === li && preferences.comboEffects && (
                 <span
                   key={perfectLine.id}
@@ -469,7 +476,7 @@ export function CodeDisplay({
                   <span className="perfect-tag">Perfect</span>
                 </span>
               )}
-              <div className="whitespace-pre px-4">
+              <div className={prose ? "whitespace-pre-wrap break-words px-6 leading-[2.1]" : "whitespace-pre px-4"}>
                 {line.map(({ state: c, syntax, globalIndex }, ci) => {
                   const isGhostHere = showGhost && globalIndex === effectiveGhostIndex;
                   // Whitespace is skipped: inline-block on a newline would break the line.
@@ -537,7 +544,7 @@ export function CodeDisplay({
             className="flex min-w-0 items-center gap-1.5 hover:text-foreground transition-colors font-sans"
             onClick={(event) => event.stopPropagation()}
           >
-            <GitBranch aria-hidden="true" className="size-3 text-amber-500" />
+            {prose ? <BookOpen aria-hidden="true" className="size-3 text-amber-500" /> : <GitBranch aria-hidden="true" className="size-3 text-amber-500" />}
             <span className="truncate">{source.repo}</span>
             <ExternalLink aria-hidden="true" className="size-3 shrink-0 opacity-70" />
           </a>

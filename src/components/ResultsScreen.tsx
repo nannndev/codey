@@ -12,6 +12,7 @@ import { HoloResultCard, resultTier } from "@/components/HoloResultCard";
 import { rankRejectionReason, describeRankRejection } from "@/utils/ranking";
 import type { RankedStatus } from "@/hooks/useRankedGame";
 import { cn } from "@/lib/utils";
+import { PROSE_LANGUAGES } from "@/lib/text-practice";
 
 interface ResultsScreenProps {
   result: RunResult;
@@ -42,12 +43,13 @@ export function ResultsScreen({
   const shareResult = verifiedResult?.verified && verifiedResult.runId ? { ...result, cloudId: verifiedResult.runId } : result;
   const [shareOptions, setShareOptions] = useState<ShareCardOptions | null>(null);
 
+  const prose = PROSE_LANGUAGES.has(result.language);
   const modeLabel =
     result.mode === "timed"
       ? `${result.duration / 1000}s Timed`
       : result.mode === "zen"
       ? "Zen Flow"
-      : `${result.snippetLength ? `${result.snippetLength.charAt(0).toUpperCase()}${result.snippetLength.slice(1)} ` : ""}Snippet`;
+      : `${result.snippetLength ? `${result.snippetLength.charAt(0).toUpperCase()}${result.snippetLength.slice(1)} ` : ""}${prose ? "Text" : "Snippet"}`;
 
   const isNewWpmRecord = previousBest ? result.wpm > previousBest.bestWpm : true;
   const isNewAccuracyRecord = previousBest ? result.accuracy > previousBest.bestAccuracy : true;
@@ -72,7 +74,7 @@ export function ResultsScreen({
           Run Completed · <span className="text-amber-500">{modeLabel}</span>
         </h2>
         <p className="text-xs font-mono text-muted-foreground uppercase tracking-widest">
-          {result.language} Ecosystem
+          {prose ? `${result.language} · ${result.filename ?? "Plain text"}` : `${result.language} Ecosystem`}
         </p>
       </div>
 
@@ -233,7 +235,7 @@ export function ResultsScreen({
           </Button>
 
           <Button onClick={onNext} variant="outline" size="lg" className="flex-1 h-11 rounded-xl font-bold">
-            <ArrowRight className="size-4 mr-2" /> Next Snippet
+            <ArrowRight className="size-4 mr-2" /> {prose ? "Next Text" : "Next Snippet"}
           </Button>
         </div>
       </div>

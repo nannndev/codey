@@ -1470,3 +1470,7 @@ html {
 .radio-slider { background: linear-gradient(to right, var(--accent) var(--fill), var(--color-muted) var(--fill)); }
 .radio-slider::-webkit-slider-thumb { appearance: none; width: 14px; height: 14px; border-radius: 999px; background: var(--accent); border: 2px solid var(--color-popover, #fff); box-shadow: 0 1px 4px rgb(0 0 0 / 0.35); }
 .radio-slider::-moz-range-thumb { width: 12px; height: 12px; border-radius: 999px; background: var(--accent); border: 2px solid var(--color-popover, #fff); }
+
+/* Prose practice: one wrapped column, no line numbers */
+.code-row.code-row--prose,
+.code-window-focus .code-row.code-row--prose { grid-template-columns: minmax(0, 1fr); }

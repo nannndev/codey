@@ -19,6 +19,8 @@ import { Footer } from "@/components/Footer";
 import { useAuth } from "@/components/AuthProvider";
 import { uploadRun } from "@/lib/cloud";
 import { canChallenge, challengeSnippet, getChallenge, type Challenge } from "@/lib/challenges";
+import { isProse, loadTextCorpus, passageSnippet, pickPassage, wordsSnippet, type TextCorpus, type TextLanguage } from "@/lib/text-practice";
+import { TextLanguagePicker } from "@/components/TextLanguagePicker";
 import { ChallengeModeBanner, ChallengeResultBanner } from "@/components/ChallengeBanners";
 import { useGame, useKeyboardSound, useGhostRunner, useRankedGame, useDailyGame } from "@/hooks";
 import { DailyChallengeCard, DailyModeBanner, DailyResultBanner } from "@/components/daily/DailyWidgets";
@@ -74,6 +76,14 @@ export default function App() {
   const [mode, setMode] = useState<TestMode>("snippet");
   const [duration, setDuration] = useState<TimedDuration | null>(null);
   const [customSnippet, setCustomSnippet] = useState<import("@/types").Snippet | null>(null);
+  const [textCorpus, setTextCorpus] = useState<TextCorpus | null>(null);
+  const [textLanguage, setTextLanguage] = useState<TextLanguage>(() => {
+    try {
+      return localStorage.getItem("codey_text_language") === "indonesian" ? "indonesian" : "english";
+    } catch {
+      return "english";
+    }
+  });
   const [activeChallenge, setActiveChallenge] = useState<Challenge | null>(null);
   const [challengeError, setChallengeError] = useState<string | null>(null);
   const { getRandomSnippet: getPublicSnippet, loading: isLoadingSource } = useSnippets(language, preferences.snippetLength);
@@ -81,6 +91,8 @@ export default function App() {
     // Daily mode wins over every other source so resets keep today's code.
     if (daily.snippetRef.current) return daily.snippetRef.current;
     if (customSnippet) return customSnippet;
+    if (devCategory === "words" && textCorpus) return wordsSnippet(textLanguage, textCorpus.words[textLanguage], preferences.snippetLength);
+    if (devCategory === "passages" && textCorpus) return passageSnippet(pickPassage(textCorpus.passages, preferences.snippetLength));
     if (devCategory === "diff") {
       const list = PR_DIFF_SNIPPETS;
       return list[Math.floor(Math.random() * list.length)];
@@ -98,7 +110,7 @@ export default function App() {
       return list[Math.floor(Math.random() * list.length)];
     }
     return getPublicSnippet();
-  }, [customSnippet, devCategory, getPublicSnippet]);
+  }, [customSnippet, devCategory, getPublicSnippet, textCorpus, textLanguage, preferences.snippetLength]);
 
   const config = useMemo(() => ({ mode, duration }), [mode, duration]);
   const {
@@ -404,16 +416,49 @@ export default function App() {
 
   const handleDevCategoryChange = useCallback(
     (cat: DevPracticeCategory) => {
-      if (daily.active) daily.exit();
-      resetPhysicalKeypresses();
-      setDevCategory(cat);
-      setCustomSnippet(null);
+      const apply = () => {
+        if (daily.active) daily.exit();
+        resetPhysicalKeypresses();
+        setDevCategory(cat);
+        setCustomSnippet(null);
+        setResult(null);
+        reset();
+        focusWorkspace();
+      };
+      // Text practice data loads on first use.
+      if ((cat === "words" || cat === "passages") && !textCorpus) {
+        void loadTextCorpus().then((loaded) => {
+          setTextCorpus(loaded);
+          apply();
+        });
+        return;
+      }
+      apply();
+    },
+    [daily, reset, focusWorkspace, resetPhysicalKeypresses, textCorpus],
+  );
+
+  const handleTextLanguageChange = useCallback((next: TextLanguage) => {
+    setTextLanguage(next);
+    try {
+      localStorage.setItem("codey_text_language", next);
+    } catch {
+      // A preference only.
+    }
+  }, []);
+
+  // A new word list needs new words.
+  const previousTextLanguageRef = useRef(textLanguage);
+  useEffect(() => {
+    if (previousTextLanguageRef.current === textLanguage) return;
+    previousTextLanguageRef.current = textLanguage;
+    if (devCategory === "words" && (status === "idle" || status === "finished")) {
       setResult(null);
+      resetPhysicalKeypresses();
       reset();
       focusWorkspace();
-    },
-    [daily, reset, focusWorkspace, resetPhysicalKeypresses],
-  );
+    }
+  }, [textLanguage, devCategory, status, reset, focusWorkspace, resetPhysicalKeypresses]);
 
   const handleLanguageChange = useCallback(
     (lang: string) => {
@@ -868,6 +913,9 @@ export default function App() {
                   onSelectCategory={handleDevCategoryChange}
                   disabled={status === "running" || rankedSwitchEngaged}
                 />
+                {devCategory === "words" && (
+                  <TextLanguagePicker selected={textLanguage} onSelect={handleTextLanguageChange} disabled={status === "running"} />
+                )}
                 {devCategory === "public" && (
                   <LanguagePicker
                     languages={languages}
@@ -960,6 +1008,7 @@ export default function App() {
               ghostWpm={ghostState.hasPb ? ghostState.targetWpm : null}
               combo={combo}
               maxCombo={maxCombo}
+              prose={isProse(snippet)}
             />
 
             {preferences.keyboard3d && (

@@ -1,7 +1,11 @@
-import { Code2, Cpu, GitPullRequest, Terminal, Zap } from "lucide-react";
+import { BookOpen, Code2, Cpu, GitPullRequest, Terminal, Type, Zap } from "lucide-react";
+import { Fragment } from "react";
 import { cn } from "@/lib/utils";
 
-export type DevPracticeCategory = "public" | "symbols" | "terminal" | "algorithms" | "diff";
+export type DevPracticeCategory = "public" | "symbols" | "terminal" | "algorithms" | "diff" | "words" | "passages";
+
+/** Plain-text practice rather than code. */
+export const TEXT_CATEGORIES: DevPracticeCategory[] = ["words", "passages"];
 
 interface DevPracticeSelectorProps {
   activeCategory: DevPracticeCategory;
@@ -50,6 +54,18 @@ const CATEGORIES: {
     icon: Cpu,
     description: "Common algorithm patterns: Binary Search, BFS, DP, etc.",
   },
+  {
+    id: "words",
+    label: "Words",
+    icon: Type,
+    description: "Plain text: the most common English or Indonesian words",
+  },
+  {
+    id: "passages",
+    label: "Passages",
+    icon: BookOpen,
+    description: "Plain text: passages from classic public-domain novels",
+  },
 ];
 
 export function DevPracticeSelector({ activeCategory, onSelectCategory, disabled }: DevPracticeSelectorProps) {
@@ -58,8 +74,10 @@ export function DevPracticeSelector({ activeCategory, onSelectCategory, disabled
       {CATEGORIES.map(({ id, label, icon: Icon, description }) => {
         const isActive = activeCategory === id;
         return (
+          <Fragment key={id}>
+          {/* Code sources first, then plain text. */}
+          {id === "words" && <span className="mx-1 h-5 w-px bg-border" aria-hidden />}
           <button
-            key={id}
             type="button"
             disabled={disabled}
             onClick={() => onSelectCategory(id)}
@@ -76,6 +94,7 @@ export function DevPracticeSelector({ activeCategory, onSelectCategory, disabled
             <Icon className={cn("size-3.5 shrink-0", isActive ? "text-background" : "text-amber-500")} />
             <span>{label}</span>
           </button>
+          </Fragment>
         );
       })}
     </div>
