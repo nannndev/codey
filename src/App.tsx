@@ -19,6 +19,7 @@ import { uploadRun } from "@/lib/cloud";
 import { useGame, useKeyboardSound, useGhostRunner, useRankedGame, useDailyGame } from "@/hooks";
 import { DailyChallengeCard, DailyModeBanner, DailyResultBanner } from "@/components/daily/DailyWidgets";
 import { useSearchParams } from "react-router-dom";
+import { buildDrillSnippet } from "@/utils/drill";
 import { useSnippets } from "@/hooks/useSnippets";
 import { getLanguages } from "@/data";
 import {
@@ -569,6 +570,18 @@ export default function App() {
     focusWorkspace();
   }, [getPublicSnippet, loadSnippet, focusWorkspace, preferences.snippetLength, resetPhysicalKeypresses]);
 
+  // /?drill=<char> (from keyboard analytics) opens a drill for that key.
+  const drillParam = searchParams.get("drill");
+  useEffect(() => {
+    if (!drillParam) return;
+    setSearchParams((params) => {
+      params.delete("drill");
+      return params;
+    }, { replace: true });
+    const drill = buildDrillSnippet([drillParam]);
+    if (drill) handleCustomSnippet(drill);
+  }, [drillParam, setSearchParams, handleCustomSnippet]);
+
   const handleNextSnippet = useCallback(() => {
     setResult(null);
     resetPhysicalKeypresses();
@@ -644,63 +657,7 @@ export default function App() {
             onDrill={handleCustomSnippet}
           />
         ) : (
-          <main className="mt-8 flex flex-col gap-6 animate-scale-in">
-            {/* A hardware-style mode control gives the competitive switch immediate physical feedback. */}
-            <section className={`mode-console ${rankedSwitchEngaged ? "is-ranked" : "is-practice"}`} aria-label="Game mode">
-              <div className="mode-console__plate">
-                <button
-                  type="button"
-                  disabled={rankedSwitchPending}
-                  aria-pressed={!rankedSwitchEngaged}
-                  onClick={() => {
-                    if (isRanked) handleActivityModeToggle();
-                  }}
-                  className="mode-console__label mode-console__label--practice"
-                >
-                  <Coffee className="size-4" />
-                  <span><strong>Practice</strong><small>local run</small></span>
-                </button>
-
-                <button
-                  type="button"
-                  className="mode-console__rail"
-                  disabled={rankedSwitchPending}
-                  aria-label={isRanked ? "Switch to Practice mode" : "Switch to Ranked mode"}
-                  aria-pressed={rankedSwitchEngaged}
-                  onClick={handleActivityModeToggle}
-                >
-                  <span className="mode-console__tick">P</span>
-                  <span className="mode-console__tick">R</span>
-                  <span className="mode-console__switch">
-                    <span className="mode-console__switch-top">
-                      {rankedSwitchPending ? <LoaderCircle className="size-4 animate-spin" /> : rankedSwitchEngaged ? <Zap className="size-4" /> : <Coffee className="size-4" />}
-                    </span>
-                  </span>
-                </button>
-
-                <button
-                  type="button"
-                  disabled={rankedSwitchPending}
-                  aria-pressed={rankedSwitchEngaged}
-                  onClick={() => {
-                    if (!isRanked) handleActivityModeToggle();
-                  }}
-                  className="mode-console__label mode-console__label--ranked"
-                >
-                  <Zap className="size-4" />
-                  <span><strong>{rankedSwitchPending ? "Syncing" : "Ranked"}</strong><small>{rankedSwitchPending ? "arming match" : "verified run"}</small></span>
-                  <i className="mode-console__led" />
-                </button>
-              </div>
-              <div className="mode-console__readout">
-                <span>MODE://{rankedSwitchPending ? "SYNCING" : rankedSwitchEngaged ? "RANKED" : "PRACTICE"}</span>
-                <span>{rankedSwitchPending ? "REQUESTING SERVER CHALLENGE" : status === "running" ? "SWITCHING RESETS CURRENT RUN" : "READY"}</span>
-              </div>
-              {rankedStatus === "rejected" && rankedError && (
-                <p className="px-2 pb-1 pt-2 text-center font-mono text-[10px] text-red-500">RANKED ERROR: {rankedError}</p>
-              )}
-            </section>
-
+          <main className="mt-6 flex flex-col gap-4 animate-scale-in">
             {/* Ranked Competitive Banner */}
             {ranked.isRanked && (
               <div className="relative overflow-hidden rounded-2xl border border-amber-500/50 bg-gradient-to-r from-amber-500/15 via-amber-400/10 to-yellow-500/15 p-4 backdrop-blur-md shadow-[0_0_40px_rgba(245,158,11,0.15)] animate-fade-in-up">
@@ -738,85 +695,98 @@ export default function App() {
               <DailyModeBanner challenge={daily.challenge} status={daily.status} error={daily.error} onExit={exitDaily} />
             ) : (
               !ranked.isRanked && !customSnippet && (
-                <DailyChallengeCard userId={user?.$id} onPlay={() => void enterDaily()} disabled={status === "running" || daily.status === "loading"} />
+                <DailyChallengeCard compact userId={user?.$id} onPlay={() => void enterDaily()} disabled={status === "running" || daily.status === "loading"} />
               )
             )}
             {!daily.active && daily.status === "rejected" && daily.error && (
               <p className="-mt-3 text-center text-xs text-red-500">{daily.error}</p>
             )}
 
-            <ModeSelector
-              mode={mode}
-              duration={duration}
-              onSelect={handleModeChange}
-              disabled={status === "running" || daily.active}
-              isRunningZen={mode === "zen" && status === "running"}
-              onStopZen={handleZenStop}
-            />
-
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div className="flex items-center gap-2">
-                <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground font-sans">
-                  Length:
-                </span>
-                <div className="flex gap-1 rounded-xl glass-card p-1">
-                  {(["short", "medium", "long"] as const).map((item) => (
-                    <button
-                      key={item}
-                      type="button"
-                      disabled={status === "running" || Boolean(customSnippet) || daily.active}
-                      onClick={() => setPreference("snippetLength", item)}
-                      className={cn(
-                        "rounded-lg px-3 py-1 text-xs font-semibold capitalize transition-all cursor-pointer",
-                        preferences.snippetLength === item
-                          ? "bg-foreground text-background shadow-xs font-bold"
-                          : "text-muted-foreground hover:bg-muted/70 hover:text-foreground",
-                        (status === "running" || Boolean(customSnippet) || daily.active) && "opacity-40 pointer-events-none"
-                      )}
-                    >
-                      {item}
-                    </button>
-                  ))}
+            {/* One compact toolbar keeps every setting in reach and the editor near the top. */}
+            <section className="practice-toolbar glass-card flex flex-col gap-2 rounded-2xl p-2" aria-label="Practice settings">
+              <div className="flex flex-wrap items-center gap-2">
+                <div className={cn("mode-switch", rankedSwitchEngaged && "is-ranked")} role="group" aria-label="Game mode">
+                  <button
+                    type="button"
+                    disabled={rankedSwitchPending}
+                    aria-pressed={!rankedSwitchEngaged}
+                    onClick={() => { if (isRanked) handleActivityModeToggle(); }}
+                    title="Practice: local runs"
+                  >
+                    <Coffee className="size-3.5" /> Practice
+                  </button>
+                  <button
+                    type="button"
+                    disabled={rankedSwitchPending}
+                    aria-pressed={rankedSwitchEngaged}
+                    onClick={() => { if (!isRanked) handleActivityModeToggle(); }}
+                    title="Ranked: server-verified runs"
+                  >
+                    {rankedSwitchPending ? <LoaderCircle className="size-3.5 animate-spin" /> : <Zap className="size-3.5" />}
+                    {rankedSwitchPending ? "Syncing" : "Ranked"}
+                  </button>
+                </div>
+                <span className="hidden h-6 w-px bg-border/70 sm:block" aria-hidden="true" />
+                <ModeSelector
+                  mode={mode}
+                  duration={duration}
+                  onSelect={handleModeChange}
+                  disabled={status === "running" || daily.active}
+                  isRunningZen={mode === "zen" && status === "running"}
+                  onStopZen={handleZenStop}
+                />
+                <span className="hidden h-6 w-px bg-border/70 sm:block" aria-hidden="true" />
+                <div className="flex items-center gap-0.5" role="group" aria-label="Snippet length">
+                  {(["short", "medium", "long"] as const).map((item) => {
+                    const lengthLocked = status === "running" || Boolean(customSnippet) || daily.active;
+                    return (
+                      <button
+                        key={item}
+                        type="button"
+                        disabled={lengthLocked}
+                        onClick={() => setPreference("snippetLength", item)}
+                        aria-pressed={preferences.snippetLength === item}
+                        className={cn(
+                          "rounded-lg px-2.5 py-1.5 text-xs font-semibold capitalize transition-all cursor-pointer",
+                          preferences.snippetLength === item
+                            ? "bg-foreground text-background shadow-xs font-bold"
+                            : "text-muted-foreground hover:bg-muted/70 hover:text-foreground",
+                          lengthLocked && "opacity-40 pointer-events-none"
+                        )}
+                      >
+                        {item}
+                      </button>
+                    );
+                  })}
+                </div>
+                {/* When the custom-code panel opens it takes the full toolbar width. */}
+                <div className="ml-auto flex flex-wrap items-center gap-2 has-[>section]:ml-0 has-[>section]:basis-full">
+                  <WeakKeyDrillModal onDrill={handleCustomSnippet} />
+                  <CustomPractice onLoad={handleCustomSnippet} />
                 </div>
               </div>
-
-              <div className="flex flex-wrap items-center gap-2">
-                <WeakKeyDrillModal onDrill={handleCustomSnippet} />
-                <CustomPractice onLoad={handleCustomSnippet} />
+              <div className="flex flex-wrap items-center gap-2 border-t border-border/50 pt-2">
+                <DevPracticeSelector
+                  activeCategory={devCategory}
+                  onSelectCategory={handleDevCategoryChange}
+                  disabled={status === "running"}
+                />
+                {devCategory === "public" && (
+                  <LanguagePicker
+                    languages={languages}
+                    selected={language}
+                    onSelect={handleLanguageChange}
+                    disabled={status === "running"}
+                    loading={isLoadingSource}
+                  />
+                )}
               </div>
-            </div>
+            </section>
+            {rankedStatus === "rejected" && rankedError && (
+              <p className="-mt-2 text-center font-mono text-[10px] text-red-500">RANKED ERROR: {rankedError}</p>
+            )}
 
             {customSnippet && <div className="flex items-center justify-between gap-3 rounded-lg border border-dashed bg-card/60 px-3 py-2 text-xs"><span><strong>{customSnippet.id.startsWith("drill-") ? "Weak-key drill" : "Local practice"}</strong> · not saved or ranked</span><button type="button" onClick={exitCustomPractice} className="text-muted-foreground hover:text-foreground">Exit {customSnippet.id.startsWith("drill-") ? "drill" : "custom"}</button></div>}
-
-            <StatsBar
-              wpm={wpm}
-              accuracy={accuracy}
-              elapsedSeconds={elapsedMs / 1000}
-              progress={progress}
-              mode={mode}
-              secondsRemaining={secondsRemaining}
-              snippetsCompleted={snippetsCompleted}
-              totalChars={input.length}
-              ghostState={ghostState}
-              onToggleGhost={() => setPreference("ghostRunner", !preferences.ghostRunner)}
-              isGhostEnabled={preferences.ghostRunner}
-            />
-
-            <DevPracticeSelector
-              activeCategory={devCategory}
-              onSelectCategory={handleDevCategoryChange}
-              disabled={status === "running"}
-            />
-
-            {devCategory === "public" && (
-              <LanguagePicker
-                languages={languages}
-                selected={language}
-                onSelect={handleLanguageChange}
-                disabled={status === "running"}
-                loading={isLoadingSource}
-              />
-            )}
 
             {"title" in snippet && (snippet as CategorySnippet).title && (
               <div
@@ -859,6 +829,20 @@ export default function App() {
               </div>
             )}
 
+            <StatsBar
+              wpm={wpm}
+              accuracy={accuracy}
+              elapsedSeconds={elapsedMs / 1000}
+              progress={progress}
+              mode={mode}
+              secondsRemaining={secondsRemaining}
+              snippetsCompleted={snippetsCompleted}
+              totalChars={input.length}
+              ghostState={ghostState}
+              onToggleGhost={() => setPreference("ghostRunner", !preferences.ghostRunner)}
+              isGhostEnabled={preferences.ghostRunner}
+            />
+
             <CodeDisplay
               chars={charStates}
               filename={snippet.filename ?? "snippet"}
@@ -890,37 +874,27 @@ export default function App() {
               />
             )}
 
-            <DailyGoals refreshKey={goalRefreshKey} compact />
-
-            <div className="flex flex-col gap-3 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between glass-card rounded-xl px-4 py-2.5 shadow-xs">
-              <span className="flex items-center gap-2 font-medium">
-                <Button type="button" variant="ghost" size="sm" onClick={handleRetry} className="h-7 px-2.5 text-xs font-semibold hover:text-foreground">
+            <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start">
+              <DailyGoals refreshKey={goalRefreshKey} compact />
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-xl glass-card px-3 py-2 text-[11px] text-muted-foreground shadow-xs">
+                <Button type="button" variant="ghost" size="sm" onClick={handleRetry} className="h-7 px-2 text-xs font-semibold hover:text-foreground">
                   <RotateCcw className="size-3.5 mr-1" /> Restart
                 </Button>
-                <span className="text-muted-foreground/90 font-sans">
-                  {status === "idle"
-                    ? "Start typing to begin"
-                    : mode === "zen"
-                      ? "Zen mode — Press Tab to stop"
-                      : "Typing in progress..."}
+                <span className="font-sans text-muted-foreground/90">
+                  {status === "idle" ? "Start typing to begin" : mode === "zen" ? "Zen: Tab to stop" : "Typing…"}
                 </span>
-              </span>
-              <span className="flex flex-wrap items-center gap-2.5 text-[11px] font-medium">
                 <span className="inline-flex items-center gap-1">
-                  <kbd className="rounded-md border border-border/80 bg-background/80 px-1.5 py-0.5 text-[10px] font-mono shadow-xs">Esc</kbd>
-                  <span className="text-muted-foreground">restart</span>
+                  <kbd className="rounded-md border border-border/80 bg-background/80 px-1.5 py-0.5 text-[10px] font-mono shadow-xs">Esc</kbd> restart
                 </span>
                 <span className="inline-flex items-center gap-1">
                   <IndentIncrease aria-hidden="true" className="size-3.5 text-muted-foreground/70" />
-                  <kbd className="rounded-md border border-border/80 bg-background/80 px-1.5 py-0.5 text-[10px] font-mono shadow-xs">Tab</kbd>
-                  <span className="text-muted-foreground">{mode === "zen" ? "stop" : "indent"}</span>
+                  <kbd className="rounded-md border border-border/80 bg-background/80 px-1.5 py-0.5 text-[10px] font-mono shadow-xs">Tab</kbd> {mode === "zen" ? "stop" : "indent"}
                 </span>
                 <span className="inline-flex items-center gap-1">
                   <CornerDownLeft aria-hidden="true" className="size-3.5 text-muted-foreground/70" />
-                  <kbd className="rounded-md border border-border/80 bg-background/80 px-1.5 py-0.5 text-[10px] font-mono shadow-xs">Enter</kbd>
-                  <span className="text-muted-foreground">newline</span>
+                  <kbd className="rounded-md border border-border/80 bg-background/80 px-1.5 py-0.5 text-[10px] font-mono shadow-xs">Enter</kbd> newline
                 </span>
-              </span>
+              </div>
             </div>
           </main>
         )}

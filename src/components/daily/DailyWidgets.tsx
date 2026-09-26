@@ -57,9 +57,44 @@ function SourceLine({ challenge, className }: { challenge: DailyChallenge; class
 }
 
 /** Home-screen card for today's challenge. */
-export function DailyChallengeCard({ userId, onPlay, disabled }: { userId?: string | null; onPlay: () => void; disabled?: boolean }) {
+export function DailyChallengeCard({ userId, onPlay, disabled, compact = false }: {
+  userId?: string | null;
+  onPlay: () => void;
+  disabled?: boolean;
+  /** One-line strip for the practice screen; hidden when unavailable. */
+  compact?: boolean;
+}) {
   const { board, error } = useDailyBoard(userId);
   const countdown = useCountdown(board?.nextResetAt);
+
+  if (compact) {
+    if (error || !board) return null;
+    const mineIndex = userId ? board.runs.findIndex((run) => run.userId === userId) : -1;
+    return (
+      <section className="daily-strip flex items-center gap-3 rounded-xl border border-amber-500/25 bg-amber-500/[0.06] px-3 py-2 text-xs" aria-label="Today's daily challenge">
+        <CalendarDays className="size-4 shrink-0 text-amber-500" />
+        <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-3 gap-y-0.5">
+          <span className="font-black uppercase tracking-wider text-amber-500">Daily</span>
+          <span className="font-semibold">{board.challenge.language}</span>
+          <span className="hidden min-w-0 truncate font-mono text-muted-foreground sm:inline">{board.challenge.sourceRepo}/{board.challenge.filename}</span>
+          {board.streak && board.streak.current > 0 && (
+            <span className="inline-flex items-center gap-1 font-semibold text-orange-500"><Flame className="size-3.5" />{board.streak.current}</span>
+          )}
+          {mineIndex >= 0 && <span className="text-muted-foreground">You're #{mineIndex + 1}</span>}
+          <span className="hidden text-muted-foreground md:inline">· new in {countdown}</span>
+        </div>
+        <Link to="/daily" className="hidden shrink-0 text-muted-foreground hover:text-foreground sm:inline">Board</Link>
+        <button
+          type="button"
+          onClick={onPlay}
+          disabled={disabled}
+          className="flex shrink-0 items-center gap-1 rounded-lg bg-amber-500 px-2.5 py-1 font-black text-zinc-950 transition-colors hover:bg-amber-400 disabled:opacity-50"
+        >
+          <Play className="size-3" /> {mineIndex >= 0 ? "Beat it" : "Play"}
+        </button>
+      </section>
+    );
+  }
 
   if (error) {
     return (

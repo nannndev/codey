@@ -54,32 +54,30 @@ const CATEGORIES: {
 
 export function DevPracticeSelector({ activeCategory, onSelectCategory, disabled }: DevPracticeSelectorProps) {
   return (
-    <div className="flex flex-col gap-2">
-      <div className="flex flex-wrap items-center gap-1.5 glass-card rounded-xl p-1.5">
-        {CATEGORIES.map(({ id, label, icon: Icon, badge, description }) => {
-          const isActive = activeCategory === id;
-          return (
-            <button
-              key={id}
-              type="button"
-              disabled={disabled}
-              onClick={() => onSelectCategory(id)}
-              title={description}
-              className={cn(
-                "flex items-center gap-2 rounded-lg px-3.5 py-2 text-xs font-semibold transition-all duration-150 cursor-pointer select-none",
-                isActive
-                  ? "bg-foreground text-background font-bold shadow-sm"
-                  : "text-muted-foreground hover:text-foreground hover:bg-muted/70",
-                disabled && "opacity-50 pointer-events-none"
-              )}
-            >
-              <Icon className={cn("size-3.5 shrink-0", isActive ? "text-background" : "text-amber-500")} />
-              <span>{label}</span>
-              {badge && <span className="text-[11px] leading-none opacity-80">{badge}</span>}
-            </button>
-          );
-        })}
-      </div>
+    <div className="flex flex-wrap items-center gap-0.5" role="group" aria-label="Practice source">
+      {CATEGORIES.map(({ id, label, icon: Icon, description }) => {
+        const isActive = activeCategory === id;
+        return (
+          <button
+            key={id}
+            type="button"
+            disabled={disabled}
+            onClick={() => onSelectCategory(id)}
+            title={description}
+            aria-pressed={isActive}
+            className={cn(
+              "flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-semibold transition-all duration-150 cursor-pointer select-none",
+              isActive
+                ? "bg-foreground text-background font-bold shadow-sm"
+                : "text-muted-foreground hover:text-foreground hover:bg-muted/70",
+              disabled && "opacity-50 pointer-events-none"
+            )}
+          >
+            <Icon className={cn("size-3.5 shrink-0", isActive ? "text-background" : "text-amber-500")} />
+            <span>{label}</span>
+          </button>
+        );
+      })}
     </div>
   );
 }

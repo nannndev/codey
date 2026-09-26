@@ -87,19 +87,16 @@ export function LanguagePicker({ languages, selected, onSelect, disabled, loadin
   };
 
   return (
-    <div className="relative z-30 flex items-center justify-between gap-4 rounded-xl glass-card px-3.5 py-2.5 shadow-sm">
-      <div className="min-w-0">
-        <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground font-sans">Practice Ecosystem</div>
-        <div className="truncate text-xs text-muted-foreground font-medium mt-0.5">Filter codebase language for next run</div>
-      </div>
-
+    <div className="relative z-30">
       <details ref={detailsRef} className="group relative shrink-0">
         <summary
           className={cn(
-            "flex h-9 min-w-40 list-none items-center gap-2 rounded-xl border border-border/70 bg-background/80 px-3 text-xs font-semibold shadow-xs transition-all hover:bg-muted hover:border-foreground/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring cursor-pointer [&::-webkit-details-marker]:hidden",
+            "flex h-8 min-w-36 list-none items-center gap-2 rounded-lg border border-border/70 bg-background/80 px-3 text-xs font-semibold shadow-xs transition-all hover:bg-muted hover:border-foreground/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring cursor-pointer [&::-webkit-details-marker]:hidden",
             disabled && "pointer-events-none opacity-50",
           )}
           aria-disabled={disabled}
+          aria-label={`Language: ${selected}`}
+          title="Language for the next snippet"
         >
           <span className="grid size-5 place-items-center rounded-md bg-amber-500/15 text-amber-500">
             <LanguageIcon language={selected} className="size-3.5" />

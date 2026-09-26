@@ -111,6 +111,9 @@ No index is required because each user document is fetched directly by its docum
 
 ## `daily_challenges`
 
+Both daily collections can be created with `npm run setup:daily` (see `appwrite/README.md`).
+
+
 Document ID: the UTC date, `YYYY-MM-DD`. The first request of the day picks a
 snippet live from GitHub (the same pipeline as `/api/snippets`) and creates this
 document; every later request reads it, so all players type identical code.
@@ -148,7 +151,7 @@ first 32 hex characters of `sha256("<date>:<userId>")`.
 | `durationMs` | integer | yes |
 | `mistakes` | integer | yes |
 | `keystrokes` | integer | yes |
-| `attempts` | integer | yes, default `1` |
+| `attempts` | integer | yes |
 | `bestAt` | datetime | yes |
 
 Permissions:
