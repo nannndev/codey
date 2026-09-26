@@ -32,6 +32,9 @@ describe("loadSharedProfile", () => {
     // Oldest first, so the bars read left to right.
     expect(profile?.trend).toEqual([100, 90, 110]);
     expect(profile?.division?.name).toMatch(/\w+ \w+/);
+    // 110 WPM reaches Velocity Gold; the top badge comes first.
+    expect(profile?.badges.top[0]).toMatchObject({ name: "Velocity", level: "Gold" });
+    expect(profile?.badges.earned).toBeGreaterThanOrEqual(1);
   });
 
   it("keeps only the most recent runs in the trend", async () => {

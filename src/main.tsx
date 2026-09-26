@@ -13,6 +13,7 @@ import { FlowRadioWidget } from './components/FlowRadioWidget';
 import { CommandPalette } from './components/CommandPalette';
 import { KeycapStudioModal } from './components/KeycapStudioModal';
 import { AchievementToaster } from './components/achievements/AchievementToaster';
+import { StreakCelebration } from './components/streak/StreakCelebration';
 import './index.css';
 
 const { Settings, History, Leaderboard, Profile, Donate, Contributors, Duel, Arcade, Daily, KeyboardAnalytics, Achievements } = Pages;
@@ -49,6 +50,7 @@ createRoot(document.getElementById('root')!).render(
               <CommandPalette />
               <KeycapStudioModal />
               <AchievementToaster />
+              <StreakCelebration />
             </BrowserRouter>
             <Analytics />
           </RadioProvider>

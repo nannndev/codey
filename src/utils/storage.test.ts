@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 import { beforeEach, describe, expect, it } from "vitest";
-import { getPersonalBest, getPersonalBests } from "./storage";
+import { getPersonalBest, getPersonalBests, getStreak, STREAK_EVENT, updateStreak } from "./storage";
 import type { RunResult, TestMode } from "@/types";
 
 let clock = 1_700_000_000_000;
@@ -67,5 +67,33 @@ describe("personal bests", () => {
     save([run({ mode: "timed", duration: 30_020, wpm: 81, snippetLength: undefined })]);
     expect(getPersonalBest("TypeScript", "timed", 29_990)?.bestWpm).toBe(81);
     expect(getPersonalBest("TypeScript", "timed", 60_000)).toBeNull();
+  });
+});
+
+describe("updateStreak", () => {
+  beforeEach(() => localStorage.clear());
+
+  it("reports the change once per day and announces it", () => {
+    const heard: Array<{ from: number; to: number }> = [];
+    const listener = (event: Event) => heard.push((event as CustomEvent).detail);
+    window.addEventListener(STREAK_EVENT, listener);
+    expect(updateStreak()).toEqual({ from: 0, to: 1 });
+    expect(updateStreak()).toBeNull();
+    window.removeEventListener(STREAK_EVENT, listener);
+    expect(heard).toEqual([{ from: 0, to: 1 }]);
+    expect(getStreak()).toMatchObject({ current: 1, best: 1 });
+  });
+
+  it("continues from yesterday and restarts after a gap", () => {
+    const key = (offset: number) => {
+      const date = new Date();
+      date.setDate(date.getDate() + offset);
+      return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+    };
+    localStorage.setItem("codetype_streak", JSON.stringify({ current: 4, best: 6, lastDate: key(-1) }));
+    expect(updateStreak()).toEqual({ from: 4, to: 5 });
+    localStorage.setItem("codetype_streak", JSON.stringify({ current: 4, best: 6, lastDate: key(-3) }));
+    expect(updateStreak()).toEqual({ from: 0, to: 1 });
+    expect(getStreak().best).toBe(6);
   });
 });

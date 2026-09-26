@@ -25,6 +25,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { ThemeToggle } from "./ThemeToggle";
+import { StreakButton } from "./streak/StreakButton";
 import { useAuth } from "./AuthProvider";
 import { usePreferences } from "./PreferencesProvider";
 import { useFlowRadio } from "./RadioProvider";
@@ -205,6 +206,8 @@ export function Header() {
             <div className="hidden md:block">
               <HeaderMenu label="Tools" trigger={<SlidersHorizontal className="size-4" />}>{toolItems}</HeaderMenu>
             </div>
+
+            <StreakButton />
 
             <ThemeToggle />
 

@@ -178,14 +178,27 @@ export function renderProfileImage(profile: SharedProfile, host: string): ImageR
   );
 
   const middle = hasTrend
-    ? h('div', { flexDirection: 'column', gap: 14 },
+    ? h('div', { flexDirection: 'column', gap: 12 },
         h('div', { fontSize: 20, color: MUTED, letterSpacing: 2 }, `LAST ${profile.trend.length} RUNS`),
-        paceBars(profile.trend, 618, 170),
+        paceBars(profile.trend, 618, profile.badges.top.length ? 118 : 170),
       )
     : h('div', { flexDirection: 'column', gap: 14 },
         h('div', { fontSize: 20, color: MUTED, letterSpacing: 2 }, 'JUST GETTING STARTED'),
         h('div', { fontSize: 44, color: INK }, profile.topLanguage ? `Mostly ${profile.topLanguage}` : 'Typing real code on Codey'),
       );
+
+  const badges = profile.badges.top.length
+    ? h('div', { alignItems: 'center', gap: 10 },
+        ...profile.badges.top.map((badge) => h('div', { alignItems: 'center', gap: 8, padding: '6px 12px 6px 8px', borderRadius: 999, background: 'rgba(255,255,255,0.06)', border: `2px solid ${badge.color}` },
+          h('div', { width: 14, height: 14, borderRadius: 7, background: badge.color }),
+          h('div', { fontSize: 18, color: INK }, badge.name),
+          h('div', { fontSize: 16, color: badge.color }, badge.level),
+        )),
+        profile.badges.earned > profile.badges.top.length
+          ? h('div', { fontSize: 20, color: MUTED }, `+${profile.badges.earned - profile.badges.top.length}`)
+          : h('div', {}),
+      )
+    : null;
 
   const right = h('div', { flex: 1, flexDirection: 'column', justifyContent: 'space-between', padding: '56px 56px' },
     h('div', { justifyContent: 'space-between', alignItems: 'center' },
@@ -193,6 +206,7 @@ export function renderProfileImage(profile: SharedProfile, host: string): ImageR
       h('div', { fontSize: 22, color: MUTED }, host),
     ),
     middle,
+    ...(badges ? [badges] : []),
     h('div', { gap: 44 },
       stat('Runs', profile.runs.toLocaleString('en-US'), 36),
       stat('Avg speed', profile.runs ? formatWpm(profile.avgWpm) : '–', 36),

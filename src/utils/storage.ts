@@ -99,7 +99,11 @@ export function getStreak(): StreakData {
   return { current: 0, best: 0, lastDate: '' };
 }
 
-export function updateStreak(): void {
+/** Fired on window after a run changes the streak; detail is { from, to }. */
+export const STREAK_EVENT = 'codey:streak-updated';
+
+/** Counts today's practice. Returns the streak before and after, or null when today was already counted. */
+export function updateStreak(): { from: number; to: number } | null {
   const streak = getStreak();
   const toLocalDateKey = (date: Date) => {
     const year = date.getFullYear();
@@ -110,20 +114,20 @@ export function updateStreak(): void {
   const todayDate = new Date();
   const today = toLocalDateKey(todayDate);
 
-  if (streak.lastDate === today) return;
+  if (streak.lastDate === today) return null;
 
   const yesterdayDate = new Date(todayDate);
   yesterdayDate.setDate(todayDate.getDate() - 1);
   const yesterday = toLocalDateKey(yesterdayDate);
-  if (streak.lastDate === yesterday) {
-    streak.current += 1;
-  } else {
-    streak.current = 1;
-  }
+  const from = streak.lastDate === yesterday ? streak.current : 0;
+  streak.current = from + 1;
 
   streak.lastDate = today;
   streak.best = Math.max(streak.best, streak.current);
   localStorage.setItem(STREAK_KEY, JSON.stringify(streak));
+  const change = { from, to: streak.current };
+  if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent(STREAK_EVENT, { detail: change }));
+  return change;
 }
 
 // Versioned Settings
