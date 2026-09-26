@@ -32,3 +32,20 @@ describe("speed trace", () => {
     expect(parseTrace(null)).toEqual([]);
   });
 });
+
+describe("consistencyFromIntervals", () => {
+  it("scores an even pace near 100 and an uneven one lower", async () => {
+    const { consistencyFromIntervals } = await import("./speed-trace");
+    const even = consistencyFromIntervals(new Array(300).fill(100), 30_000);
+    expect(even).toBeGreaterThan(95);
+    // Fast for ten seconds, then a long stall, then slow.
+    const uneven = consistencyFromIntervals([...new Array(100).fill(60), 8000, ...new Array(60).fill(300)], 32_000);
+    expect(uneven).toBeLessThan(even!);
+    expect(uneven).toBeGreaterThanOrEqual(0);
+  });
+
+  it("does not guess on very short runs", async () => {
+    const { consistencyFromIntervals } = await import("./speed-trace");
+    expect(consistencyFromIntervals([100, 100], 200)).toBeNull();
+  });
+});

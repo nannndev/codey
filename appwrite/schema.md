@@ -205,3 +205,27 @@ Indexes:
 
 Hosts refresh their listing about every 20 seconds; listings older than 50
 seconds are hidden and ones older than 10 minutes are deleted on read.
+
+## `challenges`
+
+"Challenge a friend" links (`/c/<id>`). A signed-in player saves a finished
+snippet run with its exact code; anyone with the link types the same snippet
+against that score. Create it with `npm run setup:challenges`.
+
+Collection permissions: read `any`, create `users`; document security off, so
+nobody can edit or delete a challenge once it exists.
+
+| Attribute | Type | Required |
+| --- | --- | --- |
+| `userId` | string (36) | yes |
+| `name` | string (64) | yes |
+| `username` | string (64) | no |
+| `language` | string (64) | yes |
+| `code` | string (16000) | yes |
+| `filename` | string (256) | no |
+| `sourceRepo` | string (200) | no |
+| `sourceUrl` | string (500) | no |
+| `wpm` | float | yes |
+| `accuracy` | float | yes |
+
+Index: `by_user` on `userId`.

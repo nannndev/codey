@@ -1,4 +1,4 @@
-import type { RunResult } from "@/types";
+import type { RunResult, Snippet } from "@/types";
 import { KEYBOARD_ROWS, missedKeys } from "@/lib/keyboard-layout";
 import { resolveKeyColors, type KeycapColorway, type KeycapOverrides } from "@/lib/keycaps";
 
@@ -12,6 +12,10 @@ export interface ShareCardOptions {
   theme?: ShareCardTheme;
   /** The viewer's keycap colorway and per-key paint, drawn as a mini keyboard. */
   keycaps?: { colorway: KeycapColorway | null; overrides: KeycapOverrides };
+  /** The exact snippet, when the run can be sent as a challenge. */
+  challenge?: Snippet;
+  /** Open on the challenge tab instead of the score. */
+  startWithChallenge?: boolean;
 }
 
 const WIDTH = 1200;
