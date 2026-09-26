@@ -11,6 +11,7 @@ export const APPWRITE = {
     runSessions: process.env.VITE_APPWRITE_RUN_SESSIONS_COLLECTION_ID || 'run_sessions',
     dailyChallenges: process.env.VITE_APPWRITE_DAILY_CHALLENGES_COLLECTION_ID || 'daily_challenges',
     dailyRuns: process.env.VITE_APPWRITE_DAILY_RUNS_COLLECTION_ID || 'daily_runs',
+    duelRooms: process.env.VITE_APPWRITE_DUEL_ROOMS_COLLECTION_ID || 'duel_rooms',
   },
 };
 
@@ -26,6 +27,11 @@ export function adminDatabases(): Databases {
 
 /** Resolves the Appwrite user ID from a JWT in Authorization or X-Appwrite-JWT. */
 export async function authenticateRequest(headers: Record<string, string | string[] | undefined>): Promise<string | null> {
+  return (await authenticateUser(headers))?.id ?? null;
+}
+
+/** Like authenticateRequest, but also returns the account's display name. */
+export async function authenticateUser(headers: Record<string, string | string[] | undefined>): Promise<{ id: string; name: string } | null> {
   const header = headers.authorization || headers['x-appwrite-jwt'];
   const raw = Array.isArray(header) ? header[0] : header;
   if (!raw) return null;
@@ -34,7 +40,8 @@ export async function authenticateRequest(headers: Record<string, string | strin
       .setEndpoint(APPWRITE.endpoint)
       .setProject(APPWRITE.projectId)
       .setJWT(raw.startsWith('Bearer ') ? raw.slice(7) : raw);
-    return (await new Account(client).get()).$id;
+    const account = await new Account(client).get();
+    return { id: account.$id, name: account.name };
   } catch {
     return null;
   }

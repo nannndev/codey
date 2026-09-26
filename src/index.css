@@ -426,6 +426,17 @@ html {
 
 .code-chrome { background: var(--editor-chrome); border-color: var(--editor-border); }
 
+/* The editor keeps its own palette in light and dark site themes, so the
+   site tokens used by its chrome, gutter and pills are remapped onto it. */
+.code-window > * {
+  --color-background: var(--editor-bg);
+  --color-foreground: color-mix(in oklab, var(--syntax-plain) 80%, white);
+  --color-muted: color-mix(in oklab, var(--editor-bg) 90%, var(--syntax-plain));
+  --color-muted-foreground: color-mix(in oklab, var(--syntax-plain) 72%, var(--editor-bg));
+  --color-border: var(--editor-border);
+}
+[data-editor-theme="github"] .code-window > * { --color-foreground: color-mix(in oklab, var(--syntax-plain) 80%, black); }
+
 .editor-window-dot {
   display: grid;
   width: 11px;
@@ -1355,3 +1366,22 @@ html {
 .finger-bar { transform-origin: left; animation: finger-bar-in 800ms cubic-bezier(0.2, 1, 0.3, 1) both; }
 @keyframes finger-bar-in { from { transform: scaleX(0); } to { transform: none; } }
 @media (prefers-reduced-motion: reduce) { .finger-bar { animation: none; } }
+
+/* Duel: countdown over the snippet preview, so players can read ahead. */
+.duel-countdown {
+  background: color-mix(in oklab, var(--editor-bg, #111) 55%, transparent);
+  backdrop-filter: blur(3px);
+}
+.duel-count {
+  animation: duel-count 1s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  text-shadow: 0 6px 30px rgb(0 0 0 / 0.45);
+}
+@keyframes duel-count {
+  0% { opacity: 0; transform: scale(1.6); }
+  25% { opacity: 1; transform: scale(1); }
+  85% { opacity: 1; }
+  100% { opacity: 0.25; transform: scale(0.92); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .duel-count { animation: none; }
+}

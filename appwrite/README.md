@@ -46,3 +46,13 @@ The daily challenge needs `daily_challenges` and `daily_runs`. Create them with 
 
 The Vercel `APPWRITE_API_KEY` used by the API also needs `documents.read` and `documents.write` so it can freeze each day's challenge and save scores. No redeploy is needed after the collections exist.
 
+
+## Public duel rooms
+
+Public rooms in Duel are listed from a `duel_rooms` collection. With the same `.env` as above, run:
+
+```bash
+npm run setup:duel
+```
+
+Races stay peer to peer; the collection only lists rooms waiting for players. Hosts must be signed in to list a room, and anyone can browse and join. The Vercel `APPWRITE_API_KEY` needs `documents.read` and `documents.write` for it, like the daily challenge.

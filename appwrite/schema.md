@@ -169,3 +169,34 @@ Daily attempts reuse `run_sessions`: `/api/daily/start` creates a session whose
 attempt to one player and one day. `/api/daily/submit` checks it, closes the
 session, and applies the same accuracy, WPM and timing checks as Ranked.
 
+
+## `duel_rooms`
+
+Directory of public duel rooms. Races stay peer to peer; this only lists rooms
+that are waiting for players. Document ID: the room code (`CODEY-XXXXXX`).
+Written only by `/api/duel/rooms` with the server key. Create it with
+`npm run setup:duel`.
+
+| Attribute | Type | Required |
+| --- | --- | --- |
+| `code` | string (12) | yes |
+| `hostId` | string (36) | yes |
+| `hostName` | string (64) | yes |
+| `language` | string (64) | yes |
+| `mode` | string (16): `snippet`, `timed` | yes |
+| `detail` | string (32), e.g. `medium` or `30s` | yes |
+| `players` | integer | yes |
+| `maxPlayers` | integer | yes |
+| `status` | string (16): `lobby`, `racing` | yes |
+| `custom` | boolean | yes |
+| `heartbeatAt` | datetime | yes |
+
+Permissions: read `any`; no client writes.
+
+Indexes:
+
+- Key on `heartbeatAt` (desc)
+- Key on `hostId`
+
+Hosts refresh their listing about every 20 seconds; listings older than 50
+seconds are hidden and ones older than 10 minutes are deleted on read.
