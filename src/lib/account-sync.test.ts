@@ -138,7 +138,7 @@ describe("syncAccount across two devices", () => {
     mocks.profile = { $id: "me", currentStreak: 2, bestStreak: 14, lastActiveDate: "2026-09-20T12:00:00.000Z" };
     await syncAccount("me", { full: false });
     expect(JSON.parse(localStorage.getItem("codetype_streak")!)).toMatchObject({ current: 6, best: 14, lastDate: "2026-09-26" });
-    expect(mocks.profileUpdates.at(-1)).toMatchObject({ currentStreak: 6, bestStreak: 14 });
+    expect(mocks.profileUpdates[mocks.profileUpdates.length - 1]).toMatchObject({ currentStreak: 6, bestStreak: 14 });
   });
 
   it("starts fresh bookkeeping when a different account signs in", async () => {
