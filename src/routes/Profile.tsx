@@ -24,6 +24,8 @@ import { Button } from "@/components/ui/button";
 import { githubUsernameFromUser, useAuth } from "@/components/AuthProvider";
 import { cloudRunAsResult, getProfile, listUserRuns, type CloudProfile, type CloudRun } from "@/lib/cloud";
 import { getStreak } from "@/utils/storage";
+import { useStreak } from "@/hooks/useStreak";
+import { dateKey, streakStatus } from "@/lib/streak";
 import type { ShareCardOptions } from "@/lib/share-result";
 import { SharePreviewDialog } from "@/components/SharePreviewDialog";
 import { ProfileShareDialog, type ProfileShareTarget } from "@/components/ProfileShareDialog";
@@ -79,6 +81,7 @@ export default function Profile() {
   const [profileShare, setProfileShare] = useState<ProfileShareTarget | null>(null);
   const [cloudKeyStats, setCloudKeyStats] = useState<KeyboardStatsMap | null>(null);
   const localStreak = useMemo(() => getStreak(), []);
+  const ownStreak = useStreak();
 
   useEffect(() => {
     if (!viewedUserId) {
@@ -125,7 +128,9 @@ export default function Profile() {
   const deltaSize = Math.min(10, Math.floor(timeline.length / 2));
   const minutes = timeline.reduce((sum, run) => sum + run.duration / 60_000, 0);
   const cloudStreak = useMemo(() => streakFromRuns(timeline), [timeline]);
-  const currentStreak = Math.max(profile?.currentStreak ?? 0, cloudStreak.current, isOwnProfile ? localStreak.current : 0);
+  // A stored streak only counts while its last day is today or yesterday.
+  const storedStreak = profile ? streakStatus({ current: profile.currentStreak ?? 0, best: profile.bestStreak ?? 0, lastDate: profile.lastActiveDate ? dateKey(new Date(profile.lastActiveDate)) : "" }, []).current : 0;
+  const currentStreak = Math.max(storedStreak, cloudStreak.current, isOwnProfile ? ownStreak.current : 0);
   const bestStreak = Math.max(profile?.bestStreak ?? 0, cloudStreak.best, isOwnProfile ? localStreak.best : 0);
   const byLanguage = useMemo(() => languageSummary(timeline), [timeline]);
   const calendar = useMemo(() => dailyBuckets(timeline, 26 * 7), [timeline]);

@@ -2,7 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import { SYNC_EVENT } from "@/lib/account-sync";
 import { Link } from "react-router-dom";
 import { ArrowLeft, BarChart3, Clock3, Flame, Gauge, Keyboard, Share2, Target, Trophy } from "lucide-react";
-import { getHistory, getStreak, getPersonalBests } from "@/utils/storage";
+import { getHistory, getPersonalBests } from "@/utils/storage";
+import { useStreak } from "@/hooks/useStreak";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import type { RunResult, TestMode } from "@/types";
@@ -66,7 +67,7 @@ export default function History() {
   const allHistory = useMemo(() => (historyVersion >= 0 ? [...getHistory()].sort((a, b) => a.timestamp - b.timestamp) : []), [historyVersion]);
   const languages = useMemo(() => ["All", ...Array.from(new Set(allHistory.map((run) => run.language))).sort()], [allHistory]);
   // Re-read when another device's runs arrive (historyVersion changes).
-  const streak = useMemo(getStreak, [historyVersion]);
+  const liveStreak = useStreak();
 
   const days = RANGES.find((item) => item.value === range)?.days ?? null;
   const filtered = useMemo(() => {
@@ -165,7 +166,7 @@ export default function History() {
               icon={<Clock3 className="size-3.5" />}
               label="Practice time"
               value={formatMinutes(minutes)}
-              sub={<span className="inline-flex items-center gap-1"><Flame className="size-3 text-orange-500" /> {streak.current}-day streak · best {streak.best}</span>}
+              sub={<span className="inline-flex items-center gap-1"><Flame className="size-3 text-orange-500" /> {liveStreak.current}-day streak · best {liveStreak.best}</span>}
             />
           </div>
 
