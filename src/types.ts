@@ -67,6 +67,8 @@ export interface RunResult {
   progressSnapshots?: Array<{ ms: number; charIndex: number }>;
   snippetLength?: SnippetLength;
   maxCombo?: number;
+  /** Cloud document id when the run came from (or was verified by) the server. */
+  cloudId?: string;
 }
 
 export interface GhostRunnerState {

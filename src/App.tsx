@@ -9,6 +9,7 @@ import { LanguagePicker } from "@/components/LanguagePicker";
 import { ModeSelector } from "@/components/ModeSelector";
 import { CustomPractice } from "@/components/CustomPractice";
 import { checkAchievements, syncAchievementsForAccount } from "@/lib/achievement-snapshot";
+import { SYNC_EVENT } from "@/lib/account-sync";
 import { recordDailyCompletion, recordRankedVerified } from "@/lib/achievements";
 import { WeakKeyDrillModal } from "@/components/WeakKeyDrillModal";
 import { DailyGoals } from "@/components/DailyGoals";
@@ -30,10 +31,10 @@ import {
   computeConsistency,
   computePerLineStats,
   saveResult,
+  setRunCloudId,
   updateStreak,
   getPersonalBest,
 } from "@/utils";
-import { isRankEligible } from "@/utils/ranking";
 import {
   normalizePhysicalKey,
   recordPhysicalKeypressStats,
@@ -125,6 +126,7 @@ export default function App() {
   const containerRef = useRef<HTMLDivElement>(null);
   const previousSelectionRef = useRef({ language, mode, duration, devCategory, snippetLength: preferences.snippetLength });
   const submittedRankedSessionRef = useRef<string | null>(null);
+  const lastSavedRunIdRef = useRef<string | null>(null);
   const physicalKeypressesRef = useRef<PhysicalKeypress[]>([]);
   const lastPhysicalKeyAtRef = useRef<number | null>(null);
   const keypressFlushTimerRef = useRef<number | null>(null);
@@ -252,12 +254,14 @@ export default function App() {
       }
 
       if (!isCustom) try {
-        saveResult(r);
+        const saved = saveResult(r);
+        lastSavedRunIdRef.current = saved.id ?? null;
         updateStreak();
         checkAchievements(userIdRef.current);
         setGoalRefreshKey((key) => key + 1);
-        if (!isRanked && userIdRef.current && isRankEligible(r)) {
-          void uploadRun(userIdRef.current, r)
+        // Every run syncs to the account; Ranked runs are stored by the server when verified.
+        if (!isRanked && userIdRef.current) {
+          void uploadRun(userIdRef.current, saved)
             .then(() => setGoalRefreshKey((key) => key + 1))
             .catch((error) => console.error("Unable to save cloud run", error));
         }
@@ -312,11 +316,19 @@ export default function App() {
     checkAchievements(userIdRef.current);
   }, []);
   useEffect(() => {
-    if (user?.$id) void syncAchievementsForAccount(user.$id);
+    if (!user?.$id) return;
+    const userId = user.$id;
+    void syncAchievementsForAccount(userId);
+    // Runs or duels from another device can complete badges; record them quietly.
+    const onSync = () => void syncAchievementsForAccount(userId);
+    window.addEventListener(SYNC_EVENT, onSync);
+    return () => window.removeEventListener(SYNC_EVENT, onSync);
   }, [user?.$id]);
   useEffect(() => {
     if (!verifiedResult?.verified) return;
     recordRankedVerified(verifiedResult.runId);
+    // The server stored the verified copy; link it so the local run is not uploaded again.
+    if (lastSavedRunIdRef.current) setRunCloudId(lastSavedRunIdRef.current, verifiedResult.runId);
     checkAchievements(userIdRef.current);
   }, [verifiedResult]);
   useEffect(() => {

@@ -21,6 +21,7 @@ import { Footer } from "@/components/Footer";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { getSettings, saveSettings } from "@/utils/storage";
 import { useAuth } from "@/components/AuthProvider";
+import { AccountSyncCard } from "@/components/AccountSyncCard";
 import { saveCloudGoals } from "@/lib/cloud";
 import { useKeyboardSound } from "@/hooks";
 import { cn } from "@/lib/utils";
@@ -188,6 +189,7 @@ export default function Settings() {
         </div>
 
         <div className="flex flex-col gap-4 animate-fade-in-up">
+          <AccountSyncCard />
           {/* Section 1: Tactile Feedback & Visual Effects */}
           <div className="glass-card rounded-2xl p-4 shadow-sm">
             <div className="mb-3 flex items-center gap-2">

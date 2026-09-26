@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import { SYNC_EVENT } from "@/lib/account-sync";
 import { flowRadio, type RadioStation, RADIO_STATIONS, type RadioStationInfo } from "@/utils/flow-radio-engine";
 
 interface RadioPreferences {
@@ -53,6 +54,15 @@ function savePreferences(prefs: RadioPreferences) {
 
 export function RadioProvider({ children }: { children: ReactNode }) {
   const [prefs, setPrefs] = useState<RadioPreferences>(loadPreferences);
+  // Another device changed this; the account sync wrote it to storage.
+  useEffect(() => {
+    const onSync = (event: Event) => {
+      if ((event as CustomEvent<string[]>).detail?.includes("radio")) setPrefs(loadPreferences());
+    };
+    window.addEventListener(SYNC_EVENT, onSync);
+    return () => window.removeEventListener(SYNC_EVENT, onSync);
+  }, []);
+
   const [isPlaying, setIsPlaying] = useState(false);
 
   useEffect(() => {

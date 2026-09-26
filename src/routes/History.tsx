@@ -1,4 +1,5 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { SYNC_EVENT } from "@/lib/account-sync";
 import { Link } from "react-router-dom";
 import { ArrowLeft, BarChart3, Clock3, Flame, Gauge, Keyboard, Share2, Target, Trophy } from "lucide-react";
 import { getHistory, getStreak, getPersonalBests } from "@/utils/storage";
@@ -54,9 +55,18 @@ export default function History() {
   const [language, setLanguage] = useState("All");
   const [showAll, setShowAll] = useState(false);
 
-  const allHistory = useMemo(() => [...getHistory()].sort((a, b) => a.timestamp - b.timestamp), []);
+  const [historyVersion, setHistoryVersion] = useState(0);
+  useEffect(() => {
+    const onSync = (event: Event) => {
+      if ((event as CustomEvent<string[]>).detail?.includes("history")) setHistoryVersion((value) => value + 1);
+    };
+    window.addEventListener(SYNC_EVENT, onSync);
+    return () => window.removeEventListener(SYNC_EVENT, onSync);
+  }, []);
+  const allHistory = useMemo(() => (historyVersion >= 0 ? [...getHistory()].sort((a, b) => a.timestamp - b.timestamp) : []), [historyVersion]);
   const languages = useMemo(() => ["All", ...Array.from(new Set(allHistory.map((run) => run.language))).sort()], [allHistory]);
-  const streak = useMemo(() => getStreak(), []);
+  // Re-read when another device's runs arrive (historyVersion changes).
+  const streak = useMemo(getStreak, [historyVersion]);
 
   const days = RANGES.find((item) => item.value === range)?.days ?? null;
   const filtered = useMemo(() => {
@@ -81,7 +91,7 @@ export default function History() {
       getPersonalBests()
         .filter((pb) => (mode === "all" || pb.mode === mode) && (language === "All" || pb.language === language))
         .sort((a, b) => b.bestWpm - a.bestWpm),
-    [mode, language]
+    [mode, language, historyVersion]
   );
   const recent = [...filtered].reverse().slice(0, showAll ? 50 : 8);
   const shareName = user ? githubUsernameFromUser(user) || user.name || undefined : undefined;

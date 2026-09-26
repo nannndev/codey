@@ -22,11 +22,10 @@ import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { githubUsernameFromUser, useAuth } from "@/components/AuthProvider";
-import { getProfile, listUserRuns, type CloudProfile, type CloudRun } from "@/lib/cloud";
+import { cloudRunAsResult, getProfile, listUserRuns, type CloudProfile, type CloudRun } from "@/lib/cloud";
 import { getStreak } from "@/utils/storage";
 import type { ShareCardOptions } from "@/lib/share-result";
 import { SharePreviewDialog } from "@/components/SharePreviewDialog";
-import type { RunResult } from "@/types";
 import { computeKeyStatsFromCloudRuns, getPendingKeyboardStats, getStoredKeyStats, getVisibleKeyStats, mergeStatsMaps, type KeyboardStatsMap } from "@/utils/keyboard-analytics";
 import { getCloudKeyboardStats } from "@/lib/keyboard-stats-cloud";
 import { DivisionBadge } from "@/components/DivisionBadge";
@@ -38,27 +37,6 @@ import { cn } from "@/lib/utils";
 import { AchievementBadge } from "@/components/achievements/Badge";
 import { TIER_NAMES } from "@/lib/achievements";
 import { useAchievements } from "@/hooks/useAchievements";
-
-function cloudRunAsResult(run: CloudRun): RunResult {
-  return {
-    language: run.language,
-    mode: run.mode,
-    duration: run.mode === "timed" && run.durationSeconds ? run.durationSeconds * 1000 : run.durationMs,
-    wpm: run.wpm,
-    rawWpm: run.rawWpm,
-    accuracy: run.accuracy,
-    consistency: run.consistency,
-    totalCorrect: run.correctChars,
-    charsTyped: run.keystrokes,
-    totalErrors: run.mistakes,
-    snippetsCompleted: run.snippetsCompleted,
-    timestamp: new Date(run.$createdAt).getTime(),
-    perLineStats: [],
-    errorPositions: [],
-    sourceRepo: run.sourceRepo,
-    snippetLength: run.snippetLength,
-  };
-}
 
 const asRunLike = (run: CloudRun): RunLike & { source: CloudRun } => ({
   timestamp: new Date(run.$createdAt).getTime(),

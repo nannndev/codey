@@ -14,6 +14,7 @@ import {
 } from "./achievements";
 import { streakFromRuns } from "./run-stats";
 import { account, appwriteConfig, databases } from "./appwrite";
+import { updateAccountPrefs } from "./account-prefs";
 import { getProfile, listUserRuns, type CloudRun } from "./cloud";
 import { getCloudKeyboardStats } from "./keyboard-stats-cloud";
 
@@ -133,13 +134,7 @@ async function pushToAccount() {
   const payload = toAccountAchievements(readStore(), duels.all, duels.party);
   const serialized = JSON.stringify(payload);
   if (serialized === lastPushed) return;
-  const current = await account.get();
-  const prefs = current.prefs as Record<string, unknown>;
-  if (JSON.stringify(prefs.achievements) === serialized) {
-    lastPushed = serialized;
-    return;
-  }
-  await account.updatePrefs({ prefs: { ...prefs, achievements: payload } });
+  await updateAccountPrefs((prefs) => (JSON.stringify(prefs.achievements) === serialized ? null : { ...prefs, achievements: payload }));
   lastPushed = serialized;
 }
 

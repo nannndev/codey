@@ -1,7 +1,9 @@
 import { AppwriteException, Permission, Query, Role, type Models } from "appwrite";
 import type { RunResult, Settings, SnippetLength, TestMode } from "@/types";
-import { account, appwriteConfig, databases } from "@/lib/appwrite";
-import { MIN_RANKED_ACCURACY, MIN_RANKED_WPM, isRankEligible, isWithinLengthSpec } from "@/utils/ranking";
+import { appwriteConfig, databases } from "@/lib/appwrite";
+import { updateAccountPrefs } from "@/lib/account-prefs";
+import { getHistory, mergeIntoHistory } from "@/utils/storage";
+import { MIN_RANKED_ACCURACY, MIN_RANKED_WPM, isWithinLengthSpec } from "@/utils/ranking";
 
 // Keep the pre-rename key to retain existing sync markers.
 const SYNCED_RUNS_KEY = "codetype_appwrite_synced_runs_v3";
@@ -42,6 +44,7 @@ function runKey(run: RunResult): string {
 }
 
 function documentId(userId: string, run: RunResult): string {
+  if (run.cloudId) return run.cloudId;
   const value = `${userId}:${runKey(run)}`;
   let first = 2166136261;
   let second = 2246822519;
@@ -176,7 +179,8 @@ export async function syncLocalRuns(userId: string, runs: RunResult[]): Promise<
   try {
     if (!databases) return;
     const databaseClient = databases;
-    const eligibleRuns = runs.filter(isRankEligible);
+    // Every saved run belongs to the account; leaderboards filter for rankable runs themselves.
+    const eligibleRuns = runs.filter((run) => run.sourceType !== "custom");
     const syncedKeys = getSyncedKeys();
     const pendingRuns = eligibleRuns.filter((run) => !syncedKeys.has(`${userId}:${runKey(run)}`));
     if (pendingRuns.length === 0) return;
@@ -227,6 +231,40 @@ export async function getProfile(userId: string): Promise<CloudProfile | null> {
   }
 }
 
+export function cloudRunAsResult(run: CloudRun): RunResult {
+  return {
+    id: `cloud-${run.$id}`,
+    cloudId: run.$id,
+    language: run.language,
+    mode: run.mode,
+    duration: run.mode === "timed" && run.durationSeconds ? run.durationSeconds * 1000 : run.durationMs,
+    wpm: run.wpm,
+    rawWpm: run.rawWpm,
+    accuracy: run.accuracy,
+    consistency: run.consistency,
+    totalCorrect: run.correctChars,
+    charsTyped: run.keystrokes,
+    totalErrors: run.mistakes,
+    snippetsCompleted: run.snippetsCompleted,
+    timestamp: new Date(run.$createdAt).getTime(),
+    perLineStats: [],
+    errorPositions: [],
+    sourceRepo: run.sourceRepo,
+    snippetLength: run.snippetLength,
+    targetChars: run.targetChars,
+  };
+}
+
+/** Brings runs recorded on other devices into this device's history. Returns how many arrived. */
+export async function pullCloudRuns(userId: string): Promise<number> {
+  const documents = await listUserRuns(userId);
+  const known = new Set(getHistory().map((run) => documentId(userId, run)));
+  const incoming = documents.filter((doc) => !known.has(doc.$id)).map(cloudRunAsResult);
+  mergeIntoHistory(incoming);
+  markSyncedMany(incoming.map((run) => `${userId}:${runKey(run)}`));
+  return incoming.length;
+}
+
 export async function listUserRuns(userId: string): Promise<CloudRun[]> {
   if (!databases) return [];
   const response = await databases.listDocuments<CloudRun>({
@@ -257,11 +295,7 @@ export async function getCloudDailyGoalProgress(userId: string, date: Date = new
 }
 
 export async function saveCloudGoals(goals: Settings["goals"]): Promise<void> {
-  if (!account) return;
-  const user = await account.get();
-  await account.updatePrefs({
-    prefs: { ...(user.prefs as Record<string, unknown>), dailyGoals: goals },
-  });
+  await updateAccountPrefs((prefs) => ({ ...prefs, dailyGoals: goals }));
 }
 
 export interface LeaderboardFilters {
