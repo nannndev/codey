@@ -232,21 +232,47 @@ export default function KeyboardAnalytics() {
                     </>
                   ) : (
                     <>
-                      <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Start here</p>
-                      <p className="text-sm">Click any key in the 3D board, or pick one of your trouble keys:</p>
-                      <div className="flex flex-wrap gap-2">
-                        {weakest.slice(0, 4).map((stat) => (
-                          <button
-                            key={stat.key}
-                            type="button"
-                            onClick={() => setSelected(stat.key)}
-                            className="flex items-center gap-1.5 rounded-lg border border-red-500/40 bg-red-500/10 px-2.5 py-1 text-xs font-bold text-red-500 transition-colors hover:bg-red-500/20"
-                          >
-                            <span className="font-mono">{labelFor(stat.key)}</span>
-                            <span className="text-[10px] font-semibold text-muted-foreground">{stat.accuracy.toFixed(0)}%</span>
-                          </button>
-                        ))}
+                      <div>
+                        <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Practice plan</p>
+                        <p className="mt-1 text-sm">Your least accurate keys. Pick one to inspect it, or drill it straight away.</p>
                       </div>
+                      {weakest.length === 0 ? (
+                        <p className="text-xs text-muted-foreground">Type a few runs and your trouble keys show up here.</p>
+                      ) : (
+                        <ol className="space-y-1.5">
+                          {weakest.slice(0, 5).map((stat, index) => {
+                            const drill = drillCharFor(stat.key);
+                            return (
+                              <li key={stat.key} className="grid grid-cols-[1.25rem_2.25rem_1fr_auto] items-center gap-2.5 rounded-xl border bg-background/40 p-2 text-xs">
+                                <span className="text-center font-mono text-[11px] text-muted-foreground">{index + 1}</span>
+                                <button
+                                  type="button"
+                                  onClick={() => setSelected(stat.key)}
+                                  aria-label={`Inspect ${labelFor(stat.key)}`}
+                                  className="grid h-8 place-items-center rounded-lg border-b-2 bg-muted font-mono text-sm font-bold transition-colors hover:bg-amber-500/15 cursor-pointer"
+                                >
+                                  {labelFor(stat.key)}
+                                </button>
+                                <span className="min-w-0">
+                                  <span className="flex justify-between gap-2"><b>{stat.accuracy.toFixed(1)}%</b><span className="text-muted-foreground">{stat.avgDelayMs.toFixed(0)} ms</span></span>
+                                  <span className="mt-1 block h-1.5 rounded-full bg-muted">
+                                    <span className="block h-full rounded-full bg-rose-500" style={{ width: `${Math.min(100, Math.max(4, (100 - stat.accuracy) * 4))}%` }} />
+                                  </span>
+                                </span>
+                                {drill ? (
+                                  <button
+                                    type="button"
+                                    onClick={() => navigate(`/?drill=${encodeURIComponent(drill)}`)}
+                                    className="h-7 rounded-lg border px-2 text-[11px] font-semibold transition-colors hover:bg-muted cursor-pointer"
+                                  >
+                                    Drill
+                                  </button>
+                                ) : <span />}
+                              </li>
+                            );
+                          })}
+                        </ol>
+                      )}
                       <p className="mt-auto text-[11px] text-muted-foreground">
                         Switch metrics above: Accuracy shows where you miss, Speed where you hesitate, Usage where the load is.
                       </p>

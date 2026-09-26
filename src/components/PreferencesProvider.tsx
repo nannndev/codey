@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useState, useCallback } from "react";
+import { SYNC_EVENT } from "@/lib/account-sync";
 import type { KeycapOverrides } from "@/lib/keycaps";
 import type { StrikeIntensity } from "@/components/SparkCanvas";
 
@@ -134,6 +135,15 @@ function loadPreferences(): Preferences {
 
 export function PreferencesProvider({ children }: { children: React.ReactNode }) {
   const [preferences, setPreferences] = useState<Preferences>(loadPreferences);
+  // Another device changed this; the account sync wrote it to storage.
+  useEffect(() => {
+    const onSync = (event: Event) => {
+      if ((event as CustomEvent<string[]>).detail?.includes("preferences")) setPreferences(loadPreferences());
+    };
+    window.addEventListener(SYNC_EVENT, onSync);
+    return () => window.removeEventListener(SYNC_EVENT, onSync);
+  }, []);
+
 
   useEffect(() => {
     applyPreferences(preferences);

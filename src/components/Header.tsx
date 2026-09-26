@@ -1,6 +1,7 @@
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { lazy, Suspense, useEffect, useRef, useState, type ReactNode } from "react";
 import { Link, useLocation } from "react-router-dom";
 import {
+  Award,
   BarChart3,
   CalendarDays,
   Flame,
@@ -27,10 +28,11 @@ import { ThemeToggle } from "./ThemeToggle";
 import { useAuth } from "./AuthProvider";
 import { usePreferences } from "./PreferencesProvider";
 import { useFlowRadio } from "./RadioProvider";
-import { SoundPackModal } from "./SoundPackModal";
 import { ThemeStudioModal } from "./ThemeStudioModal";
 import { isMac, openCommandPalette } from "./CommandPalette";
 import { cn } from "@/lib/utils";
+
+const SoundPackModal = lazy(() => import("./SoundPackModal").then((module) => ({ default: module.SoundPackModal })));
 
 const NAV: { to: string; label: string; icon: LucideIcon; title: string }[] = [
   { to: "/duel", label: "Duel", icon: Swords, title: "1v1 live code race" },
@@ -146,7 +148,8 @@ export function Header() {
         Combo effects
       </MenuItem>
       <div className="my-1 h-px bg-border" />
-      <MenuItem icon={BarChart3} to="/history" onClick={close}>History</MenuItem>
+      <MenuItem icon={BarChart3} to="/history" onClick={close}>Stats</MenuItem>
+      <MenuItem icon={Award} to="/achievements" onClick={close}>Achievements</MenuItem>
       <MenuItem icon={Settings} to="/settings" onClick={close}>Settings</MenuItem>
       <MenuItem icon={Users} to="/contributors" onClick={close}>Contributors</MenuItem>
       <MenuItem icon={Heart} to="/donate" onClick={close} className="text-amber-600 dark:text-amber-400">Support Codey</MenuItem>
@@ -272,7 +275,11 @@ export function Header() {
         )}
       </div>
 
-      <SoundPackModal isOpen={showSoundModal} onClose={() => setShowSoundModal(false)} />
+      {showSoundModal && (
+        <Suspense fallback={null}>
+          <SoundPackModal isOpen onClose={() => setShowSoundModal(false)} />
+        </Suspense>
+      )}
       <ThemeStudioModal isOpen={showThemeModal} onClose={() => setShowThemeModal(false)} />
     </header>
   );

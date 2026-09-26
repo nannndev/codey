@@ -21,6 +21,8 @@ export {
   getPersonalBests,
   getPersonalBest,
   getBestRunForGhost,
+  setRunCloudId,
+  mergeIntoHistory,
 } from './storage';
 export { analyseWeakKeys, describeChar } from './weak-keys';
 export type { WeakKey, WeakKeyReport, ConfusionPair } from './weak-keys';

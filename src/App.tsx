@@ -1,14 +1,16 @@
-import { useState, useCallback, useEffect, useRef, useMemo } from "react";
+import { useState, useCallback, useEffect, useRef, useMemo, lazy, Suspense } from "react";
 import { Coffee, CornerDownLeft, IndentIncrease, LoaderCircle, RotateCcw, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Keyboard3D } from "@/components/Keyboard3D";
 import { CodeDisplay } from "@/components/CodeDisplay";
 import { StatsBar } from "@/components/StatsBar";
-import { ResultsScreen } from "@/components/ResultsScreen";
 import { LanguagePicker } from "@/components/LanguagePicker";
 import { ModeSelector } from "@/components/ModeSelector";
 import { CustomPractice } from "@/components/CustomPractice";
+import { checkAchievements, syncAchievementsForAccount } from "@/lib/achievement-snapshot";
+import { SYNC_EVENT } from "@/lib/account-sync";
+import { recordDailyCompletion, recordRankedVerified } from "@/lib/achievements";
 import { WeakKeyDrillModal } from "@/components/WeakKeyDrillModal";
 import { DailyGoals } from "@/components/DailyGoals";
 import { usePreferences } from "@/components/PreferencesProvider";
@@ -29,10 +31,10 @@ import {
   computeConsistency,
   computePerLineStats,
   saveResult,
+  setRunCloudId,
   updateStreak,
   getPersonalBest,
 } from "@/utils";
-import { isRankEligible } from "@/utils/ranking";
 import {
   normalizePhysicalKey,
   recordPhysicalKeypressStats,
@@ -45,6 +47,9 @@ import type { TestMode, TimedDuration, RunResult, PersonalBest } from "@/types";
 import { RankedAuthModal } from "@/components/RankedAuthModal";
 import { DevPracticeSelector, type DevPracticeCategory } from "@/components/DevPracticeSelector";
 import { SYMBOL_DRILLS, TERMINAL_COMMANDS, ALGORITHM_SNIPPETS, PR_DIFF_SNIPPETS, type CategorySnippet } from "@/data/dev-practice-snippets";
+
+// The results screen only shows after a run, so it loads on demand (and is warmed while idle).
+const ResultsScreen = lazy(() => import("@/components/ResultsScreen").then((module) => ({ default: module.ResultsScreen })));
 
 export default function App() {
   const { user, loading: authLoading } = useAuth();
@@ -121,6 +126,7 @@ export default function App() {
   const containerRef = useRef<HTMLDivElement>(null);
   const previousSelectionRef = useRef({ language, mode, duration, devCategory, snippetLength: preferences.snippetLength });
   const submittedRankedSessionRef = useRef<string | null>(null);
+  const lastSavedRunIdRef = useRef<string | null>(null);
   const physicalKeypressesRef = useRef<PhysicalKeypress[]>([]);
   const lastPhysicalKeyAtRef = useRef<number | null>(null);
   const keypressFlushTimerRef = useRef<number | null>(null);
@@ -159,6 +165,24 @@ export default function App() {
     focusWorkspace();
   }, [focusWorkspace]);
 
+  // Ranked code always comes from the server; any settings change fetches a new challenge for them.
+  const loadRankedChallenge = useCallback(() => {
+    void ranked.fetchChallenge({
+      language,
+      mode,
+      snippetLength: preferences.snippetLength,
+      durationSeconds: duration ?? 30,
+    }).then((ch) => {
+      loadSnippet({
+        id: ch.sessionId,
+        language: ch.language,
+        code: ch.snippetCode,
+        sourceType: "public",
+      });
+      focusWorkspace();
+    }).catch(() => undefined);
+  }, [ranked, language, mode, preferences.snippetLength, duration, loadSnippet, focusWorkspace]);
+
   useEffect(() => {
     const previous = previousSelectionRef.current;
     const selectionChanged = previous.language !== language
@@ -172,9 +196,11 @@ export default function App() {
       setResult(null);
       resetPhysicalKeypresses();
       reset();
-      focusWorkspace();
+      // reset() draws a local snippet; a ranked run must race the server's instead.
+      if (isRanked && user) loadRankedChallenge();
+      else focusWorkspace();
     }
-  }, [language, mode, duration, devCategory, preferences.snippetLength, status, reset, focusWorkspace, resetPhysicalKeypresses]);
+  }, [language, mode, duration, devCategory, preferences.snippetLength, status, reset, focusWorkspace, resetPhysicalKeypresses, isRanked, user, loadRankedChallenge]);
 
   useEffect(() => {
     if (status === "finished" && keystrokes > 0) {
@@ -228,11 +254,14 @@ export default function App() {
       }
 
       if (!isCustom) try {
-        saveResult(r);
+        const saved = saveResult(r);
+        lastSavedRunIdRef.current = saved.id ?? null;
         updateStreak();
+        checkAchievements(userIdRef.current);
         setGoalRefreshKey((key) => key + 1);
-        if (!isRanked && userIdRef.current && isRankEligible(r)) {
-          void uploadRun(userIdRef.current, r)
+        // Every run syncs to the account; Ranked runs are stored by the server when verified.
+        if (!isRanked && userIdRef.current) {
+          void uploadRun(userIdRef.current, saved)
             .then(() => setGoalRefreshKey((key) => key + 1))
             .catch((error) => console.error("Unable to save cloud run", error));
         }
@@ -281,6 +310,32 @@ export default function App() {
       totalMs: Math.round(elapsedMs),
     });
   }, [status, result, daily.active, daily.submit, input, mistakes, elapsedMs]);
+
+  // Badges: record once on load (silently the first time), then after verified Ranked and Daily runs.
+  useEffect(() => {
+    checkAchievements(userIdRef.current);
+  }, []);
+  useEffect(() => {
+    if (!user?.$id) return;
+    const userId = user.$id;
+    void syncAchievementsForAccount(userId);
+    // Runs or duels from another device can complete badges; record them quietly.
+    const onSync = () => void syncAchievementsForAccount(userId);
+    window.addEventListener(SYNC_EVENT, onSync);
+    return () => window.removeEventListener(SYNC_EVENT, onSync);
+  }, [user?.$id]);
+  useEffect(() => {
+    if (!verifiedResult?.verified) return;
+    recordRankedVerified(verifiedResult.runId);
+    // The server stored the verified copy; link it so the local run is not uploaded again.
+    if (lastSavedRunIdRef.current) setRunCloudId(lastSavedRunIdRef.current, verifiedResult.runId);
+    checkAchievements(userIdRef.current);
+  }, [verifiedResult]);
+  useEffect(() => {
+    if (!daily.outcome?.verified || !daily.challenge) return;
+    recordDailyCompletion(daily.challenge.date);
+    checkAchievements(userIdRef.current);
+  }, [daily.outcome, daily.challenge]);
 
   const enterDaily = useCallback(async () => {
     if (ranked.isRanked) ranked.exitRanked();
@@ -332,26 +387,13 @@ export default function App() {
     }
 
     if (isRanked && user) {
-      void ranked.fetchChallenge({
-        language,
-        mode,
-        snippetLength: preferences.snippetLength,
-        durationSeconds: duration ?? 30,
-      }).then((ch) => {
-        loadSnippet({
-          id: ch.sessionId,
-          language: ch.language,
-          code: ch.snippetCode,
-          sourceType: "public",
-        });
-        focusWorkspace();
-      }).catch(() => undefined);
+      loadRankedChallenge();
       return;
     }
 
     reset();
     focusWorkspace();
-  }, [isRanked, user, ranked, daily, language, mode, preferences.snippetLength, duration, loadSnippet, reset, focusWorkspace, resetPhysicalKeypresses]);
+  }, [isRanked, user, daily, loadRankedChallenge, reset, focusWorkspace, resetPhysicalKeypresses]);
 
   const handleDevCategoryChange = useCallback(
     (cat: DevPracticeCategory) => {
@@ -548,6 +590,9 @@ export default function App() {
   });
 
   const handleCustomSnippet = useCallback((nextSnippet: import("@/types").Snippet) => {
+    // Your own code can never count for Ranked or the Daily board.
+    if (ranked.isRanked) ranked.exitRanked();
+    if (daily.active) daily.exit();
     resetPhysicalKeypresses();
     previousSelectionRef.current = { language: nextSnippet.language, mode: "snippet", duration: null, devCategory, snippetLength: preferences.snippetLength };
     setCustomSnippet(nextSnippet);
@@ -557,7 +602,7 @@ export default function App() {
     setResult(null);
     loadSnippet(nextSnippet);
     focusWorkspace();
-  }, [loadSnippet, focusWorkspace, devCategory, preferences.snippetLength, resetPhysicalKeypresses]);
+  }, [ranked, daily, loadSnippet, focusWorkspace, devCategory, preferences.snippetLength, resetPhysicalKeypresses]);
 
   const exitCustomPractice = useCallback(() => {
     resetPhysicalKeypresses();
@@ -619,6 +664,13 @@ export default function App() {
       return;
     }
 
+    if (customSnippet) setCustomSnippet(null);
+    if (devCategory !== "public") {
+      // Update the ref first so the selection effect does not fetch a second challenge.
+      previousSelectionRef.current = { ...previousSelectionRef.current, devCategory: "public" };
+      setDevCategory("public");
+    }
+
     void ranked.fetchChallenge({
       language,
       mode,
@@ -632,7 +684,7 @@ export default function App() {
         sourceType: "public",
       });
     }).catch(() => undefined);
-  }, [status, rankedStatus, isRanked, ranked, daily, user, language, mode, preferences.snippetLength, duration, loadSnippet, reset, resetPhysicalKeypresses]);
+  }, [status, rankedStatus, isRanked, ranked, daily, user, customSnippet, devCategory, language, mode, preferences.snippetLength, duration, loadSnippet, reset, resetPhysicalKeypresses]);
 
   return (
     <div
@@ -646,6 +698,7 @@ export default function App() {
 
         {result && daily.active && <DailyResultBanner status={daily.status} outcome={daily.outcome} error={daily.error} />}
         {result ? (
+          <Suspense fallback={<div className="mt-6 h-96 animate-pulse rounded-2xl border bg-card/50" aria-busy="true" />}>
           <ResultsScreen
             result={result}
             previousBest={previousBest}
@@ -656,6 +709,7 @@ export default function App() {
             onNext={handleNextSnippet}
             onDrill={handleCustomSnippet}
           />
+          </Suspense>
         ) : (
           <main className="mt-6 flex flex-col gap-4 animate-scale-in">
             {/* Ranked Competitive Banner */}
@@ -761,15 +815,23 @@ export default function App() {
                 </div>
                 {/* When the custom-code panel opens it takes the full toolbar width. */}
                 <div className="ml-auto flex flex-wrap items-center gap-2 has-[>section]:ml-0 has-[>section]:basis-full">
-                  <WeakKeyDrillModal onDrill={handleCustomSnippet} />
-                  <CustomPractice onLoad={handleCustomSnippet} />
+                  {rankedSwitchEngaged || daily.active ? (
+                    <span className="text-[11px] text-muted-foreground" title="Ranked and Daily runs use code picked by the server, so everyone races the same thing.">
+                      {daily.active ? "Daily uses today's shared code" : "Ranked uses server-picked code"}
+                    </span>
+                  ) : (
+                    <>
+                      <WeakKeyDrillModal onDrill={handleCustomSnippet} />
+                      <CustomPractice onLoad={handleCustomSnippet} />
+                    </>
+                  )}
                 </div>
               </div>
               <div className="flex flex-wrap items-center gap-2 border-t border-border/50 pt-2">
                 <DevPracticeSelector
                   activeCategory={devCategory}
                   onSelectCategory={handleDevCategoryChange}
-                  disabled={status === "running"}
+                  disabled={status === "running" || rankedSwitchEngaged}
                 />
                 {devCategory === "public" && (
                   <LanguagePicker

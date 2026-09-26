@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useState, useCallback } from "react";
+import { SYNC_EVENT } from "@/lib/account-sync";
 
 type Theme = "light" | "dark" | "system";
 
@@ -21,12 +22,23 @@ function applyTheme(resolved: "light" | "dark") {
   document.documentElement.classList.toggle("dark", resolved === "dark");
 }
 
+function readStoredTheme(): Theme {
+  const stored = localStorage.getItem(STORAGE_KEY);
+  if (stored === "light" || stored === "dark" || stored === "system") return stored;
+  return "system";
+}
+
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setThemeState] = useState<Theme>(() => {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored === "light" || stored === "dark" || stored === "system") return stored;
-    return "system";
-  });
+  const [theme, setThemeState] = useState<Theme>(readStoredTheme);
+  // Another device changed this; the account sync wrote it to storage.
+  useEffect(() => {
+    const onSync = (event: Event) => {
+      if ((event as CustomEvent<string[]>).detail?.includes("theme")) setThemeState(readStoredTheme());
+    };
+    window.addEventListener(SYNC_EVENT, onSync);
+    return () => window.removeEventListener(SYNC_EVENT, onSync);
+  }, []);
+
 
   const resolvedTheme = theme === "system" ? getSystemTheme() : theme;
 

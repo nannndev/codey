@@ -42,13 +42,29 @@ export function getHistory(): RunResult[] {
   }
 }
 
-export function saveResult(result: RunResult): void {
+/** Stores a finished run and returns it with its id, so uploads use the same identity as the history. */
+export function saveResult(result: RunResult): RunResult {
   const history = getHistory();
-  history.push({
-    ...result,
-    id: result.id ?? `${result.timestamp}-${Math.random().toString(36).slice(2, 8)}`,
-  });
+  const saved = { ...result, id: result.id ?? `${result.timestamp}-${Math.random().toString(36).slice(2, 8)}` };
+  history.push(saved);
   localStorage.setItem(HISTORY_KEY, JSON.stringify(history.slice(-500)));
+  return saved;
+}
+
+/** Adds runs from other devices, oldest first, keeping the newest 500. */
+export function mergeIntoHistory(runs: RunResult[]): void {
+  if (runs.length === 0) return;
+  const merged = [...getHistory(), ...runs].sort((a, b) => a.timestamp - b.timestamp).slice(-500);
+  localStorage.setItem(HISTORY_KEY, JSON.stringify(merged));
+}
+
+/** Links a local run to its cloud copy (e.g. the verified Ranked document). */
+export function setRunCloudId(runId: string, cloudId: string): void {
+  const history = getHistory();
+  const index = history.findIndex((run) => run.id === runId);
+  if (index < 0 || history[index].cloudId === cloudId) return;
+  history[index] = { ...history[index], cloudId };
+  localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
 }
 
 export function ensureHistoryIds(): RunResult[] {
@@ -155,20 +171,30 @@ export function saveSettings(settings: Settings): void {
 
 // Personal Bests
 
+/**
+ * Groups runs that are comparable: same language and mode, and the same length
+ * (snippet) or clock (timed). Snippet and zen runs vary in elapsed time, so their
+ * duration is not part of the key; timed runs are keyed by whole seconds.
+ */
+function personalBestKey(language: string, mode: TestMode, duration: number | null | undefined, snippetLength?: RunResult['snippetLength']): string {
+  const lengthKey = mode === 'snippet' ? snippetLength ?? 'legacy' : '-';
+  const clock = mode === 'timed' && duration ? Math.round(duration / 1000) : 0;
+  return `${language}|${mode}|${clock}|${lengthKey}`;
+}
+
 export function getPersonalBests(): PersonalBest[] {
   const history = getHistory();
   const map = new Map<string, PersonalBest>();
 
   for (const run of history) {
-    const lengthKey = run.mode === 'snippet' ? run.snippetLength ?? 'legacy' : '-';
-    const key = `${run.language}|${run.mode}|${run.duration ?? 0}|${lengthKey}`;
+    const key = personalBestKey(run.language, run.mode, run.duration, run.snippetLength);
     const existing = map.get(key);
 
     if (!existing) {
       map.set(key, {
         language: run.language,
         mode: run.mode,
-        duration: run.duration ?? null,
+        duration: run.mode === 'timed' ? run.duration ?? null : null,
         snippetLength: run.snippetLength,
         bestWpm: run.wpm,
         bestAccuracy: run.accuracy,
@@ -194,14 +220,8 @@ export function getPersonalBest(
   duration: number | null,
   snippetLength?: RunResult['snippetLength'],
 ): PersonalBest | null {
-  const lengthKey = mode === 'snippet' ? snippetLength ?? 'legacy' : '-';
-  const key = `${language}|${mode}|${duration ?? 0}|${lengthKey}`;
-  const all = getPersonalBests();
-  return all.find((pb) => {
-    const pbLengthKey = pb.mode === 'snippet' ? pb.snippetLength ?? 'legacy' : '-';
-    const pbKey = `${pb.language}|${pb.mode}|${pb.duration ?? 0}|${pbLengthKey}`;
-    return pbKey === key;
-  }) ?? null;
+  const key = personalBestKey(language, mode, duration, snippetLength);
+  return getPersonalBests().find((pb) => personalBestKey(pb.language, pb.mode, pb.duration, pb.snippetLength) === key) ?? null;
 }
 
 export function getBestRunForGhost(

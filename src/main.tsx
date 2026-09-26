@@ -1,4 +1,4 @@
-import { StrictMode } from 'react';
+import { StrictMode, Suspense } from 'react';
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { Analytics } from '@vercel/analytics/react';
@@ -6,21 +6,16 @@ import { ThemeProvider } from './components/ThemeProvider';
 import { PreferencesProvider } from './components/PreferencesProvider';
 import { AuthProvider } from './components/AuthProvider';
 import App from './App';
-import Settings from './routes/Settings';
-import History from './routes/History';
-import Leaderboard from './routes/Leaderboard';
-import Profile from './routes/Profile';
-import Donate from './routes/Donate';
-import Contributors from './routes/Contributors';
-import Duel from './routes/Duel';
-import Arcade from './routes/Arcade';
-import Daily from './routes/Daily';
-import KeyboardAnalytics from './routes/KeyboardAnalytics';
+import { Pages, preloadRoutes } from './routes/lazy';
+import { PageFallback } from './components/PageFallback';
 import { RadioProvider } from './components/RadioProvider';
 import { FlowRadioWidget } from './components/FlowRadioWidget';
 import { CommandPalette } from './components/CommandPalette';
 import { KeycapStudioModal } from './components/KeycapStudioModal';
+import { AchievementToaster } from './components/achievements/AchievementToaster';
 import './index.css';
+
+const { Settings, History, Leaderboard, Profile, Donate, Contributors, Duel, Arcade, Daily, KeyboardAnalytics, Achievements } = Pages;
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
@@ -29,6 +24,7 @@ createRoot(document.getElementById('root')!).render(
         <AuthProvider>
           <RadioProvider>
             <BrowserRouter>
+              <Suspense fallback={<PageFallback />}>
               <Routes>
                 <Route path="/" element={<App />} />
                 <Route path="/settings" element={<Settings />} />
@@ -43,13 +39,16 @@ createRoot(document.getElementById('root')!).render(
                 <Route path="/race" element={<Duel />} />
                 <Route path="/arcade" element={<Arcade />} />
                 <Route path="/analytics/keyboard" element={<KeyboardAnalytics />} />
+                <Route path="/achievements" element={<Achievements />} />
                 <Route path="/donate" element={<Donate />} />
                 <Route path="/support" element={<Donate />} />
                 <Route path="/contributors" element={<Contributors />} />
               </Routes>
+              </Suspense>
               <FlowRadioWidget />
               <CommandPalette />
               <KeycapStudioModal />
+              <AchievementToaster />
             </BrowserRouter>
             <Analytics />
           </RadioProvider>
@@ -58,3 +57,5 @@ createRoot(document.getElementById('root')!).render(
     </ThemeProvider>
   </StrictMode>,
 );
+
+preloadRoutes();

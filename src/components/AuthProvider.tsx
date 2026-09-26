@@ -10,6 +10,7 @@ import {
   signOut as appwriteSignOut,
 } from "@/lib/appwrite";
 import { syncLocalRuns } from "@/lib/cloud";
+import { startAccountSync } from "@/lib/account-sync";
 import { ensureHistoryIds, getSettings, getStreak, saveSettings } from "@/utils/storage";
 
 export type SyncStatus = "idle" | "syncing" | "synced" | "error";
@@ -164,6 +165,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     void refresh();
   }, [refresh]);
+
+  // Settings, preferences, streak, duels, arcade scores and runs follow the account.
+  useEffect(() => {
+    startAccountSync(user?.$id ?? null);
+  }, [user?.$id]);
 
   const logout = useCallback(async () => {
     await appwriteSignOut();

@@ -16,10 +16,12 @@ import {
   type KeyboardSoundTuning,
   type SoundBaseProfile,
 } from "@/components/PreferencesProvider";
+import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { getSettings, saveSettings } from "@/utils/storage";
 import { useAuth } from "@/components/AuthProvider";
+import { AccountSyncCard } from "@/components/AccountSyncCard";
 import { saveCloudGoals } from "@/lib/cloud";
 import { useKeyboardSound } from "@/hooks";
 import { cn } from "@/lib/utils";
@@ -167,7 +169,10 @@ export default function Settings() {
 
   return (
     <div className="workspace-shell min-h-screen">
-      <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6">
+      <div className="mx-auto max-w-5xl px-4 pt-8 sm:px-6 sm:pt-12">
+        <Header />
+      </div>
+      <div className="mx-auto max-w-3xl px-4 pb-8 sm:px-6">
         {/* Navigation & Header */}
         <div className="mb-6 flex items-center justify-between">
           <Link
@@ -184,6 +189,7 @@ export default function Settings() {
         </div>
 
         <div className="flex flex-col gap-4 animate-fade-in-up">
+          <AccountSyncCard />
           {/* Section 1: Tactile Feedback & Visual Effects */}
           <div className="glass-card rounded-2xl p-4 shadow-sm">
             <div className="mb-3 flex items-center gap-2">
