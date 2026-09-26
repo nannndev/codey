@@ -30,7 +30,8 @@ interface DuelDataMessage {
     | "PROGRESS"
     | "FINISHED"
     | "REMATCH"
-    | "REMATCH_REQUEST";
+    | "REMATCH_REQUEST"
+    | "PROFILE";
   payload?: {
     opponentName?: string;
     snippet?: Snippet;
@@ -57,6 +58,43 @@ export function snippetForConfig(config: DuelConfig): Snippet {
   return getRandomSnippet(language, config.mode === "timed" ? "long" : config.snippetLength);
 }
 
+/** Room codes are "CODEY-" plus six characters; the prefix is optional when typing one. */
+export const ROOM_PREFIX = "CODEY-";
+
+export function normalizeRoomCode(code: string): string {
+  const clean = code.trim().toUpperCase().replace(/\s+/g, "");
+  return clean.startsWith(ROOM_PREFIX) ? clean : `${ROOM_PREFIX}${clean}`;
+}
+
+// A self-hosted PeerServer can be set with VITE_PEER_HOST; the PeerJS cloud is the default.
+const PEER_OPTIONS = import.meta.env.VITE_PEER_HOST
+  ? {
+      host: import.meta.env.VITE_PEER_HOST as string,
+      port: Number(import.meta.env.VITE_PEER_PORT) || 443,
+      path: (import.meta.env.VITE_PEER_PATH as string) || "/",
+      secure: import.meta.env.VITE_PEER_SECURE !== "false",
+    }
+  : {};
+
+function describePeerError(error: unknown): string {
+  const type = (error as { type?: string })?.type;
+  switch (type) {
+    case "peer-unavailable":
+      return "Room not found. Check the code, or ask your friend to create the room again.";
+    case "unavailable-id":
+      return "That room code is already taken. Try creating the room again.";
+    case "network":
+    case "server-error":
+    case "socket-error":
+    case "socket-closed":
+      return "Could not reach the match server. Check your connection and try again.";
+    case "browser-incompatible":
+      return "This browser does not support live duels (WebRTC).";
+    default:
+      return "Something went wrong with the connection. Try again.";
+  }
+}
+
 export function usePeerDuel(playerName: string = "Typist", initialConfig: DuelConfig = DEFAULT_CONFIG) {
   const [duelState, setDuelState] = useState<DuelState>("idle");
   const [isHost, setIsHost] = useState(false);
@@ -67,6 +105,8 @@ export function usePeerDuel(playerName: string = "Typist", initialConfig: DuelCo
   const [isReady, setIsReady] = useState(false);
   const [opponentReady, setOpponentReady] = useState(false);
   const [countdownSeconds, setCountdownSeconds] = useState(3);
+  const [error, setError] = useState<string | null>(null);
+  const [opponentLeft, setOpponentLeft] = useState(false);
   const [opponent, setOpponent] = useState<OpponentState>({
     name: "Opponent",
     cursorIndex: 0,
@@ -78,6 +118,8 @@ export function usePeerDuel(playerName: string = "Typist", initialConfig: DuelCo
   const peerRef = useRef<Peer | null>(null);
   const connRef = useRef<DataConnection | null>(null);
   const isHostRef = useRef(false);
+  const leavingRef = useRef(false);
+  const joinTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const snippetRef = useRef(snippet);
   const configRef = useRef(duelConfig);
 
@@ -195,6 +237,9 @@ export function usePeerDuel(playerName: string = "Typist", initialConfig: DuelCo
   const setupConnection = useCallback((connection: DataConnection, hostConnection: boolean) => {
     connRef.current = connection;
     connection.on("open", () => {
+      if (joinTimerRef.current) clearTimeout(joinTimerRef.current);
+      setError(null);
+      setOpponentLeft(false);
       setConnectionStatus("connected");
       setDuelState("lobby");
 
@@ -207,8 +252,20 @@ export function usePeerDuel(playerName: string = "Typist", initialConfig: DuelCo
     });
     connection.on("data", (data) => handleMessage(data as DuelDataMessage));
     connection.on("close", () => {
-      setConnectionStatus("disconnected");
-      setDuelState("idle");
+      if (connRef.current !== connection) return;
+      connRef.current = null;
+      if (leavingRef.current) return;
+      setOpponentLeft(true);
+      setOpponentReady(false);
+      setIsReady(false);
+      if (hostConnection) {
+        // The host keeps the room open so the same invite link still works.
+        setConnectionStatus("connecting");
+        setDuelState("lobby");
+      } else {
+        setConnectionStatus("disconnected");
+        setDuelState("idle");
+      }
     });
   }, [handleMessage, playerName, sendAuthoritativeLobby]);
 
@@ -220,22 +277,41 @@ export function usePeerDuel(playerName: string = "Typist", initialConfig: DuelCo
       }
 
       const id = (customId || `CODEY-${Math.random().toString(36).substring(2, 8)}`).toUpperCase();
-      const peer = new Peer(id, { debug: 1 });
+      const peer = new Peer(id, { debug: 1, ...PEER_OPTIONS });
       peer.on("open", (peerId) => {
         setRoomCode(peerId.toUpperCase());
         resolve(peerId.toUpperCase());
       });
-      peer.on("connection", (connection) => setupConnection(connection, true));
-      peer.on("error", (error) => {
-        console.error("PeerJS Error:", error);
-        setConnectionStatus("disconnected");
-        reject(error);
+      peer.on("connection", (connection) => {
+        // One opponent per room; later joiners are turned away.
+        if (connRef.current?.open) {
+          connection.on("open", () => connection.close());
+          return;
+        }
+        setupConnection(connection, true);
+      });
+      peer.on("error", (peerError) => {
+        console.error("PeerJS Error:", peerError);
+        if (joinTimerRef.current) clearTimeout(joinTimerRef.current);
+        setError(describePeerError(peerError));
+        if (!isHostRef.current || (peerError as { type?: string }).type !== "peer-unavailable") {
+          setConnectionStatus("disconnected");
+        }
+        if (!isHostRef.current) {
+          peer.destroy();
+          peerRef.current = null;
+          setDuelState("idle");
+        }
+        reject(peerError);
       });
       peerRef.current = peer;
     });
   }, [setupConnection]);
 
   const createRoom = useCallback(async (selectedSnippet?: Snippet, selectedConfig?: DuelConfig) => {
+    leavingRef.current = false;
+    setError(null);
+    setOpponentLeft(false);
     isHostRef.current = true;
     setIsHost(true);
     setConnectionStatus("connecting");
@@ -245,18 +321,39 @@ export function usePeerDuel(playerName: string = "Typist", initialConfig: DuelCo
     setDuelConfig(activeConfig);
     snippetRef.current = activeSnippet;
     configRef.current = activeConfig;
-    await initPeer();
+    try {
+      await initPeer();
+    } catch {
+      return;
+    }
     setDuelState("lobby");
   }, [initPeer]);
 
   const joinRoom = useCallback(async (code: string) => {
+    leavingRef.current = false;
+    setError(null);
+    setOpponentLeft(false);
     isHostRef.current = false;
     setIsHost(false);
     setConnectionStatus("connecting");
-    await initPeer();
-    const formattedCode = code.trim().toUpperCase();
+    try {
+      await initPeer();
+    } catch {
+      return;
+    }
+    const formattedCode = normalizeRoomCode(code);
     setRoomCode(formattedCode);
-    setupConnection(peerRef.current!.connect(formattedCode), false);
+    const peer = peerRef.current;
+    if (!peer) return;
+    setupConnection(peer.connect(formattedCode, { reliable: true }), false);
+    if (joinTimerRef.current) clearTimeout(joinTimerRef.current);
+    joinTimerRef.current = setTimeout(() => {
+      if (connRef.current?.open) return;
+      setError("The room did not answer. Check the code and try again.");
+      setConnectionStatus("disconnected");
+      peerRef.current?.destroy();
+      peerRef.current = null;
+    }, 12000);
   }, [initPeer, setupConnection]);
 
   const toggleReady = useCallback(() => {
@@ -321,7 +418,14 @@ export function usePeerDuel(playerName: string = "Typist", initialConfig: DuelCo
     });
   }, [playerName, resetLobby, sendMessage]);
 
+  // The name can arrive after the connection (auth loads late on invite links), so resend it.
+  useEffect(() => {
+    if (connectionStatus === "connected") sendMessage({ type: "PROFILE", payload: { opponentName: playerName } });
+  }, [connectionStatus, playerName, sendMessage]);
+
   const leaveDuel = useCallback(() => {
+    leavingRef.current = true;
+    if (joinTimerRef.current) clearTimeout(joinTimerRef.current);
     connRef.current?.close();
     peerRef.current?.destroy();
     connRef.current = null;
@@ -332,9 +436,27 @@ export function usePeerDuel(playerName: string = "Typist", initialConfig: DuelCo
     setConnectionStatus("disconnected");
     setIsReady(false);
     setOpponentReady(false);
+    setError(null);
+    setOpponentLeft(false);
+  }, []);
+
+  // Tear the peer down when the page unmounts so the room code is released.
+  useEffect(() => () => {
+    leavingRef.current = true;
+    if (joinTimerRef.current) clearTimeout(joinTimerRef.current);
+    connRef.current?.close();
+    peerRef.current?.destroy();
+  }, []);
+
+  const clearNotice = useCallback(() => {
+    setError(null);
+    setOpponentLeft(false);
   }, []);
 
   return {
+    error,
+    opponentLeft,
+    clearNotice,
     duelState,
     isHost,
     roomCode,

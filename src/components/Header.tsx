@@ -149,6 +149,7 @@ export function Header() {
       <MenuItem icon={BarChart3} to="/history" onClick={close}>History</MenuItem>
       <MenuItem icon={Settings} to="/settings" onClick={close}>Settings</MenuItem>
       <MenuItem icon={Users} to="/contributors" onClick={close}>Contributors</MenuItem>
+      <MenuItem icon={Heart} to="/donate" onClick={close} className="text-amber-600 dark:text-amber-400">Support Codey</MenuItem>
     </>
   );
 
@@ -191,26 +192,16 @@ export function Header() {
             <button
               type="button"
               onClick={openCommandPalette}
-              className="hidden h-8 shrink-0 items-center gap-2 rounded-lg border border-border/60 bg-background/50 pl-2 pr-1.5 text-muted-foreground transition-colors hover:text-foreground sm:flex cursor-pointer"
+              className={cn(iconButton, "hidden sm:grid")}
               aria-label="Open command palette"
-              title="Command palette"
+              title={`Search and commands (${isMac() ? "⌘K" : "Ctrl K"})`}
             >
-              <Search className="size-3.5" />
-              <kbd className="rounded border border-border/70 bg-muted px-1 font-mono text-[10px] font-semibold leading-4">{isMac() ? "⌘K" : "Ctrl K"}</kbd>
+              <Search className="size-4" />
             </button>
 
             <div className="hidden md:block">
               <HeaderMenu label="Tools" trigger={<SlidersHorizontal className="size-4" />}>{toolItems}</HeaderMenu>
             </div>
-
-            <Link
-              to="/donate"
-              className={cn(iconButton, "hidden text-amber-500 hover:bg-amber-500/10 hover:text-amber-500 sm:grid", isActive("/donate") && "bg-amber-500/15")}
-              aria-label="Support Codey"
-              title="Support Codey development"
-            >
-              <Heart className="size-4 fill-current" />
-            </Link>
 
             <ThemeToggle />
 
@@ -276,7 +267,6 @@ export function Header() {
             ))}
             <div className="col-span-2 mt-1 rounded-xl border border-border/50 bg-card/70 p-1 md:hidden">
               {toolItems(() => setMobileMenuOpen(false))}
-              <MenuItem icon={Heart} to="/donate" onClick={() => setMobileMenuOpen(false)} className="text-amber-600 dark:text-amber-400">Donate</MenuItem>
             </div>
           </div>
         )}

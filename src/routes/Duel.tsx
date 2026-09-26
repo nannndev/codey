@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import {
   ArrowLeft,
   Swords,
@@ -14,30 +14,229 @@ import {
   Zap,
   CheckCircle2,
   XCircle,
+  MinusCircle,
   Code2,
-  Sparkles,
-  Sliders,
+  Shuffle,
   Timer,
-  Focus,
+  Link2,
+  LogOut,
+  Loader2,
+  Flag,
+  AlertTriangle,
+  X,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { CodeDisplay } from "@/components/CodeDisplay";
 import { useAuth } from "@/components/AuthProvider";
-import { usePeerDuel, snippetForConfig, type DuelConfig } from "@/hooks/usePeerDuel";
+import { usePeerDuel, snippetForConfig, ROOM_PREFIX, type DuelConfig } from "@/hooks/usePeerDuel";
 import { getLanguages, maxSnippetCharsForLanguage } from "@/data";
 import { SNIPPET_LENGTH_SPEC } from "@/utils/ranking";
 import { computeCharStates, computeWpm } from "@/utils";
 import { useKeyboardSound } from "@/hooks/useKeyboardSound";
 import { usePreferences } from "@/components/PreferencesProvider";
 import { getDuelHistory, saveDuelRecord, getDuelStats, type DuelRecord } from "@/utils/duel-history";
+import { cn } from "@/lib/utils";
 import type { TestMode, SnippetLength, TimedDuration } from "@/types";
+
+type Outcome = DuelRecord["outcome"];
+
+const LENGTHS: SnippetLength[] = ["short", "medium", "long"];
+const DURATIONS: TimedDuration[] = [15, 30, 60];
+
+const segment = (active: boolean) =>
+  cn(
+    "flex h-8 flex-1 items-center justify-center gap-1.5 rounded-lg px-2.5 text-xs font-semibold capitalize transition-colors cursor-pointer",
+    active ? "bg-foreground text-background shadow-xs" : "text-muted-foreground hover:text-foreground"
+  );
+
+/** Mode, language and length/duration: the rules both players race under. */
+function MatchRules({ config, onChange, onShuffle, languages, unavailableLengths }: {
+  config: DuelConfig;
+  onChange: (next: DuelConfig) => void;
+  onShuffle?: () => void;
+  languages: string[];
+  unavailableLengths: Set<SnippetLength>;
+}) {
+  const { mode, snippetLength, durationSeconds, selectedLanguage } = config;
+  return (
+    <div className="grid gap-2.5 sm:grid-cols-[auto_1fr_auto]">
+      <div className="flex rounded-xl border border-border/60 bg-background/60 p-0.5">
+        {(["snippet", "timed"] as TestMode[]).map((value) => (
+          <button key={value} type="button" onClick={() => onChange({ ...config, mode: value })} className={segment(mode === value)}>
+            {value === "timed" ? <Timer className="size-3.5" /> : <Zap className="size-3.5" />}
+            {value === "timed" ? "Timed" : "Snippet"}
+          </button>
+        ))}
+      </div>
+      <select
+        value={selectedLanguage}
+        onChange={(event) => onChange({ ...config, selectedLanguage: event.target.value })}
+        aria-label="Language"
+        className="h-9 min-w-0 rounded-xl border border-border/60 bg-background/60 px-3 font-mono text-xs font-semibold text-foreground focus:outline-none focus:ring-2 focus:ring-amber-500/50 cursor-pointer"
+      >
+        {languages.map((language) => (
+          <option key={language}>{language}</option>
+        ))}
+      </select>
+      <div className="flex gap-1">
+        <div className="flex flex-1 rounded-xl border border-border/60 bg-background/60 p-0.5">
+          {mode === "snippet"
+            ? LENGTHS.map((len) => (
+                <button
+                  key={len}
+                  type="button"
+                  onClick={() => onChange({ ...config, snippetLength: len })}
+                  title={unavailableLengths.has(len) ? `Not enough ${selectedLanguage} snippets for a full ${len} run` : undefined}
+                  className={segment(snippetLength === len)}
+                >
+                  {len}
+                  {unavailableLengths.has(len) && <span className="text-amber-500">*</span>}
+                </button>
+              ))
+            : DURATIONS.map((dur) => (
+                <button key={dur} type="button" onClick={() => onChange({ ...config, durationSeconds: dur })} className={segment(durationSeconds === dur)}>
+                  {dur}s
+                </button>
+              ))}
+        </div>
+        {onShuffle && (
+          <button
+            type="button"
+            onClick={onShuffle}
+            title="Pick another snippet"
+            aria-label="Pick another snippet"
+            className="grid size-9 shrink-0 place-items-center rounded-xl border border-border/60 bg-background/60 text-muted-foreground transition-colors hover:text-foreground cursor-pointer"
+          >
+            <Shuffle className="size-3.5" />
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function Avatar({ name, tone, size = "md" }: { name: string; tone: "you" | "them"; size?: "sm" | "md" }) {
+  return (
+    <span
+      className={cn(
+        "grid shrink-0 place-items-center rounded-full font-black text-zinc-950",
+        tone === "you" ? "bg-amber-500" : "bg-sky-400",
+        size === "md" ? "size-14 text-xl" : "size-7 text-xs"
+      )}
+    >
+      {name.trim().charAt(0).toUpperCase() || "?"}
+    </span>
+  );
+}
+
+function PlayerSlot({ name, tone, ready, empty, label, children }: {
+  name: string;
+  tone: "you" | "them";
+  ready: boolean;
+  empty?: boolean;
+  label: string;
+  children?: React.ReactNode;
+}) {
+  if (empty) {
+    return (
+      <div className="flex min-h-44 flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-border bg-background/40 p-4 text-center">
+        <span className="grid size-14 place-items-center rounded-full border-2 border-dashed border-border text-muted-foreground">
+          <Loader2 className="size-5 animate-spin" />
+        </span>
+        <p className="text-sm font-semibold">Waiting for opponent</p>
+        <p className="max-w-52 text-xs text-muted-foreground">Send them the invite link. They join straight into this room.</p>
+        {children}
+      </div>
+    );
+  }
+  return (
+    <div
+      className={cn(
+        "flex min-h-44 flex-col items-center justify-center gap-2 rounded-2xl border p-4 text-center transition-colors",
+        ready ? "border-emerald-500/50 bg-emerald-500/10" : "border-border/60 bg-background/40"
+      )}
+    >
+      <div className="relative">
+        <Avatar name={name} tone={tone} />
+        {ready && (
+          <span className="absolute -bottom-1 -right-1 grid size-6 place-items-center rounded-full bg-emerald-500 text-white ring-2 ring-card">
+            <Check className="size-3.5" strokeWidth={3} />
+          </span>
+        )}
+      </div>
+      <div>
+        <p className="max-w-40 truncate text-sm font-bold">{name}</p>
+        <p className="text-[11px] uppercase tracking-wider text-muted-foreground">{label}</p>
+      </div>
+      <span
+        className={cn(
+          "rounded-full px-2.5 py-0.5 text-[11px] font-bold",
+          ready ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400" : "bg-muted text-muted-foreground"
+        )}
+      >
+        {ready ? "Ready" : "Not ready"}
+      </span>
+      {children}
+    </div>
+  );
+}
+
+function RaceLane({ name, tone, percent, wpm, accuracy, done }: {
+  name: string;
+  tone: "you" | "them";
+  percent: number;
+  wpm: number;
+  accuracy: number;
+  done: boolean;
+}) {
+  return (
+    <div className="grid grid-cols-[1fr_auto] items-center gap-x-3 gap-y-1 sm:grid-cols-[minmax(0,7.5rem)_1fr_auto]">
+      <div className="col-span-2 flex min-w-0 items-center gap-2 sm:col-span-1">
+        <Avatar name={name} tone={tone} size="sm" />
+        <span className="truncate text-xs font-bold">{name}</span>
+      </div>
+      <div className="duel-lane relative h-7 rounded-full bg-muted">
+        <div
+          className={cn("absolute inset-y-0 left-0 rounded-full transition-[width] duration-200", tone === "you" ? "bg-amber-500/25" : "bg-sky-400/25")}
+          style={{ width: `${percent}%` }}
+        />
+        <span
+          className={cn(
+            "absolute top-1/2 grid size-6 place-items-center rounded-full text-[10px] font-black text-zinc-950 shadow-md transition-[left] duration-200",
+            tone === "you" ? "bg-amber-500" : "bg-sky-400"
+          )}
+          style={{ left: `calc(${percent}% - ${percent / 100} * 1.5rem)`, translate: "0 -50%" }}
+        >
+          {done ? <Check className="size-3.5" strokeWidth={3} /> : name.trim().charAt(0).toUpperCase()}
+        </span>
+        <Flag className="absolute right-2 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground/60" />
+      </div>
+      <div className="text-right font-mono text-xs leading-tight tabular-nums sm:w-36">
+        <span className="text-sm font-black">{wpm.toFixed(0)}</span> <span className="text-muted-foreground">wpm</span>
+        <span className="block text-[10px] text-muted-foreground sm:ml-2 sm:inline sm:text-xs">{accuracy}% acc</span>
+      </div>
+    </div>
+  );
+}
+
+function StatColumn({ label, value, unit, highlight }: { label: string; value: string; unit?: string; highlight?: boolean }) {
+  return (
+    <div className="text-center">
+      <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">{label}</p>
+      <p className={cn("font-mono text-2xl font-black tabular-nums", highlight && "text-emerald-600 dark:text-emerald-400")}>
+        {value}
+        {unit && <span className="ml-0.5 text-xs font-semibold text-muted-foreground">{unit}</span>}
+      </p>
+    </div>
+  );
+}
 
 export default function Duel() {
   const { user } = useAuth();
   const { preferences } = usePreferences();
   const playerName = user?.name || "Typist";
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const [activeTab, setActiveTab] = useState<"arena" | "history">("arena");
   const [history, setHistory] = useState<DuelRecord[]>([]);
@@ -59,6 +258,9 @@ export default function Duel() {
   );
 
   const {
+    error,
+    opponentLeft,
+    clearNotice,
     duelState,
     isHost,
     roomCode,
@@ -82,8 +284,9 @@ export default function Duel() {
 
   const { mode, snippetLength, durationSeconds, selectedLanguage } = duelConfig;
 
-  const [inputCode, setInputCode] = useState("");
-  const [copied, setCopied] = useState(false);
+  const [inputCode, setInputCode] = useState(() => (searchParams.get("room") ?? "").toUpperCase().replace(ROOM_PREFIX, ""));
+  const [copied, setCopied] = useState<"link" | "code" | null>(null);
+  const [creating, setCreating] = useState(false);
   const [typedText, setTypedText] = useState("");
   const [startTime, setStartTime] = useState<number | null>(null);
   const [myWpm, setMyWpm] = useState(0);
@@ -91,6 +294,7 @@ export default function Duel() {
   const [myFinished, setMyFinished] = useState(false);
   const [myFinishTimeMs, setMyFinishTimeMs] = useState<number | null>(null);
   const [secondsLeft, setSecondsLeft] = useState<number | null>(null);
+  const [rematchSent, setRematchSent] = useState(false);
 
   const editorContainerRef = useRef<HTMLDivElement>(null);
   const hiddenInputRef = useRef<HTMLTextAreaElement>(null);
@@ -105,12 +309,21 @@ export default function Duel() {
     setStats(getDuelStats());
   }, []);
 
-  // Compute character states for the authentic VS Code editor CodeDisplay
-  const charStates = useMemo(() => {
-    return computeCharStates(snippet.code, typedText);
-  }, [snippet.code, typedText]);
+  // Invite links (/duel?room=CODE) join the room as soon as the page opens.
+  const autoJoinedRef = useRef(false);
+  useEffect(() => {
+    const room = searchParams.get("room");
+    if (!room || autoJoinedRef.current) return;
+    // Deferred a tick so a StrictMode remount cancels the first attempt instead of orphaning it.
+    const timer = setTimeout(() => {
+      autoJoinedRef.current = true;
+      void joinRoom(room);
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [searchParams, joinRoom]);
 
-  // Focus typing editor when race starts
+  const charStates = useMemo(() => computeCharStates(snippet.code, typedText), [snippet.code, typedText]);
+
   const focusEditor = useCallback(() => {
     requestAnimationFrame(() => {
       hiddenInputRef.current?.focus();
@@ -130,13 +343,23 @@ export default function Duel() {
       savedRecordRef.current = false;
       focusEditor();
     }
-    if (duelState === "lobby" || duelState === "idle") {
+    if (duelState === "lobby" || duelState === "idle" || duelState === "countdown") {
       setMyFinished(false);
       setMyFinishTimeMs(null);
       setSecondsLeft(null);
       setTypedText("");
+      setMyWpm(0);
+      setMyAcc(100);
+      setRematchSent(false);
     }
   }, [duelState, focusEditor, mode, durationSeconds]);
+
+  // The host starts the countdown once both players are ready; no extra click.
+  useEffect(() => {
+    if (!isHost || duelState !== "lobby" || !isReady || !opponentReady || connectionStatus !== "connected") return;
+    const timer = setTimeout(startMatch, 900);
+    return () => clearTimeout(timer);
+  }, [isHost, duelState, isReady, opponentReady, connectionStatus, startMatch]);
 
   // Timed mode: tick the clock down and end the race when it hits zero.
   useEffect(() => {
@@ -157,20 +380,23 @@ export default function Duel() {
   const raceOver = duelState === "finished" || myFinished || opponent.completed;
 
   // Snippet mode: first to the end wins. Timed mode: both stop at zero, so WPM decides.
-  const isIWinner = useMemo(() => {
-    if (!raceOver) return false;
-    if (mode === "timed") return myWpm >= opponent.wpm;
-    if (myFinished && opponent.completed && myFinishTimeMs !== null && opponent.finishTimeMs !== undefined) {
-      return myFinishTimeMs < opponent.finishTimeMs;
+  const outcome = useMemo<Outcome | null>(() => {
+    if (!raceOver) return null;
+    if (mode === "timed") {
+      const mine = Math.round(myWpm * 10);
+      const theirs = Math.round(opponent.wpm * 10);
+      return mine === theirs ? "draw" : mine > theirs ? "victory" : "defeat";
     }
-    return myFinished;
+    if (myFinished && opponent.completed && myFinishTimeMs !== null && opponent.finishTimeMs !== undefined) {
+      if (myFinishTimeMs === opponent.finishTimeMs) return "draw";
+      return myFinishTimeMs < opponent.finishTimeMs ? "victory" : "defeat";
+    }
+    return myFinished ? "victory" : "defeat";
   }, [raceOver, mode, myFinished, opponent.completed, myFinishTimeMs, opponent.finishTimeMs, myWpm, opponent.wpm]);
 
-  // Automatically save match result when completed
   useEffect(() => {
-    if (raceOver && !savedRecordRef.current && (myWpm > 0 || opponent.wpm > 0)) {
+    if (outcome && !savedRecordRef.current && (myWpm > 0 || opponent.wpm > 0)) {
       savedRecordRef.current = true;
-      const outcome = isIWinner ? "victory" : "defeat";
       const record: DuelRecord = {
         id: `duel-${Date.now()}`,
         timestamp: Date.now(),
@@ -182,13 +408,11 @@ export default function Duel() {
         language: snippet.language,
         outcome,
       };
-      const updated = saveDuelRecord(record);
-      setHistory(updated);
+      setHistory(saveDuelRecord(record));
       setStats(getDuelStats());
     }
-  }, [raceOver, isIWinner, myWpm, opponent.wpm, myAcc, opponent.accuracy, snippet.language, opponent.name]);
+  }, [outcome, myWpm, opponent.wpm, myAcc, opponent.accuracy, snippet.language, opponent.name]);
 
-  // Comprehensive Multiline KeyDown Handler (Handles Enter \n, Tab, Backspace, Space & Characters)
   function handleEditorKeyDown(e: React.KeyboardEvent) {
     if (duelState !== "racing" || myFinished) return;
 
@@ -269,161 +493,154 @@ export default function Duel() {
     });
   }
 
-  function handleCopyCode() {
-    navigator.clipboard.writeText(roomCode);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+  const inviteLink = roomCode ? `${window.location.origin}/duel?room=${roomCode.replace(ROOM_PREFIX, "")}` : "";
+
+  function copy(kind: "link" | "code") {
+    void navigator.clipboard?.writeText(kind === "link" ? inviteLink : roomCode);
+    setCopied(kind);
+    setTimeout(() => setCopied(null), 1800);
+  }
+
+  async function handleCreate() {
+    setCreating(true);
+    await createRoom(snippetForConfig(duelConfig), duelConfig);
+    setCreating(false);
+  }
+
+  function handleJoin() {
+    if (!inputCode.trim()) return;
+    void joinRoom(inputCode);
+  }
+
+  function handleLeave() {
+    leaveDuel();
+    if (searchParams.has("room")) setSearchParams({}, { replace: true });
   }
 
   // The static pool is small, so some lengths cannot be built for some languages.
-  // Marking them keeps the lobby honest instead of silently serving a short run.
   const unavailableLengths = useMemo(() => {
     const budget = maxSnippetCharsForLanguage(selectedLanguage === "All" ? undefined : selectedLanguage);
-    return new Set(
-      (["short", "medium", "long"] as SnippetLength[]).filter(
-        (len) => budget < SNIPPET_LENGTH_SPEC[len].minChars
-      )
-    );
+    return new Set(LENGTHS.filter((len) => budget < SNIPPET_LENGTH_SPEC[len].minChars));
   }, [selectedLanguage]);
 
-  // Handle Mode & Language change by Host
-  function handleHostChangeMode(newMode: TestMode) {
-    const next = { ...duelConfig, mode: newMode };
-    updateLobbyConfig(next, snippetForConfig(next));
-  }
-
-  function handleHostChangeLanguage(lang: string) {
-    const next = { ...duelConfig, selectedLanguage: lang };
-    updateLobbyConfig(next, snippetForConfig(next));
-  }
-
-  function handleHostChangeSnippetLength(len: SnippetLength) {
-    const next = { ...duelConfig, snippetLength: len };
-    updateLobbyConfig(next, snippetForConfig(next));
-  }
-
-  function handleHostChangeDuration(dur: TimedDuration) {
-    const next = { ...duelConfig, durationSeconds: dur };
-    updateLobbyConfig(next, snippetForConfig(next));
-  }
+  // Idle: rules are local. Lobby: the host's change is pushed to the guest with a fresh snippet.
+  const changeRules = (next: DuelConfig) => updateLobbyConfig(next, snippetForConfig(next));
 
   const targetCode = snippet.code;
-  const myProgressPercent = Math.min(100, Math.round((typedText.length / targetCode.length) * 100));
-  const oppProgressPercent = Math.min(100, Math.round((opponent.cursorIndex / targetCode.length) * 100));
+  const myProgressPercent = Math.min(100, (typedText.length / targetCode.length) * 100);
+  const oppProgressPercent = Math.min(100, (opponent.cursorIndex / targetCode.length) * 100);
+  const lead = typedText.length - opponent.cursorIndex;
+  const joining = duelState === "idle" && connectionStatus === "connecting";
+  const opponentHere = connectionStatus === "connected";
+  const inMatch = duelState === "countdown" || duelState === "racing" || duelState === "finished";
+
+  const rulesLabel = `${snippet.language} · ${mode === "timed" ? `${durationSeconds}s timed` : `${snippetLength} snippet`}`;
+
+  const notice = error ?? (opponentLeft ? (isHost ? `${opponent.name} left the room. The invite link still works.` : "The host closed the room.") : null);
+
+  const marginText = (() => {
+    if (!outcome) return "";
+    if (mode === "timed") {
+      const diff = Math.abs(myWpm - opponent.wpm);
+      return outcome === "draw" ? "Dead even on speed." : `${outcome === "victory" ? "Won" : "Lost"} by ${diff.toFixed(1)} WPM`;
+    }
+    if (myFinishTimeMs !== null && opponent.finishTimeMs !== undefined) {
+      const diff = Math.abs(myFinishTimeMs - opponent.finishTimeMs) / 1000;
+      return outcome === "draw" ? "Photo finish." : `${outcome === "victory" ? "Won" : "Lost"} by ${diff.toFixed(2)}s`;
+    }
+    return outcome === "victory"
+      ? `First to the end. ${opponent.name} was at ${Math.round(oppProgressPercent)}%.`
+      : `${opponent.name} finished first. You were at ${Math.round(myProgressPercent)}%.`;
+  })();
 
   return (
     <div className="workspace-shell min-h-screen bg-background transition-colors duration-300">
       <div className="relative mx-auto max-w-5xl px-4 py-8 sm:px-6 sm:py-12">
         <Header />
-        
-        {/* Navigation Breadcrumb */}
+
         <Link to="/" className="mb-5 inline-flex items-center gap-1.5 text-xs font-semibold text-muted-foreground transition-colors hover:text-foreground">
           <ArrowLeft className="size-3.5" /> Back to typing
         </Link>
 
         <header className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <p className="flex items-center gap-1.5 text-[11px] font-mono uppercase tracking-widest text-amber-500 font-bold">
-              <Swords className="size-3.5 text-amber-500" /> Esports Live Arena
+            <p className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.18em] text-amber-600 dark:text-amber-400">
+              <Swords className="size-3.5" /> 1v1 · live
             </p>
-            <h1 className="mt-1 text-2xl sm:text-3xl font-black tracking-tight text-foreground font-sans flex items-center gap-3">
-              1v1 Real-Time Code Race
-              <span className="rounded-md bg-amber-500/15 border border-amber-500/30 px-2 py-0.5 text-[10px] font-mono font-bold text-amber-400">
-                P2P WEBRTC
-              </span>
-            </h1>
-            <p className="mt-1 text-xs text-muted-foreground font-sans max-w-xl leading-relaxed">
-              Test your real-time coding speed against friends or developers. Host a match or join an active room code!
+            <h1 className="mt-1 text-3xl font-black tracking-tight sm:text-4xl">Duel</h1>
+            <p className="mt-1 max-w-xl text-sm text-muted-foreground">
+              Race a friend on the same snippet in real time. Peer to peer, no account needed.
             </p>
           </div>
 
-          <div className="flex items-center gap-2 shrink-0">
-            <div className="flex rounded-xl glass-card p-1 text-xs font-bold shadow-xs">
-              <button
-                type="button"
-                onClick={() => setActiveTab("arena")}
-                className={`flex items-center gap-1.5 rounded-lg px-3.5 py-1.5 text-xs transition-colors cursor-pointer ${activeTab === "arena" ? "bg-foreground text-background shadow-xs font-bold" : "text-muted-foreground hover:bg-muted font-medium"}`}
-              >
-                <Swords className="size-3.5" /> Race Arena
-              </button>
-              <button
-                type="button"
-                onClick={() => setActiveTab("history")}
-                className={`flex items-center gap-1.5 rounded-lg px-3.5 py-1.5 text-xs transition-colors cursor-pointer ${activeTab === "history" ? "bg-foreground text-background shadow-xs font-bold" : "text-muted-foreground hover:bg-muted font-medium"}`}
-              >
-                <History className="size-3.5" /> History ({stats.total})
-              </button>
-            </div>
-
-            {duelState !== "idle" && (
-              <Button type="button" variant="outline" size="sm" onClick={leaveDuel} className="text-red-400 border-red-500/30 hover:bg-red-500/10 h-8 text-xs font-medium">
-                Leave Room
-              </Button>
-            )}
+          <div className="flex shrink-0 rounded-xl border border-border/60 bg-card/70 p-1 text-xs">
+            <button type="button" onClick={() => setActiveTab("arena")} className={cn(segment(activeTab === "arena"), "px-3.5")}>
+              <Swords className="size-3.5" /> Arena
+            </button>
+            <button type="button" onClick={() => setActiveTab("history")} className={cn(segment(activeTab === "history"), "px-3.5")}>
+              <History className="size-3.5" /> History
+              <span className="rounded bg-muted px-1 font-mono text-[10px] text-muted-foreground">{stats.total}</span>
+            </button>
           </div>
         </header>
 
-        {/* ──── TAB 2: MATCH HISTORY & STATS ──── */}
+        {notice && activeTab === "arena" && (
+          <div role="alert" className="mb-4 flex items-start gap-2.5 rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm animate-fade-in">
+            <AlertTriangle className="mt-0.5 size-4 shrink-0 text-amber-600 dark:text-amber-400" />
+            <p className="flex-1">{notice}</p>
+            <button type="button" onClick={clearNotice} aria-label="Dismiss" className="text-muted-foreground hover:text-foreground cursor-pointer">
+              <X className="size-4" />
+            </button>
+          </div>
+        )}
+
         {activeTab === "history" && (
           <div className="space-y-4 animate-fade-in">
-            {/* Stats Overview */}
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-              <div className="rounded-2xl glass-card p-4 shadow-xs">
-                <Trophy className="mb-2 size-4.5 text-amber-400" />
-                <div className="text-2xl sm:text-3xl font-black tabular-nums">{stats.wins} <span className="text-xs font-medium text-muted-foreground">/ {stats.total} W</span></div>
-                <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mt-0.5">Win Rate {stats.winRate}%</div>
-              </div>
-              <div className="rounded-2xl glass-card p-4 shadow-xs">
-                <Flame className="mb-2 size-4.5 text-amber-500 animate-pulse" />
-                <div className="text-2xl sm:text-3xl font-black tabular-nums">{stats.currentStreak} 🔥</div>
-                <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mt-0.5">Current Win Streak</div>
-              </div>
-              <div className="rounded-2xl glass-card p-4 shadow-xs">
-                <Zap className="mb-2 size-4.5 text-sky-400" />
-                <div className="text-2xl sm:text-3xl font-black tabular-nums">{stats.bestWpm.toFixed(1)}</div>
-                <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mt-0.5">Duel WPM Record</div>
-              </div>
-              <div className="rounded-2xl glass-card p-4 shadow-xs">
-                <Swords className="mb-2 size-4.5 text-purple-400" />
-                <div className="text-2xl sm:text-3xl font-black tabular-nums">{stats.losses}</div>
-                <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mt-0.5">Losses</div>
-              </div>
+              {[
+                { icon: Trophy, tone: "text-amber-500", value: `${stats.wins}`, sub: `/ ${stats.total}`, label: `Wins · ${stats.winRate}%` },
+                { icon: Flame, tone: "text-orange-500", value: `${stats.currentStreak}`, label: "Win streak" },
+                { icon: Zap, tone: "text-sky-500", value: stats.bestWpm.toFixed(1), label: "Best duel WPM" },
+                { icon: Swords, tone: "text-rose-500", value: `${stats.losses}`, label: "Losses" },
+              ].map(({ icon: Icon, tone, value, sub, label }) => (
+                <div key={label} className="rounded-2xl border bg-card/80 p-4">
+                  <Icon className={cn("mb-2 size-4.5", tone)} />
+                  <div className="font-mono text-2xl font-black tabular-nums sm:text-3xl">
+                    {value} {sub && <span className="text-xs font-medium text-muted-foreground">{sub}</span>}
+                  </div>
+                  <div className="mt-0.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{label}</div>
+                </div>
+              ))}
             </div>
 
-            {/* Past Matches List */}
-            <div className="rounded-2xl glass-card overflow-hidden shadow-sm">
-              <div className="border-b border-border/40 bg-muted/40 px-5 py-3 text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                📜 1v1 Duel Match Logs
-              </div>
+            <div className="overflow-hidden rounded-2xl border bg-card/80">
+              <div className="border-b bg-muted/40 px-5 py-3 text-xs font-bold uppercase tracking-wider text-muted-foreground">Recent duels</div>
               {history.length === 0 ? (
-                <div className="grid h-40 place-items-center text-xs text-muted-foreground">
-                  No duel history yet. Create or join a duel room to test your skills!
+                <div className="grid h-40 place-items-center px-5 text-center text-sm text-muted-foreground">
+                  No duels yet. Create a room and send the link to a friend.
                 </div>
               ) : (
-                <div className="divide-y divide-border/30 max-h-[420px] overflow-y-auto">
+                <div className="max-h-[420px] divide-y divide-border/40 overflow-y-auto">
                   {history.map((record) => {
-                    const isWin = record.outcome === "victory";
-                    const wpmDiff = (record.myWpm - record.oppWpm).toFixed(1);
+                    const tone = record.outcome === "victory" ? "text-emerald-600 dark:text-emerald-400" : record.outcome === "draw" ? "text-muted-foreground" : "text-rose-500";
+                    const Icon = record.outcome === "victory" ? CheckCircle2 : record.outcome === "draw" ? MinusCircle : XCircle;
+                    const diff = record.myWpm - record.oppWpm;
                     return (
-                      <div key={record.id} className="grid grid-cols-[100px_1fr_120px_80px] items-center gap-3 px-5 py-3 text-xs hover:bg-muted/30 transition-colors">
-                        <div className={`flex items-center gap-1.5 font-bold ${isWin ? "text-emerald-400" : "text-red-400"}`}>
-                          {isWin ? <CheckCircle2 className="size-4" /> : <XCircle className="size-4" />}
-                          <span className="uppercase font-black text-[11px]">{isWin ? "WIN" : "LOSS"}</span>
-                        </div>
-
-                        <div>
-                          <p className="font-bold text-foreground text-xs">vs {record.opponentName}</p>
+                      <div key={record.id} className="grid grid-cols-[72px_1fr_auto_64px] items-center gap-3 px-5 py-3 text-xs transition-colors hover:bg-muted/30">
+                        <span className={cn("flex items-center gap-1.5 text-[11px] font-black uppercase", tone)}>
+                          <Icon className="size-4" /> {record.outcome === "victory" ? "Win" : record.outcome === "draw" ? "Draw" : "Loss"}
+                        </span>
+                        <div className="min-w-0">
+                          <p className="truncate font-bold">vs {record.opponentName}</p>
                           <p className="text-[10px] text-muted-foreground">{record.language} · {new Date(record.timestamp).toLocaleDateString()}</p>
                         </div>
-
-                        <div className="text-right">
-                          <p className="font-mono font-bold text-foreground tabular-nums text-xs">{record.myWpm.toFixed(1)} WPM</p>
-                          <p className="text-[10px] text-muted-foreground">vs {record.oppWpm.toFixed(1)} WPM</p>
+                        <div className="text-right font-mono tabular-nums">
+                          <p className="font-bold">{record.myWpm.toFixed(1)} wpm</p>
+                          <p className="text-[10px] text-muted-foreground">vs {record.oppWpm.toFixed(1)}</p>
                         </div>
-
-                        <div className={`text-right font-mono font-bold text-xs ${isWin ? "text-emerald-400" : "text-red-400"}`}>
-                          {isWin ? `+${wpmDiff}` : wpmDiff}
-                        </div>
+                        <span className={cn("text-right font-mono font-bold tabular-nums", tone)}>
+                          {diff > 0 ? "+" : ""}{diff.toFixed(1)}
+                        </span>
                       </div>
                     );
                   })}
@@ -433,410 +650,291 @@ export default function Duel() {
           </div>
         )}
 
-        {/* ──── TAB 1: RACE ARENA ──── */}
         {activeTab === "arena" && (
           <div className="space-y-5">
-            {/* ──── SCREEN 1: IDLE (SELECT MODE & LANGUAGE BEFORE DUEL) ──── */}
+            {/* ──── IDLE: host or join ──── */}
             {duelState === "idle" && (
-              <div className="space-y-4">
-                {/* Pre-Race Mode & Language Selector Bar */}
-                <div className="glass-card rounded-2xl p-4 shadow-sm space-y-3">
-                  <div className="flex items-center justify-between border-b border-border/40 pb-2.5">
-                    <div className="flex items-center gap-2">
-                      <Sliders className="size-4 text-amber-500" />
-                      <h4 className="font-bold text-xs tracking-tight text-foreground font-sans">Arena Match Configuration</h4>
-                    </div>
-                    <span className="text-[11px] text-muted-foreground font-sans">Host settings apply to both duelists</span>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                    {/* Mode Selector */}
-                    <div>
-                      <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block mb-1">Match Mode</label>
-                      <div className="flex rounded-xl border border-border/60 bg-card/60 p-0.5 h-9">
-                        <button
-                          type="button"
-                          onClick={() => handleHostChangeMode("snippet")}
-                          className={`flex-1 flex items-center justify-center gap-1.5 rounded-lg text-xs transition-all cursor-pointer ${mode === "snippet" ? "bg-foreground text-background shadow-xs font-bold" : "text-muted-foreground hover:text-foreground font-medium"}`}
-                        >
-                          <Zap className="size-3.5" /> Snippet
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleHostChangeMode("timed")}
-                          className={`flex-1 flex items-center justify-center gap-1.5 rounded-lg text-xs transition-all cursor-pointer ${mode === "timed" ? "bg-foreground text-background shadow-xs font-bold" : "text-muted-foreground hover:text-foreground font-medium"}`}
-                        >
-                          <Timer className="size-3.5" /> Timer
-                        </button>
+              <div className="space-y-4 animate-fade-in">
+                <div className="grid gap-4 md:grid-cols-2">
+                  <section className="flex flex-col gap-4 rounded-2xl border border-amber-500/30 bg-card/80 p-5">
+                    <div className="flex items-start gap-3">
+                      <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-amber-500/15 text-amber-600 dark:text-amber-400">
+                        <Swords className="size-5" />
+                      </span>
+                      <div>
+                        <h2 className="text-base font-extrabold">Host a duel</h2>
+                        <p className="text-xs text-muted-foreground">Pick the rules, then share the invite link.</p>
                       </div>
                     </div>
+                    <MatchRules config={duelConfig} onChange={changeRules} languages={languages} unavailableLengths={unavailableLengths} />
+                    <button
+                      type="button"
+                      onClick={() => void handleCreate()}
+                      disabled={creating}
+                      className="mt-auto flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-amber-500 text-sm font-black text-zinc-950 shadow-sm transition-colors hover:bg-amber-400 disabled:opacity-70 cursor-pointer"
+                    >
+                      {creating ? <Loader2 className="size-4 animate-spin" /> : <Play className="size-4 fill-current" />}
+                      {creating ? "Opening room…" : "Create room"}
+                    </button>
+                  </section>
 
-                    {/* Language Selector */}
-                    <div>
-                      <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block mb-1">Programming Language</label>
-                      <select
-                        value={selectedLanguage}
-                        onChange={(e) => handleHostChangeLanguage(e.target.value)}
-                        className="w-full h-9 rounded-xl border border-border/60 bg-card/60 px-3 text-xs font-mono font-semibold text-foreground cursor-pointer focus:outline-none focus:ring-1 focus:ring-amber-500"
-                      >
-                        {languages.map((l) => (
-                          <option key={l}>{l}</option>
-                        ))}
-                      </select>
+                  <section className="flex flex-col gap-4 rounded-2xl border border-sky-500/30 bg-card/80 p-5">
+                    <div className="flex items-start gap-3">
+                      <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-sky-500/15 text-sky-600 dark:text-sky-400">
+                        <Users className="size-5" />
+                      </span>
+                      <div>
+                        <h2 className="text-base font-extrabold">Join a duel</h2>
+                        <p className="text-xs text-muted-foreground">Open your friend's invite link, or type the room code.</p>
+                      </div>
                     </div>
-
-                    {/* Format Sub-Option (Length or Timed Seconds) */}
-                    <div>
-                      <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block mb-1">
-                        {mode === "snippet" ? "Snippet Length" : "Duration"}
+                    <form
+                      className="mt-auto flex gap-2"
+                      onSubmit={(event) => {
+                        event.preventDefault();
+                        handleJoin();
+                      }}
+                    >
+                      <label className="flex h-11 min-w-0 flex-1 items-center rounded-xl border border-border/70 bg-background/80 font-mono text-sm font-bold focus-within:ring-2 focus-within:ring-sky-500/60">
+                        <span className="select-none pl-3.5 text-muted-foreground">{ROOM_PREFIX}</span>
+                        <input
+                          type="text"
+                          inputMode="text"
+                          autoComplete="off"
+                          spellCheck={false}
+                          maxLength={12}
+                          placeholder="X8K2QA"
+                          value={inputCode}
+                          onChange={(event) => setInputCode(event.target.value.toUpperCase().replace(ROOM_PREFIX, "").replace(/[^A-Z0-9]/g, ""))}
+                          onKeyDown={(event) => event.stopPropagation()}
+                          aria-label="Room code"
+                          className="h-full min-w-0 flex-1 bg-transparent pr-3 uppercase tracking-[0.2em] placeholder:text-muted-foreground/40 focus:outline-none"
+                        />
                       </label>
-                      <div className="flex gap-1.5 h-9 items-center">
-                        {mode === "snippet" ? (
-                          (["short", "medium", "long"] as SnippetLength[]).map((len) => (
-                            <button
-                              key={len}
-                              type="button"
-                              onClick={() => handleHostChangeSnippetLength(len)}
-                              className={`flex-1 h-9 rounded-xl border text-xs font-semibold capitalize transition-all cursor-pointer ${snippetLength === len ? "bg-amber-500 text-zinc-950 border-amber-500 font-bold shadow-xs" : "border-border/60 bg-card/60 text-muted-foreground hover:text-foreground"}`}
-                            >
-                              {len}
-                            </button>
-                          ))
-                        ) : (
-                          ([15, 30, 60] as TimedDuration[]).map((dur) => (
-                            <button
-                              key={dur}
-                              type="button"
-                              onClick={() => handleHostChangeDuration(dur)}
-                              className={`flex-1 h-9 rounded-xl border text-xs font-semibold transition-all cursor-pointer ${durationSeconds === dur ? "bg-amber-500 text-zinc-950 border-amber-500 font-bold shadow-xs" : "border-border/60 bg-card/60 text-muted-foreground hover:text-foreground"}`}
-                            >
-                              {dur}s
-                            </button>
-                          ))
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Create or Join Room Action Cards */}
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                  {/* Create Card */}
-                  <div className="glass-card rounded-2xl p-6 border border-amber-500/30 bg-gradient-to-br from-amber-500/10 via-card/60 to-card/60 flex flex-col justify-between space-y-5 shadow-sm hover:border-amber-500/50 transition-all duration-300">
-                    <div className="flex items-start gap-3.5">
-                      <div className="size-11 rounded-2xl bg-amber-500/20 text-amber-400 border border-amber-500/40 flex items-center justify-center shrink-0 shadow-xs">
-                        <Swords className="size-5.5" />
-                      </div>
-                      <div>
-                        <h4 className="font-extrabold text-base text-foreground font-sans">Create Duel Room</h4>
-                        <p className="text-xs text-muted-foreground mt-1 leading-relaxed font-sans">
-                          Host a new live match with your selected rules and share the room code with an opponent.
-                        </p>
-                      </div>
-                    </div>
-                    <Button
-                      type="button"
-                      onClick={() => void createRoom(snippetForConfig(duelConfig), duelConfig)}
-                      className="w-full h-11 rounded-xl bg-amber-500 hover:bg-amber-400 text-zinc-950 font-black text-sm transition-all shadow-md cursor-pointer flex items-center justify-center gap-2"
-                    >
-                      <Play className="size-4 fill-current" /> Create New Room
-                    </Button>
-                  </div>
-
-                  {/* Join Card */}
-                  <div className="glass-card rounded-2xl p-6 border border-sky-500/30 bg-gradient-to-br from-sky-500/10 via-card/60 to-card/60 flex flex-col justify-between space-y-5 shadow-sm hover:border-sky-500/50 transition-all duration-300">
-                    <div className="flex items-start gap-3.5">
-                      <div className="size-11 rounded-2xl bg-sky-500/20 text-sky-400 border border-sky-500/40 flex items-center justify-center shrink-0 shadow-xs">
-                        <Users className="size-5.5" />
-                      </div>
-                      <div>
-                        <h4 className="font-extrabold text-base text-foreground font-sans">Join Friend's Room</h4>
-                        <p className="text-xs text-muted-foreground mt-1 leading-relaxed font-sans">
-                          Have a room code from an opponent? Enter the 6-character room code below to race.
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex w-full gap-2.5">
-                      <input
-                        type="text"
-                        placeholder="EG: CODEY-X892"
-                        value={inputCode}
-                        onChange={(e) => setInputCode(e.target.value.toUpperCase())}
-                        onKeyDown={(e) => {
-                          e.stopPropagation();
-                          if (e.key === "Enter" && inputCode.trim()) {
-                            void joinRoom(inputCode);
-                          }
-                        }}
-                        className="h-11 flex-1 rounded-xl border border-border/70 bg-background/80 px-3.5 text-center text-sm font-mono font-bold uppercase tracking-wider text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-sky-500"
-                      />
-                      <Button
-                        type="button"
-                        disabled={!inputCode.trim()}
-                        onClick={() => void joinRoom(inputCode)}
-                        className="h-11 px-6 rounded-xl bg-sky-500 hover:bg-sky-400 text-zinc-950 font-black text-sm transition-all shadow-md disabled:opacity-40 cursor-pointer"
+                      <button
+                        type="submit"
+                        disabled={!inputCode.trim() || joining}
+                        className="flex h-11 items-center gap-1.5 rounded-xl bg-sky-500 px-5 text-sm font-black text-zinc-950 transition-colors hover:bg-sky-400 disabled:opacity-40 cursor-pointer"
                       >
-                        Join
-                      </Button>
-                    </div>
-                  </div>
+                        {joining && <Loader2 className="size-4 animate-spin" />}
+                        {joining ? "Joining" : "Join"}
+                      </button>
+                    </form>
+                  </section>
                 </div>
+
+                <ol className="grid gap-2 text-xs text-muted-foreground sm:grid-cols-3">
+                  {["Create a room and pick the rules.", "Send the invite link to your opponent.", "Both press Ready. The race starts on its own."].map((step, index) => (
+                    <li key={step} className="flex items-center gap-2.5 rounded-xl border border-border/50 bg-card/50 px-3.5 py-2.5">
+                      <span className="grid size-5 shrink-0 place-items-center rounded-full bg-muted font-mono text-[10px] font-bold text-foreground">{index + 1}</span>
+                      {step}
+                    </li>
+                  ))}
+                </ol>
               </div>
             )}
 
-            {/* ──── SCREEN 2: LOBBY ──── */}
+            {/* ──── LOBBY ──── */}
             {duelState === "lobby" && (
-              <div className="space-y-4 glass-card rounded-2xl p-4 sm:p-5 shadow-sm">
-                {/* Room Link Bar */}
-                <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3">
-                  <div>
-                    <span className="text-[10px] uppercase tracking-wider text-amber-400 font-bold block">📋 Duel Room Code</span>
-                    <span className="text-xl sm:text-2xl font-black font-mono tracking-widest text-foreground">{roomCode}</span>
+              <div className="space-y-4 rounded-2xl border bg-card/80 p-4 animate-fade-in sm:p-5">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Room</p>
+                    <p className="font-mono text-xl font-black tracking-widest sm:text-2xl">{roomCode}</p>
                   </div>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={handleCopyCode}
-                    className="h-8 px-3 text-xs font-bold border-amber-500/40 text-amber-400 hover:bg-amber-500/20 rounded-lg cursor-pointer"
-                  >
-                    {copied ? <Check className="size-3.5" /> : <Copy className="size-3.5" />}
-                    {copied ? "Copied!" : "Copy Code"}
-                  </Button>
-                </div>
-
-                {/* Agreed match settings — rendered identically for host and guest */}
-                <div className="rounded-xl border border-border/50 bg-card/40 p-3.5 space-y-3">
-                  <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/40 pb-2">
-                    <span className="text-xs uppercase tracking-wider text-foreground font-bold flex items-center gap-1.5 font-sans">
-                      <Code2 className="size-3.5 text-amber-400" /> Duel Match Rules {isHost ? "(Host)" : "(Set by Host)"}
-                    </span>
-                    <span className="text-[11px] font-semibold text-muted-foreground">
-                      {connectionStatus === "connected" ? "🟢 Both players connected" : "⏳ Waiting for opponent..."}
-                    </span>
-                  </div>
-
-                  {/* The three facts both players must agree on before racing */}
-                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-                    <div className="rounded-lg border border-border/50 bg-background/50 px-2.5 py-2">
-                      <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Mode</div>
-                      <div className="mt-0.5 flex items-center gap-1 text-xs font-bold text-foreground">
-                        {mode === "timed" ? <Timer className="size-3 text-amber-400" /> : <Zap className="size-3 text-amber-400" />}
-                        {mode === "timed" ? "Timer" : "Snippet"}
-                      </div>
-                    </div>
-                    <div className="rounded-lg border border-border/50 bg-background/50 px-2.5 py-2">
-                      <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Language</div>
-                      <div className="mt-0.5 flex items-center gap-1 text-xs font-bold text-foreground">
-                        <Code2 className="size-3 text-sky-400" />
-                        {snippet.language}
-                      </div>
-                    </div>
-                    <div className="rounded-lg border border-border/50 bg-background/50 px-2.5 py-2">
-                      <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
-                        {mode === "timed" ? "Duration" : "Snippet Length"}
-                      </div>
-                      <div className="mt-0.5 text-xs font-bold capitalize text-foreground">
-                        {mode === "timed" ? `${durationSeconds}s` : snippetLength}
-                      </div>
-                    </div>
-                    <div className="rounded-lg border border-border/50 bg-background/50 px-2.5 py-2">
-                      <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Code Length</div>
-                      <div className="mt-0.5 font-mono text-xs font-bold tabular-nums text-foreground">{snippet.code.length} chars</div>
-                    </div>
-                  </div>
-
-                  {isHost ? (
-                    <div className="flex flex-wrap items-center gap-2 border-t border-border/40 pt-2.5">
-                      <div className="flex rounded-lg border border-border/60 bg-card/60 p-0.5 h-8">
+                  <div className="flex flex-wrap items-center gap-2">
+                    {isHost && (
+                      <>
                         <button
                           type="button"
-                          onClick={() => handleHostChangeMode("snippet")}
-                          className={`flex items-center gap-1 rounded-md px-2.5 py-1 text-xs font-semibold transition-all cursor-pointer ${mode === "snippet" ? "bg-foreground text-background shadow-xs font-bold" : "text-muted-foreground hover:text-foreground"}`}
+                          onClick={() => copy("link")}
+                          className="flex h-9 items-center gap-1.5 rounded-xl bg-foreground px-3.5 text-xs font-bold text-background transition-opacity hover:opacity-90 cursor-pointer"
                         >
-                          <Zap className="size-3" /> Snippet
+                          {copied === "link" ? <Check className="size-3.5" /> : <Link2 className="size-3.5" />}
+                          {copied === "link" ? "Link copied" : "Copy invite link"}
                         </button>
                         <button
                           type="button"
-                          onClick={() => handleHostChangeMode("timed")}
-                          className={`flex items-center gap-1 rounded-md px-2.5 py-1 text-xs font-semibold transition-all cursor-pointer ${mode === "timed" ? "bg-foreground text-background shadow-xs font-bold" : "text-muted-foreground hover:text-foreground"}`}
+                          onClick={() => copy("code")}
+                          className="flex h-9 items-center gap-1.5 rounded-xl border border-border/70 px-3 text-xs font-semibold transition-colors hover:bg-muted cursor-pointer"
                         >
-                          <Timer className="size-3" /> Timed
+                          {copied === "code" ? <Check className="size-3.5" /> : <Copy className="size-3.5" />}
+                          {copied === "code" ? "Copied" : "Code"}
                         </button>
-                      </div>
-
-                      <select
-                        value={selectedLanguage}
-                        onChange={(e) => handleHostChangeLanguage(e.target.value)}
-                        className="h-8 rounded-lg border border-border/60 bg-card/60 px-2.5 text-xs font-mono font-semibold text-foreground cursor-pointer"
-                      >
-                        {languages.map((l) => (
-                          <option key={l}>{l}</option>
-                        ))}
-                      </select>
-
-                      <div className="flex gap-1 h-8 items-center">
-                        {mode === "snippet"
-                          ? (["short", "medium", "long"] as SnippetLength[]).map((len) => (
-                              <button
-                                key={len}
-                                type="button"
-                                onClick={() => handleHostChangeSnippetLength(len)}
-                                title={unavailableLengths.has(len) ? `Not enough ${selectedLanguage} snippets for a full ${len} run` : undefined}
-                                className={`h-8 rounded-lg border px-2 text-xs font-semibold capitalize transition-all cursor-pointer ${snippetLength === len ? "bg-amber-500 text-zinc-950 border-amber-500 font-bold shadow-xs" : "border-border/60 bg-card/60 text-muted-foreground hover:text-foreground"}`}
-                              >
-                                {len}{unavailableLengths.has(len) ? " *" : ""}
-                              </button>
-                            ))
-                          : ([15, 30, 60] as TimedDuration[]).map((dur) => (
-                              <button
-                                key={dur}
-                                type="button"
-                                onClick={() => handleHostChangeDuration(dur)}
-                                className={`h-8 rounded-lg border px-2 text-xs font-semibold transition-all cursor-pointer ${durationSeconds === dur ? "bg-amber-500 text-zinc-950 border-amber-500 font-bold shadow-xs" : "border-border/60 bg-card/60 text-muted-foreground hover:text-foreground"}`}
-                              >
-                                {dur}s
-                              </button>
-                            ))}
-                      </div>
-
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => updateLobbyConfig(duelConfig, snippetForConfig(duelConfig))}
-                        className="h-8 gap-1 text-xs font-semibold rounded-lg cursor-pointer"
-                      >
-                        <Sparkles className="size-3 text-amber-400" /> Randomize Snippet
-                      </Button>
-                    </div>
-                  ) : (
-                    <p className="border-t border-border/40 pt-2 text-xs text-muted-foreground">
-                      {opponent.name} is the Host and manages match settings. You will both type the exact same code.
-                    </p>
-                  )}
-
-                  {isHost && mode === "snippet" && unavailableLengths.has(snippetLength) && (
-                    <p className="text-[10px] text-amber-400/80">
-                      * Limited {selectedLanguage} snippets available — you will race with {snippet.code.length} characters.
-                    </p>
-                  )}
-                </div>
-
-                {/* Matchup Players Grid */}
-                <div className="grid grid-cols-2 gap-3 sm:gap-4">
-                  <div className={`rounded-xl border p-4 text-center space-y-2.5 transition-all ${isReady ? "border-emerald-500/50 bg-emerald-500/10 shadow-xs" : "border-border/60 bg-card/40"}`}>
-                    <div className="grid size-12 place-items-center mx-auto rounded-xl bg-amber-500 text-zinc-950 font-black text-lg shadow-xs">
-                      {playerName.slice(0, 1).toUpperCase()}
-                    </div>
-                    <h4 className="font-bold text-xs sm:text-sm text-foreground">{playerName} (You)</h4>
-                    <Button
+                      </>
+                    )}
+                    <button
                       type="button"
-                      variant={isReady ? "default" : "outline"}
-                      size="sm"
-                      onClick={toggleReady}
-                      className="w-full h-8 text-xs font-bold rounded-lg cursor-pointer"
+                      onClick={handleLeave}
+                      className="flex h-9 items-center gap-1.5 rounded-xl border border-border/70 px-3 text-xs font-semibold text-muted-foreground transition-colors hover:border-rose-500/40 hover:bg-rose-500/10 hover:text-rose-500 cursor-pointer"
                     >
-                      {isReady ? "READY TO RACE ✓" : "Click to Ready"}
-                    </Button>
-                  </div>
-
-                  <div className={`rounded-xl border p-4 text-center space-y-2.5 transition-all ${opponentReady ? "border-emerald-500/50 bg-emerald-500/10 shadow-xs" : "border-border/60 bg-card/40"}`}>
-                    <div className="grid size-12 place-items-center mx-auto rounded-xl bg-sky-500 text-zinc-950 font-black text-lg shadow-xs">
-                      {opponent.name.slice(0, 1).toUpperCase()}
-                    </div>
-                    <h4 className="font-bold text-xs sm:text-sm text-foreground">{opponent.name}</h4>
-                    <div className={`text-xs font-semibold py-1.5 rounded-lg border ${opponentReady ? "border-emerald-500/40 text-emerald-400 bg-emerald-500/15 font-bold" : "border-border/60 text-muted-foreground bg-card/40"}`}>
-                      {connectionStatus === "connected" ? (opponentReady ? "READY TO RACE ✓" : "Waiting for opponent...") : "Waiting for opponent to join..."}
-                    </div>
+                      <LogOut className="size-3.5" /> Leave
+                    </button>
                   </div>
                 </div>
 
-                {/* Start Race Button (Host only) */}
-                {isHost && (
-                  <Button
-                    type="button"
-                    disabled={!isReady || !opponentReady}
-                    onClick={startMatch}
-                    className="w-full h-10 font-black bg-amber-500 hover:bg-amber-400 text-zinc-950 text-xs sm:text-sm rounded-xl shadow-md transition-all cursor-pointer flex items-center justify-center gap-1.5"
+                <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 sm:gap-4">
+                  <PlayerSlot name={playerName} tone="you" ready={isReady} label={isHost ? "You · host" : "You"} />
+                  <span className="duel-vs select-none text-2xl font-black italic text-muted-foreground/70 sm:text-4xl">VS</span>
+                  <PlayerSlot
+                    name={opponent.name}
+                    tone="them"
+                    ready={opponentReady}
+                    empty={!opponentHere}
+                    label={isHost ? "Opponent" : "Host"}
                   >
-                    <Play className="size-4 fill-current" /> START DUEL NOW!
-                  </Button>
-                )}
-              </div>
-            )}
+                    {!opponentHere && isHost && (
+                      <button type="button" onClick={() => copy("link")} className="mt-1 flex items-center gap-1.5 rounded-lg border border-border/70 px-2.5 py-1 text-[11px] font-semibold hover:bg-muted cursor-pointer">
+                        {copied === "link" ? <Check className="size-3" /> : <Link2 className="size-3" />}
+                        {copied === "link" ? "Copied" : "Copy link"}
+                      </button>
+                    )}
+                  </PlayerSlot>
+                </div>
 
-            {/* ──── SCREEN 3: COUNTDOWN ──── */}
-            {duelState === "countdown" && (
-              <div className="grid h-80 place-items-center text-center space-y-4 animate-fade-in rounded-3xl border bg-card/80 p-8 shadow-xl">
-                <span className="text-8xl font-black text-amber-400 animate-ping">{countdownSeconds}</span>
-                <div className="space-y-2">
-                  <p className="text-base font-bold text-muted-foreground uppercase tracking-widest">GET READY TO TYPE!</p>
-                  <p className="text-sm font-bold text-foreground">
-                    {snippet.language} · {mode === "timed" ? `Timed ${durationSeconds}s` : `${snippetLength} snippet`} · vs {opponent.name}
+                <div className="space-y-2.5 rounded-xl border border-border/50 bg-background/40 p-3.5">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <p className="flex items-center gap-1.5 text-xs font-bold">
+                      <Code2 className="size-3.5 text-amber-500" /> Rules
+                      <span className="font-normal text-muted-foreground">{isHost ? "· you set these" : `· set by ${opponent.name}`}</span>
+                    </p>
+                    <p className="font-mono text-[11px] text-muted-foreground">
+                      {rulesLabel} · {snippet.code.length} chars
+                    </p>
+                  </div>
+                  {isHost ? (
+                    <MatchRules
+                      config={duelConfig}
+                      onChange={changeRules}
+                      onShuffle={() => updateLobbyConfig(duelConfig, snippetForConfig(duelConfig))}
+                      languages={languages}
+                      unavailableLengths={unavailableLengths}
+                    />
+                  ) : (
+                    <p className="text-xs text-muted-foreground">You will both type the exact same code. Changing rules un-readies you so nothing starts by surprise.</p>
+                  )}
+                  {isHost && mode === "snippet" && unavailableLengths.has(snippetLength) && (
+                    <p className="text-[11px] text-amber-600 dark:text-amber-400">
+                      * Limited {selectedLanguage} snippets. This race is {snippet.code.length} characters.
+                    </p>
+                  )}
+                </div>
+
+                <div className="flex flex-col items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={toggleReady}
+                    disabled={!opponentHere}
+                    className={cn(
+                      "flex h-12 w-full max-w-sm items-center justify-center gap-2 rounded-xl text-sm font-black transition-colors disabled:cursor-not-allowed disabled:opacity-50 cursor-pointer",
+                      isReady ? "border border-emerald-500/50 bg-emerald-500/15 text-emerald-700 dark:text-emerald-300" : "bg-amber-500 text-zinc-950 hover:bg-amber-400"
+                    )}
+                  >
+                    {isReady ? <Check className="size-4" strokeWidth={3} /> : <Play className="size-4 fill-current" />}
+                    {isReady ? "Ready. Click to cancel" : "I'm ready"}
+                  </button>
+                  <p className="text-xs text-muted-foreground" aria-live="polite">
+                    {!opponentHere
+                      ? "Waiting for your opponent to join."
+                      : isReady && opponentReady
+                        ? "Both ready. Starting…"
+                        : isReady
+                          ? `Waiting for ${opponent.name} to ready up.`
+                          : opponentReady
+                            ? `${opponent.name} is ready. Your move.`
+                            : "The race starts as soon as you are both ready."}
                   </p>
                 </div>
               </div>
             )}
 
-            {/* ──── SCREEN 4: RACING & RESULTS (VS CODE CODE DISPLAY LAYOUT) ──── */}
-            {(duelState === "racing" || duelState === "finished") && (
-              <div className="space-y-6">
-                {/* Live Progress Track */}
-                <div className="space-y-4 rounded-3xl border bg-card/90 p-6 shadow-xl">
-                  {/* Match settings stay visible mid-race so both players know what they are running */}
-                  <div className="flex flex-wrap items-center gap-2 border-b pb-3 text-[11px] font-bold uppercase tracking-wider">
-                    <span className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-2 py-1 text-amber-400 flex items-center gap-1.5">
-                      {mode === "timed" ? <Timer className="size-3.5" /> : <Zap className="size-3.5" />}
-                      {mode === "timed" ? `Timed ${durationSeconds}s` : `${snippetLength} Snippet`}
-                    </span>
-                    <span className="rounded-lg border border-sky-500/40 bg-sky-500/10 px-2 py-1 text-sky-400 flex items-center gap-1.5">
-                      <Code2 className="size-3.5" /> {snippet.language}
-                    </span>
-                    <span className="rounded-lg border bg-muted/40 px-2 py-1 text-muted-foreground font-mono tabular-nums">
-                      {snippet.code.length} chars
-                    </span>
-                  </div>
-
-                  {mode === "timed" && secondsLeft !== null && (
-                    <div className="flex items-center justify-center gap-2 pb-2">
-                      <Timer className={`size-5 ${secondsLeft <= 5 ? "text-red-400" : "text-amber-400"}`} />
-                      <span className={`font-mono text-3xl font-black tabular-nums ${secondsLeft <= 5 ? "text-red-400 animate-pulse" : "text-amber-400"}`}>
-                        {secondsLeft}s
-                      </span>
-                    </div>
-                  )}
-
-                  {/* My Progress */}
-                  <div className="space-y-1.5">
-                    <div className="flex justify-between text-xs font-bold">
-                      <span className="text-amber-400 flex items-center gap-1.5">🏎️ {playerName} (You)</span>
-                      <span className="font-mono tabular-nums text-sm">{myWpm.toFixed(1)} WPM · {myAcc}% ACC</span>
-                    </div>
-                    <div className="h-4 rounded-full bg-muted overflow-hidden p-0.5">
-                      <div className="h-full bg-amber-500 rounded-full transition-all duration-150 shadow-md" style={{ width: `${myProgressPercent}%` }} />
+            {/* ──── COUNTDOWN, RACE, RESULT ──── */}
+            {inMatch && (
+              <div className="space-y-4">
+                <div className="space-y-3 rounded-2xl border bg-card/80 p-4 sm:p-5">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <p className="font-mono text-[11px] text-muted-foreground">{rulesLabel} · {snippet.code.length} chars</p>
+                    <div className="flex items-center gap-3">
+                      {duelState === "racing" && !raceOver && (
+                        <span
+                          className={cn(
+                            "rounded-full px-2.5 py-0.5 text-[11px] font-bold",
+                            lead > 0 ? "bg-amber-500/15 text-amber-700 dark:text-amber-300" : lead < 0 ? "bg-sky-500/15 text-sky-700 dark:text-sky-300" : "bg-muted text-muted-foreground"
+                          )}
+                        >
+                          {mode === "timed"
+                            ? myWpm === opponent.wpm ? "Even pace" : myWpm > opponent.wpm ? `Ahead by ${(myWpm - opponent.wpm).toFixed(0)} wpm` : `Behind by ${(opponent.wpm - myWpm).toFixed(0)} wpm`
+                            : lead === 0 ? "Neck and neck" : lead > 0 ? `Leading by ${lead} chars` : `Behind by ${-lead} chars`}
+                        </span>
+                      )}
+                      {mode === "timed" && (
+                        <span className={cn("flex items-center gap-1 font-mono text-lg font-black tabular-nums", secondsLeft !== null && secondsLeft <= 5 ? "text-rose-500" : "text-foreground")}>
+                          <Timer className="size-4" /> {secondsLeft ?? durationSeconds}s
+                        </span>
+                      )}
                     </div>
                   </div>
-
-                  {/* Opponent Progress */}
-                  <div className="space-y-1.5">
-                    <div className="flex justify-between text-xs font-bold">
-                      <span className="text-sky-400 flex items-center gap-1.5">🏎️ {opponent.name}</span>
-                      <span className="font-mono tabular-nums text-sm">{opponent.wpm.toFixed(1)} WPM · {opponent.accuracy}% ACC</span>
-                    </div>
-                    <div className="h-4 rounded-full bg-muted overflow-hidden p-0.5">
-                      <div className="h-full bg-sky-500 rounded-full transition-all duration-150 shadow-md" style={{ width: `${oppProgressPercent}%` }} />
-                    </div>
-                  </div>
+                  <RaceLane name={`${playerName} (you)`} tone="you" percent={myProgressPercent} wpm={myWpm} accuracy={myAcc} done={myFinished} />
+                  <RaceLane name={opponent.name} tone="them" percent={oppProgressPercent} wpm={opponent.wpm} accuracy={opponent.accuracy} done={opponent.completed} />
                 </div>
 
-                {/* Authentic VS Code Editor CodeDisplay Window */}
+                {raceOver && outcome && (
+                  <section
+                    className={cn(
+                      "duel-result rounded-2xl border p-5 text-center animate-scale-in sm:p-6",
+                      outcome === "victory" ? "border-amber-500/50 bg-amber-500/10" : outcome === "draw" ? "border-border bg-card/80" : "border-border bg-card/80"
+                    )}
+                  >
+                    <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-muted-foreground">Race over</p>
+                    <h2 className={cn("mt-1 text-4xl font-black tracking-tight", outcome === "victory" && "text-amber-600 dark:text-amber-400")}>
+                      {outcome === "victory" ? "You win" : outcome === "draw" ? "Draw" : `${opponent.name} wins`}
+                    </h2>
+                    <p className="mt-1 text-sm text-muted-foreground">{marginText}</p>
+
+                    <div className="mx-auto mt-5 grid max-w-xl grid-cols-[1fr_auto_1fr] items-center gap-3">
+                      <div className="space-y-2 rounded-xl border bg-background/50 p-3">
+                        <p className="flex items-center justify-center gap-1.5 text-xs font-bold"><Avatar name={playerName} tone="you" size="sm" /> You</p>
+                        <div className="grid grid-cols-2 gap-2">
+                          <StatColumn label="WPM" value={myWpm.toFixed(1)} highlight={myWpm > opponent.wpm} />
+                          <StatColumn label="Acc" value={`${myAcc}`} unit="%" highlight={myAcc > opponent.accuracy} />
+                        </div>
+                      </div>
+                      <span className="text-sm font-black italic text-muted-foreground">VS</span>
+                      <div className="space-y-2 rounded-xl border bg-background/50 p-3">
+                        <p className="flex items-center justify-center gap-1.5 text-xs font-bold"><Avatar name={opponent.name} tone="them" size="sm" /> <span className="truncate">{opponent.name}</span></p>
+                        <div className="grid grid-cols-2 gap-2">
+                          <StatColumn label="WPM" value={opponent.wpm.toFixed(1)} highlight={opponent.wpm > myWpm} />
+                          <StatColumn label="Acc" value={`${opponent.accuracy}`} unit="%" highlight={opponent.accuracy > myAcc} />
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="mt-5 flex flex-wrap items-center justify-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setRematchSent(true);
+                          requestRematch();
+                        }}
+                        disabled={rematchSent || !opponentHere}
+                        className="flex h-11 items-center gap-2 rounded-xl bg-foreground px-6 text-sm font-black text-background transition-opacity hover:opacity-90 disabled:opacity-50 cursor-pointer"
+                      >
+                        {rematchSent ? <Loader2 className="size-4 animate-spin" /> : <RotateCcw className="size-4" />}
+                        {rematchSent ? "Setting up rematch…" : "Rematch"}
+                      </button>
+                      <button type="button" onClick={handleLeave} className="flex h-11 items-center gap-2 rounded-xl border border-border/70 px-5 text-sm font-semibold transition-colors hover:bg-muted cursor-pointer">
+                        <LogOut className="size-4" /> Leave
+                      </button>
+                    </div>
+                  </section>
+                )}
+
                 <div
                   ref={editorContainerRef}
                   tabIndex={0}
                   onKeyDown={handleEditorKeyDown}
                   onClick={focusEditor}
-                  className="relative outline-none cursor-pointer group"
+                  className="relative outline-none"
                 >
                   <CodeDisplay
                     chars={charStates}
@@ -850,38 +948,32 @@ export default function Duel() {
                     ghostWpm={opponent.wpm}
                   />
 
-                  {/* Hidden Textarea to Capture Typing Events Seamlessly */}
                   <textarea
                     ref={hiddenInputRef}
                     value=""
                     onChange={() => {}}
                     onKeyDown={handleEditorKeyDown}
-                    className="absolute inset-0 opacity-0 pointer-events-none resize-none"
+                    className="pointer-events-none absolute inset-0 resize-none opacity-0"
                     aria-label="Code typing editor"
                   />
 
-                  {/* Focus Helper Bar */}
-                  {duelState === "racing" && !myFinished && (
-                    <div className="mt-3 flex items-center justify-between rounded-xl border bg-muted/40 px-4 py-2 text-xs text-muted-foreground">
-                      <span className="flex items-center gap-2">
-                        <Focus className="size-4 text-amber-400 animate-pulse" />
-                        Editor Focused — Type directly into the code window. Press <kbd className="rounded border bg-muted px-1.5 py-0.5 text-[10px] font-mono">Enter ↵</kbd> for newline and <kbd className="rounded border bg-muted px-1.5 py-0.5 text-[10px] font-mono">Tab ⇥</kbd> for indentation.
-                      </span>
+                  {duelState === "countdown" && (
+                    <div className="duel-countdown absolute inset-0 z-20 grid place-items-center rounded-2xl" aria-live="assertive">
+                      <div className="text-center">
+                        <span key={countdownSeconds} className="duel-count block font-mono text-8xl font-black text-white sm:text-9xl">
+                          {countdownSeconds > 0 ? countdownSeconds : "GO"}
+                        </span>
+                        <p className="mt-2 text-sm font-semibold text-white/80">Read the first line. vs {opponent.name}</p>
+                      </div>
                     </div>
                   )}
                 </div>
 
-                {/* Result Winner Banner */}
-                {raceOver && (
-                  <div className={`rounded-3xl border p-8 text-center space-y-4 animate-scale-in shadow-2xl ${isIWinner ? "border-amber-500/60 bg-amber-500/15 text-amber-400" : "border-red-500/60 bg-red-500/15 text-red-400"}`}>
-                    <h3 className="text-4xl font-black">{isIWinner ? "🏆 VICTORY!" : "💀 DEFEAT!"}</h3>
-                    <p className="text-base font-bold text-foreground">
-                      Your Speed: <strong className="text-amber-400">{myWpm.toFixed(1)} WPM · {myAcc}% ACC</strong> vs {opponent.name}: <strong className="text-sky-400">{opponent.wpm.toFixed(1)} WPM · {opponent.accuracy}% ACC</strong>
-                    </p>
-                    <Button type="button" size="lg" onClick={() => requestRematch()} className="font-bold bg-foreground text-background text-base py-6 px-8 shadow-xl">
-                      <RotateCcw data-icon="inline-start" /> Rematch
-                    </Button>
-                  </div>
+                {duelState === "racing" && !myFinished && (
+                  <p className="text-center text-xs text-muted-foreground">
+                    Type straight into the editor. <kbd className="rounded border bg-muted px-1.5 py-0.5 font-mono text-[10px]">Enter</kbd> for new lines,{" "}
+                    <kbd className="rounded border bg-muted px-1.5 py-0.5 font-mono text-[10px]">Tab</kbd> for indentation.
+                  </p>
                 )}
               </div>
             )}

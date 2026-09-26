@@ -1366,3 +1366,22 @@ html {
 .finger-bar { transform-origin: left; animation: finger-bar-in 800ms cubic-bezier(0.2, 1, 0.3, 1) both; }
 @keyframes finger-bar-in { from { transform: scaleX(0); } to { transform: none; } }
 @media (prefers-reduced-motion: reduce) { .finger-bar { animation: none; } }
+
+/* Duel: countdown over the snippet preview, so players can read ahead. */
+.duel-countdown {
+  background: color-mix(in oklab, var(--editor-bg, #111) 55%, transparent);
+  backdrop-filter: blur(3px);
+}
+.duel-count {
+  animation: duel-count 1s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  text-shadow: 0 6px 30px rgb(0 0 0 / 0.45);
+}
+@keyframes duel-count {
+  0% { opacity: 0; transform: scale(1.6); }
+  25% { opacity: 1; transform: scale(1); }
+  85% { opacity: 1; }
+  100% { opacity: 0.25; transform: scale(0.92); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .duel-count { animation: none; }
+}
