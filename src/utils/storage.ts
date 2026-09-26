@@ -1,6 +1,8 @@
 import type { RunResult, TestMode, PersonalBest, Settings } from '../types';
 
 // Legacy keys are preserved so the Codey rename does not erase user data.
+import { coverGap, readFreezes, writeFreezes } from '../lib/streak';
+
 const HISTORY_KEY = 'codetype_history';
 const STREAK_KEY = 'codetype_streak';
 const SETTINGS_KEY = 'codetype_settings';
@@ -102,8 +104,12 @@ export function getStreak(): StreakData {
 /** Fired on window after a run changes the streak; detail is { from, to }. */
 export const STREAK_EVENT = 'codey:streak-updated';
 
-/** Counts today's practice. Returns the streak before and after, or null when today was already counted. */
-export function updateStreak(): { from: number; to: number } | null {
+/**
+ * Counts today's practice. A missed day in a week that still has its freeze
+ * keeps the streak going. Returns the streak before and after (and how many
+ * days a freeze covered), or null when today was already counted.
+ */
+export function updateStreak(): { from: number; to: number; frozen: number } | null {
   const streak = getStreak();
   const toLocalDateKey = (date: Date) => {
     const year = date.getFullYear();
@@ -119,13 +125,25 @@ export function updateStreak(): { from: number; to: number } | null {
   const yesterdayDate = new Date(todayDate);
   yesterdayDate.setDate(todayDate.getDate() - 1);
   const yesterday = toLocalDateKey(yesterdayDate);
-  const from = streak.lastDate === yesterday ? streak.current : 0;
+  let from = 0;
+  let frozen = 0;
+  if (streak.lastDate === yesterday) {
+    from = streak.current;
+  } else if (streak.lastDate && streak.current > 0) {
+    const freezes = readFreezes();
+    const covered = coverGap(streak.lastDate, today, freezes);
+    if (covered && covered.length) {
+      from = streak.current;
+      frozen = covered.length;
+      writeFreezes([...freezes, ...covered]);
+    }
+  }
   streak.current = from + 1;
 
   streak.lastDate = today;
   streak.best = Math.max(streak.best, streak.current);
   localStorage.setItem(STREAK_KEY, JSON.stringify(streak));
-  const change = { from, to: streak.current };
+  const change = { from, to: streak.current, frozen };
   if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent(STREAK_EVENT, { detail: change }));
   return change;
 }

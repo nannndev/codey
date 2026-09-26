@@ -1,7 +1,10 @@
 import { Client, Databases, Account, Permission, Role } from 'node-appwrite';
 import crypto from 'node:crypto';
 import { SNIPPETS } from '../../src/data/snippets.js';
-import { SNIPPET_LENGTH_SPEC } from '../../src/utils/ranking.js';
+import { SNIPPET_LENGTH_SPEC, isTextLanguage } from '../../src/utils/ranking.js';
+import { ENGLISH_WORDS } from '../../src/data/text/english-words.js';
+import { INDONESIAN_WORDS } from '../../src/data/text/indonesian-words.js';
+import { PASSAGES } from '../../src/data/text/passages.js';
 import type { SnippetLength, TestMode } from '../../src/types.js';
 
 interface ApiRequest {
@@ -51,7 +54,38 @@ async function authenticateRequest(req: ApiRequest): Promise<string | null> {
   }
 }
 
-function selectSnippetCode(language: string, length: SnippetLength): { code: string; targetChars: number } {
+/**
+ * Text boards: common words (weighted to the frequent end, no repeats in a
+ * row) or passages, sized to the same length bands as code.
+ */
+function selectText(language: string, length: SnippetLength): string {
+  const spec = SNIPPET_LENGTH_SPEC[length] || SNIPPET_LENGTH_SPEC.medium;
+  const target = Math.round((spec.minChars + spec.maxChars) / 2);
+  if (language === 'Passages') {
+    // Only passages that fit, joined until the band's minimum is reached.
+    const pool = PASSAGES.filter((passage) => passage.text.length <= spec.maxChars);
+    const parts: string[] = [];
+    let index = Math.floor(Math.random() * pool.length);
+    for (let tries = 0; parts.join(' ').length < spec.minChars && tries < pool.length; tries += 1, index += 1) {
+      const next = pool[index % pool.length].text;
+      if (parts.join(' ').length + next.length + 1 <= spec.maxChars) parts.push(next);
+    }
+    return parts.join(' ');
+  }
+  const list = language === 'Indonesian' ? INDONESIAN_WORDS : ENGLISH_WORDS;
+  const words: string[] = [];
+  while (words.join(' ').length < target) {
+    const word = list[Math.floor(Math.random() ** 2 * list.length)];
+    if (word !== words[words.length - 1]) words.push(word);
+  }
+  return words.join(' ');
+}
+
+export function selectSnippetCode(language: string, length: SnippetLength): { code: string; targetChars: number } {
+  if (isTextLanguage(language)) {
+    const code = selectText(language, length);
+    return { code, targetChars: code.length };
+  }
   const spec = SNIPPET_LENGTH_SPEC[length] || SNIPPET_LENGTH_SPEC.medium;
   const pool = SNIPPETS.filter((s) => s.language.toLowerCase() === language.toLowerCase());
   const selectedPool = pool.length > 0 ? pool : SNIPPETS;

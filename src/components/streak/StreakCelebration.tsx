@@ -13,6 +13,8 @@ interface Celebration {
   /** A new flame reached today, e.g. Blaze at 7 days. */
   newTier: FlameTier | null;
   restarted: boolean;
+  /** Missed days a freeze covered. */
+  frozen: number;
 }
 
 /** Kap hops in when a run extends the streak; milestones get a bigger moment. */
@@ -21,11 +23,11 @@ export function StreakCelebration() {
 
   useEffect(() => {
     const onStreak = (event: Event) => {
-      const change = (event as CustomEvent<{ from: number; to: number }>).detail;
+      const change = (event as CustomEvent<{ from: number; to: number; frozen?: number }>).detail;
       if (!change || change.to <= change.from) return;
       const tier = tierFor(change.to);
       const before = tierFor(change.from);
-      setShown({ days: change.to, tier, milestone: isMilestone(change.to), newTier: tier && tier.id !== before?.id && change.to > 1 ? tier : null, restarted: change.from === 0 });
+      setShown({ days: change.to, tier, milestone: isMilestone(change.to), newTier: tier && tier.id !== before?.id && change.to > 1 ? tier : null, restarted: change.from === 0, frozen: change.frozen ?? 0 });
     };
     window.addEventListener(STREAK_EVENT, onStreak);
     return () => window.removeEventListener(STREAK_EVENT, onStreak);
@@ -38,8 +40,10 @@ export function StreakCelebration() {
   }, [shown]);
 
   if (!shown) return null;
-  const title = shown.milestone ? `${shown.days}-day milestone!` : shown.restarted ? "Streak started!" : `Day ${shown.days}!`;
-  const body = shown.newTier
+  const title = shown.frozen ? "Saved by a freeze!" : shown.milestone ? `${shown.days}-day milestone!` : shown.restarted ? "Streak started!" : `Day ${shown.days}!`;
+  const body = shown.frozen
+    ? `You missed ${shown.frozen === 1 ? "a day" : `${shown.frozen} days`}, but your freeze kept the streak alive. Day ${shown.days}!`
+    : shown.newTier
     ? `Your flame grew into ${shown.newTier.name}. Keep going.`
     : shown.restarted ? "Kap is lit. Come back tomorrow to make it two." : "Practice done for today. Kap is burning bright.";
 

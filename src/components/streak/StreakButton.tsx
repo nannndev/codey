@@ -24,7 +24,9 @@ export function StreakButton() {
     };
   }, [open]);
 
-  const label = status.mood === "risk"
+  const label = status.mood === "frozen"
+    ? `${status.current}-day streak, saved by a freeze; practice today`
+    : status.mood === "risk"
     ? `${status.current}-day streak, practice today to keep it`
     : status.current > 0 ? `${status.current}-day streak` : "No streak yet";
 
@@ -42,17 +44,17 @@ export function StreakButton() {
           status.mood === "lit" ? "text-foreground" : "text-muted-foreground",
         )}
       >
-        <KapMascot mood={status.mood} tier={status.tier} size={26} animate={status.mood === "risk"} className="-mt-1" />
+        <KapMascot mood={status.mood} tier={status.tier} size={26} animate={status.mood === "risk" || status.mood === "frozen"} className="-mt-1" />
         <span>{status.current}</span>
-        {status.mood === "risk" && (
+        {(status.mood === "risk" || status.mood === "frozen") && (
           <span className="absolute right-1 top-1 flex size-2" aria-hidden>
-            <span className="absolute inline-flex size-full animate-ping rounded-full bg-amber-500 opacity-75" />
-            <span className="relative inline-flex size-2 rounded-full bg-amber-500" />
+            <span className={cn("absolute inline-flex size-full animate-ping rounded-full opacity-75", status.mood === "frozen" ? "bg-sky-400" : "bg-amber-500")} />
+            <span className={cn("relative inline-flex size-2 rounded-full", status.mood === "frozen" ? "bg-sky-400" : "bg-amber-500")} />
           </span>
         )}
       </button>
       {open && (
-        <div role="dialog" aria-label="Streak" className="fixed inset-x-3 top-20 z-50 max-h-[calc(100dvh-6rem)] overflow-y-auto rounded-2xl border bg-popover p-3 text-popover-foreground shadow-2xl animate-scale-in sm:absolute sm:inset-x-auto sm:right-0 sm:top-10 sm:max-h-none sm:overflow-visible">
+        <div role="dialog" aria-label="Streak" className="fixed inset-x-3 top-20 z-50 max-h-[calc(100dvh-6rem)] overflow-y-auto rounded-2xl border bg-popover p-3 text-popover-foreground shadow-2xl animate-scale-in sm:absolute sm:inset-x-auto sm:right-0 sm:top-10 sm:max-h-[calc(100dvh-7rem)]">
           <StreakPanel status={status} onNavigate={() => setOpen(false)} />
         </div>
       )}

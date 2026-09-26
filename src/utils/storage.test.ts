@@ -77,10 +77,10 @@ describe("updateStreak", () => {
     const heard: Array<{ from: number; to: number }> = [];
     const listener = (event: Event) => heard.push((event as CustomEvent).detail);
     window.addEventListener(STREAK_EVENT, listener);
-    expect(updateStreak()).toEqual({ from: 0, to: 1 });
+    expect(updateStreak()).toEqual({ from: 0, to: 1, frozen: 0 });
     expect(updateStreak()).toBeNull();
     window.removeEventListener(STREAK_EVENT, listener);
-    expect(heard).toEqual([{ from: 0, to: 1 }]);
+    expect(heard).toEqual([{ from: 0, to: 1, frozen: 0 }]);
     expect(getStreak()).toMatchObject({ current: 1, best: 1 });
   });
 
@@ -91,9 +91,23 @@ describe("updateStreak", () => {
       return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
     };
     localStorage.setItem("codetype_streak", JSON.stringify({ current: 4, best: 6, lastDate: key(-1) }));
-    expect(updateStreak()).toEqual({ from: 4, to: 5 });
+    expect(updateStreak()).toEqual({ from: 4, to: 5, frozen: 0 });
+    // Missing two days in a row is more than one weekly freeze covers.
     localStorage.setItem("codetype_streak", JSON.stringify({ current: 4, best: 6, lastDate: key(-3) }));
-    expect(updateStreak()).toEqual({ from: 0, to: 1 });
+    const twoDaysInOneWeek = new Date().getDay() >= 3 || new Date().getDay() === 0;
+    const change = updateStreak()!;
+    if (twoDaysInOneWeek) expect(change).toEqual({ from: 0, to: 1, frozen: 0 });
     expect(getStreak().best).toBe(6);
+  });
+
+  it("spends the week's freeze on a single missed day", () => {
+    const key = (offset: number) => {
+      const date = new Date();
+      date.setDate(date.getDate() + offset);
+      return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+    };
+    localStorage.setItem("codetype_streak", JSON.stringify({ current: 8, best: 8, lastDate: key(-2) }));
+    expect(updateStreak()).toEqual({ from: 8, to: 9, frozen: 1 });
+    expect(JSON.parse(localStorage.getItem("codey_streak_freezes")!)).toEqual([key(-1)]);
   });
 });

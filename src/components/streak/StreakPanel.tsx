@@ -1,8 +1,9 @@
 import { Link } from "react-router-dom";
-import { Check, Crown, Play } from "lucide-react";
+import { Check, Crown, Play, Snowflake } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { FLAME_TIERS, streakMessage, type StreakStatus } from "@/lib/streak";
 import { KapMascot } from "./KapMascot";
+import { ReminderSettings } from "./ReminderSettings";
 
 function FlameGlyph({ color, core, className }: { color: string; core: string; className?: string }) {
   return (
@@ -35,7 +36,7 @@ export function StreakPanel({ status, onNavigate }: { status: StreakStatus; onNa
         {[
           ["Current", `${status.current}`, status.current === 1 ? "day" : "days"],
           ["Best", `${status.best}`, status.best === 1 ? "day" : "days"],
-          ["Flame", status.tier?.name ?? "None", status.mood === "risk" ? "fading" : status.mood === "sleep" ? "out" : "burning"],
+          ["Flame", status.tier?.name ?? "None", status.mood === "risk" ? "fading" : status.mood === "frozen" ? "kept warm" : status.mood === "sleep" ? "out" : "burning"],
         ].map(([label, value, unit]) => (
           <div key={label} className="rounded-lg border bg-card/60 px-2 py-2">
             <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{label}</p>
@@ -53,18 +54,26 @@ export function StreakPanel({ status, onNavigate }: { status: StreakStatus; onNa
               <span
                 className={cn(
                   "grid size-8 place-items-center rounded-full border-2 transition-colors",
-                  day.practiced ? "border-transparent text-white" : "border-dashed border-border text-muted-foreground",
+                  day.practiced ? "border-transparent text-white" : day.frozen ? "border-transparent bg-sky-500/20 text-sky-400" : "border-dashed border-border text-muted-foreground",
                   day.today && !day.practiced && "border-solid border-amber-500/70",
                 )}
                 style={day.practiced ? { background: accent } : undefined}
-                title={`${day.key}${day.practiced ? ": practiced" : ""}`}
+                title={`${day.key}${day.practiced ? ": practiced" : day.frozen ? ": saved by a freeze" : ""}`}
               >
-                {day.practiced ? <Check className="size-4" strokeWidth={3} /> : day.today ? <span className="size-1.5 rounded-full bg-amber-500" /> : null}
+                {day.practiced ? <Check className="size-4" strokeWidth={3} /> : day.frozen ? <Snowflake className="size-4" /> : day.today ? <span className="size-1.5 rounded-full bg-amber-500" /> : null}
               </span>
               <span className={cn("text-[10px]", day.today ? "font-bold text-foreground" : "text-muted-foreground")}>{day.today ? "Today" : day.label}</span>
             </li>
           ))}
         </ol>
+      </div>
+
+      <div className={cn("mt-3 flex items-center gap-2.5 rounded-lg border p-3 text-xs", status.freezeReady ? "border-sky-500/30 bg-sky-500/10" : "bg-card/60")}>
+        <Snowflake className={cn("size-4 shrink-0", status.freezeReady ? "text-sky-400" : "text-muted-foreground")} />
+        <p className="leading-snug">
+          <span className="font-semibold">{status.freezeReady ? "Streak freeze ready" : "Freeze used this week"}</span>
+          <span className="text-muted-foreground"> · {status.freezeReady ? "one missed day a week is forgiven automatically." : "a new one arrives on Monday."}</span>
+        </p>
       </div>
 
       <div className="mt-3 rounded-lg border bg-card/60 p-3">
@@ -91,6 +100,8 @@ export function StreakPanel({ status, onNavigate }: { status: StreakStatus; onNa
           })}
         </ol>
       </div>
+
+      <ReminderSettings />
 
       {!status.practicedToday && (
         <Link

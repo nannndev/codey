@@ -17,6 +17,10 @@ export const SNIPPET_LENGTH_SPEC: Record<SnippetLength, SnippetLengthSpec> = {
   long: { targetBlocks: 4, minChars: 800, maxChars: 1400 },
 };
 
+/** Plain-text boards; they stay out of the code "All" board. */
+export const TEXT_BOARDS = ['English', 'Indonesian', 'Passages'] as const;
+export const isTextLanguage = (language: string) => (TEXT_BOARDS as readonly string[]).includes(language);
+
 /** A snippet finishes on input length, not correctness, so speed without accuracy is not a score. */
 export const MIN_RANKED_ACCURACY = 90;
 /** Minimum WPM threshold required to qualify for the Ranked Leaderboard. */
