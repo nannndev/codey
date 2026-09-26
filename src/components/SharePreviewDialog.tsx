@@ -1,9 +1,12 @@
 import { useEffect, useState } from "react";
-import { Check, Copy, Download, LoaderCircle, Share2, Sparkles, X } from "lucide-react";
+import { Check, Copy, Download, ImageDown, Link2, LoaderCircle, Share2, Sparkles, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { createResultCard, SHARE_THEMES, type ShareCardOptions, type ShareCardTheme } from "@/lib/share-result";
 import { usePreferences } from "@/components/PreferencesProvider";
 import { getColorway } from "@/lib/keycaps";
+import { useAuth } from "@/components/AuthProvider";
+import { shareableRunId } from "@/lib/cloud";
+import { platformShareUrl, runShareUrl, SHARE_PLATFORMS, shareCaption, shareText, type SharePlatform } from "@/lib/share-links";
 
 interface SharePreviewDialogProps {
   options: ShareCardOptions | null;
@@ -17,7 +20,11 @@ export function SharePreviewDialog({ options, onClose }: SharePreviewDialogProps
   const [status, setStatus] = useState<"loading" | "ready" | "shared" | "error">("loading");
   const [copiedImage, setCopiedImage] = useState(false);
   const [copiedCaption, setCopiedCaption] = useState(false);
+  const [copiedLink, setCopiedLink] = useState(false);
+  const [shareUrl, setShareUrl] = useState<string | null>(null);
   const { preferences } = usePreferences();
+  const { user } = useAuth();
+  const userId = user?.$id ?? null;
   const { keycapTheme, keycapOverrides } = preferences;
 
   useEffect(() => {
@@ -40,6 +47,17 @@ export function SharePreviewDialog({ options, onClose }: SharePreviewDialogProps
       });
     };
   }, [options, theme, keycapTheme, keycapOverrides]);
+
+  // The public link: the run's own page when it is in the cloud, otherwise the site.
+  useEffect(() => {
+    if (!options) return;
+    let active = true;
+    setShareUrl(null);
+    void shareableRunId(userId, options.result).then((runId) => {
+      if (active) setShareUrl(runShareUrl(window.location.origin, runId));
+    });
+    return () => { active = false; };
+  }, [options, userId]);
 
   useEffect(() => {
     if (!options) return;
@@ -73,14 +91,23 @@ export function SharePreviewDialog({ options, onClose }: SharePreviewDialogProps
     }
   };
 
+  const text = shareText(options.result, options.rank);
+  const flash = (set: (value: boolean) => void) => { set(true); setTimeout(() => set(false), 2000); };
+
   const copyCaption = async () => {
-    const rankBadge = options.rank === 1 ? "👑 Ranked #1 Gold" : options.rank === 2 ? "🥈 Ranked #2 Silver" : options.rank === 3 ? "🥉 Ranked #3 Bronze" : `⚡ Ranked #${options.rank}`;
-    const text = options.rank
-      ? `🏆 ${rankBadge} on the Codey Leaderboard!\nScore: ${options.result.wpm.toFixed(1)} WPM (${options.result.accuracy.toFixed(1)}% acc) in ${options.result.language}\nSee the leaderboard: https://codey.dev/leaderboard #Codey #typingtest`
-      : `⚡ Just scored ${options.result.wpm.toFixed(1)} WPM with ${options.result.accuracy.toFixed(1)}% accuracy in ${options.result.language} on Codey!\nPractice real code typing: https://codey.dev #Codey #typingtest`;
-    await navigator.clipboard.writeText(text);
-    setCopiedCaption(true);
-    setTimeout(() => setCopiedCaption(false), 2000);
+    await navigator.clipboard.writeText(shareCaption(text, shareUrl ?? window.location.origin));
+    flash(setCopiedCaption);
+  };
+
+  const copyLink = async () => {
+    if (!shareUrl) return;
+    await navigator.clipboard.writeText(shareUrl);
+    flash(setCopiedLink);
+  };
+
+  const openPlatform = (platform: SharePlatform) => {
+    if (!shareUrl) return;
+    window.open(platformShareUrl(platform, text, shareUrl), "_blank", "noopener,noreferrer,width=640,height=720");
   };
 
   const share = async () => {
@@ -91,7 +118,7 @@ export function SharePreviewDialog({ options, onClose }: SharePreviewDialogProps
       return;
     }
     try {
-      await navigator.share({ files: [file], title: "Codey Stats", text: `${options.result.wpm.toFixed(1)} WPM on ${options.result.language}` });
+      await navigator.share({ files: [file], title: "Codey", text: shareCaption(text, shareUrl ?? window.location.origin) });
       setStatus("shared");
     } catch (error) {
       if (!(error instanceof DOMException) || error.name !== "AbortError") setStatus("error");
@@ -100,7 +127,7 @@ export function SharePreviewDialog({ options, onClose }: SharePreviewDialogProps
 
   return (
     <div className="fixed inset-0 z-50 grid place-items-center bg-black/75 p-4 backdrop-blur-md" role="dialog" aria-modal="true" aria-label="Share image preview" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
-      <div className="w-full max-w-4xl overflow-hidden rounded-2xl border bg-background shadow-2xl animate-scale-in">
+      <div className="max-h-[calc(100dvh-2rem)] w-full max-w-4xl overflow-y-auto rounded-2xl border bg-background shadow-2xl animate-scale-in">
         <div className="flex flex-wrap items-center justify-between border-b px-4 py-3 sm:px-5 gap-2">
           <div>
             <h2 className="text-sm font-bold flex items-center gap-2">
@@ -110,13 +137,13 @@ export function SharePreviewDialog({ options, onClose }: SharePreviewDialogProps
           </div>
           
           {/* Theme Selector */}
-          <div className="flex items-center gap-1 rounded-lg border bg-muted/60 p-1">
+          <div className="order-last flex w-full items-center gap-1 overflow-x-auto rounded-lg border bg-muted/60 p-1 sm:order-none sm:w-auto">
             {(Object.keys(SHARE_THEMES) as ShareCardTheme[]).map((tKey) => (
               <button
                 key={tKey}
                 type="button"
                 onClick={() => setTheme(tKey)}
-                className={`rounded-md px-2.5 py-1 text-[10px] font-semibold transition-all ${
+                className={`shrink-0 whitespace-nowrap rounded-md px-2.5 py-1 text-[10px] font-semibold transition-all ${
                   theme === tKey
                     ? "bg-foreground text-background shadow-xs"
                     : "text-muted-foreground hover:bg-muted hover:text-foreground"
@@ -142,13 +169,45 @@ export function SharePreviewDialog({ options, onClose }: SharePreviewDialogProps
           )}
         </div>
 
-        <div className="flex flex-col-reverse gap-2 border-t p-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="border-t px-4 pt-4 sm:px-5">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Post to</p>
+            <button type="button" onClick={() => void copyLink()} disabled={!shareUrl} className="flex min-w-0 max-w-full items-center gap-1.5 rounded-md border bg-muted/40 px-2 py-1 font-mono text-[11px] text-muted-foreground transition-colors hover:text-foreground disabled:opacity-60" aria-label="Copy link">
+              {copiedLink ? <Check className="size-3 shrink-0 text-green-500" /> : <Link2 className="size-3 shrink-0" />}
+              <span className="truncate">{copiedLink ? "Link copied" : shareUrl ? shareUrl.replace(/^https?:\/\//, "") : "Preparing link…"}</span>
+            </button>
+          </div>
+          <div className="mt-2.5 grid grid-cols-4 gap-2 sm:grid-cols-8">
+            {SHARE_PLATFORMS.map((platform) => (
+              <button
+                key={platform.id}
+                type="button"
+                onClick={() => openPlatform(platform.id)}
+                disabled={!shareUrl}
+                className="group flex flex-col items-center gap-1.5 rounded-xl border bg-card px-1 py-2.5 text-[11px] font-medium transition-all hover:-translate-y-0.5 hover:border-foreground/25 hover:shadow-sm disabled:pointer-events-none disabled:opacity-50"
+              >
+                <span className="grid size-8 place-items-center rounded-full text-sm font-bold text-white" style={{ background: platform.color }} aria-hidden>
+                  {platform.name === "X" ? "𝕏" : platform.name === "Threads" ? "@" : platform.name.slice(0, 1)}
+                </span>
+                {platform.name}
+              </button>
+            ))}
+          </div>
+          <p className="mt-2.5 flex items-start gap-1.5 text-[11px] leading-relaxed text-muted-foreground">
+            <ImageDown className="mt-px size-3.5 shrink-0" />
+            {shareUrl && shareUrl !== window.location.origin
+              ? "The link shows your score card as its preview. For Instagram stories, download the image and post it there."
+              : "Sign in to get a link with your own score card. For Instagram, download the image and post it there."}
+          </p>
+        </div>
+
+        <div className="flex flex-col-reverse gap-2 p-4 sm:flex-row sm:items-center sm:justify-between">
           <Button type="button" variant="ghost" size="sm" onClick={copyCaption} className="text-xs text-muted-foreground hover:text-foreground">
             {copiedCaption ? <Check data-icon="inline-start" className="size-3.5 text-green-500" /> : <Copy data-icon="inline-start" className="size-3.5" />}
             {copiedCaption ? "Caption Copied!" : "Copy Post Caption"}
           </Button>
 
-          <div className="flex flex-wrap gap-2 sm:justify-end">
+          <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:justify-end [&>*:last-child]:col-span-2">
             <Button type="button" variant="outline" onClick={copyImage} disabled={!blob}>
               {copiedImage ? <Check data-icon="inline-start" className="text-green-500" /> : <Copy data-icon="inline-start" />}
               {copiedImage ? "Copied to Clipboard!" : "Copy Image"}

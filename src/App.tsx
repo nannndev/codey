@@ -214,7 +214,10 @@ export default function App() {
         ? computePerLineStats(snippet.code, input, errorHistory)
         : [];
 
+      const finishedAt = Date.now();
       const r: RunResult = {
+        // Assigned here so the results screen, history and the cloud copy share one id.
+        id: `${finishedAt}-${Math.random().toString(36).slice(2, 8)}`,
         snippetId: snippet.id,
         filename: snippet.filename,
         sourceRepo: snippet.source?.repo,
@@ -223,7 +226,7 @@ export default function App() {
         accuracy: acc,
         duration: Math.round(elapsedMs),
         charsTyped: keystrokes,
-        timestamp: Date.now(),
+        timestamp: finishedAt,
         mode: config.mode,
         rawWpm: rawWpm,
         consistency,
