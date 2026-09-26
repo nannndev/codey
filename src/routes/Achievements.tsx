@@ -1,12 +1,11 @@
-import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { ArrowLeft, Award } from "lucide-react";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { useAuth } from "@/components/AuthProvider";
 import { AchievementBadge } from "@/components/achievements/Badge";
-import { TIER_NAMES, TOTAL_ACHIEVEMENTS, achievementId, evaluate, readStore, type FamilyProgress, type Tier } from "@/lib/achievements";
-import { checkAchievements, localSnapshot } from "@/lib/achievement-snapshot";
+import { TIER_NAMES, TOTAL_ACHIEVEMENTS, achievementId, type FamilyProgress, type Tier } from "@/lib/achievements";
+import { useAchievements } from "@/hooks/useAchievements";
 import { cn } from "@/lib/utils";
 
 export function formatAmount(value: number, unit: string) {
@@ -63,17 +62,7 @@ function FamilyCard({ item, unlockedAt }: { item: FamilyProgress; unlockedAt: Re
 
 export default function Achievements() {
   const { user } = useAuth();
-  const [version, setVersion] = useState(0);
-
-  // Record anything already earned (silently on a first visit), then read the result.
-  useEffect(() => {
-    checkAchievements(user?.$id);
-    setVersion((value) => value + 1);
-  }, [user?.$id]);
-
-  // `version` re-reads after the sync above has recorded new unlocks.
-  const evaluation = useMemo(() => evaluate(localSnapshot(user?.$id)), [user?.$id, version]);
-  const unlockedAt = useMemo(() => (version >= 0 ? readStore().unlockedAt : {}), [version]);
+  const { evaluation, unlockedAt, syncing } = useAchievements({ userId: user?.$id, own: true });
   const earned = evaluation.earned.size;
   const nextUp = [...evaluation.families].filter((item) => item.next !== null).sort((a, b) => b.progress - a.progress).slice(0, 3);
   const recent = Object.entries(unlockedAt).sort((a, b) => b[1] - a[1])[0];
@@ -93,14 +82,16 @@ export default function Achievements() {
             </p>
             <h1 className="mt-1 text-3xl font-black tracking-tight sm:text-4xl">Achievements</h1>
             <p className="mt-1 max-w-xl text-sm text-muted-foreground">
-              Earned from every run on this device: speed, streaks, duels and more. Each family has four tiers, from Bronze to Diamond.
+              {user ? "Saved to your account and shared across your devices." : "Sign in to keep these on your account and every device."} Each family has four tiers, from Bronze to Diamond.
             </p>
           </div>
           <div className="rounded-2xl border bg-card/80 p-4 md:w-72">
             <p className="text-xs text-muted-foreground">Earned</p>
             <p className="font-mono text-3xl font-black tabular-nums">{earned}<span className="text-base font-semibold text-muted-foreground"> / {TOTAL_ACHIEVEMENTS}</span></p>
             <div className="mt-2 h-2 rounded-full bg-muted"><div className="h-full rounded-full bg-amber-500" style={{ width: `${(earned / TOTAL_ACHIEVEMENTS) * 100}%` }} /></div>
-            {recent && <p className="mt-2 text-[11px] text-muted-foreground">Latest: {dateFormat.format(recent[1])}</p>}
+            <p className="mt-2 text-[11px] text-muted-foreground">
+              {syncing ? "Syncing with your account…" : recent ? `Latest: ${dateFormat.format(recent[1])}` : "None yet"}
+            </p>
           </div>
         </header>
 

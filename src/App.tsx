@@ -8,7 +8,7 @@ import { StatsBar } from "@/components/StatsBar";
 import { LanguagePicker } from "@/components/LanguagePicker";
 import { ModeSelector } from "@/components/ModeSelector";
 import { CustomPractice } from "@/components/CustomPractice";
-import { checkAchievements } from "@/lib/achievement-snapshot";
+import { checkAchievements, syncAchievementsForAccount } from "@/lib/achievement-snapshot";
 import { recordDailyCompletion, recordRankedVerified } from "@/lib/achievements";
 import { WeakKeyDrillModal } from "@/components/WeakKeyDrillModal";
 import { DailyGoals } from "@/components/DailyGoals";
@@ -311,6 +311,9 @@ export default function App() {
   useEffect(() => {
     checkAchievements(userIdRef.current);
   }, []);
+  useEffect(() => {
+    if (user?.$id) void syncAchievementsForAccount(user.$id);
+  }, [user?.$id]);
   useEffect(() => {
     if (!verifiedResult?.verified) return;
     recordRankedVerified(verifiedResult.runId);

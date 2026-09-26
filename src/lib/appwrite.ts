@@ -10,6 +10,7 @@ export const appwriteConfig = {
   profilesCollectionId: import.meta.env.VITE_APPWRITE_PROFILES_COLLECTION_ID?.trim() || "profiles",
   runsCollectionId: import.meta.env.VITE_APPWRITE_RUNS_COLLECTION_ID?.trim() || "runs",
   runSessionsCollectionId: import.meta.env.VITE_APPWRITE_RUN_SESSIONS_COLLECTION_ID?.trim() || "run_sessions",
+  dailyRunsCollectionId: import.meta.env.VITE_APPWRITE_DAILY_RUNS_COLLECTION_ID?.trim() || "daily_runs",
 };
 
 export const isAppwriteConfigured = Boolean(projectId);

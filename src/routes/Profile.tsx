@@ -36,8 +36,8 @@ import { drillCharFor, rankKeys } from "@/lib/key-metrics";
 import { keyLabel } from "@/lib/keyboard-layout";
 import { cn } from "@/lib/utils";
 import { AchievementBadge } from "@/components/achievements/Badge";
-import { TIER_NAMES, evaluate } from "@/lib/achievements";
-import { cloudSnapshot, localSnapshot } from "@/lib/achievement-snapshot";
+import { TIER_NAMES } from "@/lib/achievements";
+import { useAchievements } from "@/hooks/useAchievements";
 
 function cloudRunAsResult(run: CloudRun): RunResult {
   return {
@@ -178,16 +178,16 @@ export default function Profile() {
   }, [viewedUserId, runs, isOwnProfile, cloudKeyStats]);
   const weakKeys = useMemo(() => rankKeys(userKeyStats, "accuracy", 5), [userKeyStats]);
 
-  // Own profile: everything this device knows. Others: what their synced runs show.
+  // Own profile: device + account. Others: what their verified cloud data shows.
+  const { evaluation: badgeEvaluation } = useAchievements({ userId: viewedUserId, own: isOwnProfile, runs: isOwnProfile ? undefined : runs });
   const badges = useMemo(() => {
-    const evaluation = evaluate(isOwnProfile ? localSnapshot(user?.$id) : cloudSnapshot(runs));
-    const tiers = evaluation.families
+    const tiers = badgeEvaluation.families
       .filter((item) => item.tier > 0)
       .sort((a, b) => b.tier - a.tier)
       .map((item) => ({ key: item.family.id, kind: item.family.id, tier: item.tier || undefined, name: `${item.family.name}`, sub: TIER_NAMES[item.tier as 1 | 2 | 3 | 4] }));
-    const feats = evaluation.singles.filter((item) => item.unlocked).map((item) => ({ key: item.single.id, kind: item.single.id, tier: undefined, name: item.single.name, sub: "Feat" }));
-    return { shown: [...tiers, ...feats], earned: evaluation.earned.size, total: evaluation.families.length * 4 + evaluation.singles.length };
-  }, [isOwnProfile, user?.$id, runs]);
+    const feats = badgeEvaluation.singles.filter((item) => item.unlocked).map((item) => ({ key: item.single.id, kind: item.single.id, tier: undefined, name: item.single.name, sub: "Feat" }));
+    return { shown: [...tiers, ...feats], earned: badgeEvaluation.earned.size, total: badgeEvaluation.families.length * 4 + badgeEvaluation.singles.length };
+  }, [badgeEvaluation]);
 
   const syncLabel = syncStatus === "syncing" ? "Syncing" : syncStatus === "error" ? "Sync failed · retry" : "Synced";
   const SyncIcon = syncStatus === "syncing" ? LoaderCircle : syncStatus === "error" ? CloudOff : Cloud;
@@ -305,7 +305,7 @@ export default function Profile() {
 
                 <Card
                   title="Achievements"
-                  sub={`${badges.earned} of ${badges.total} earned${isOwnProfile ? "" : " · from synced runs"}`}
+                  sub={`${badges.earned} of ${badges.total} earned${isOwnProfile ? "" : " · verified by the server"}`}
                   action={
                     isOwnProfile ? (
                       <Link to="/achievements" className="inline-flex items-center gap-1 text-xs font-semibold text-muted-foreground hover:text-foreground">

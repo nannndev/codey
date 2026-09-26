@@ -131,9 +131,60 @@ export interface AchievementStore {
   unlockedAt: Record<string, number>;
   dailyDates: string[];
   rankedSessions: string[];
+  /** Duel wins recorded on other devices (ids), pulled from the account. */
+  syncedDuelWins: string[];
+  syncedPartyWins: string[];
 }
 
-const emptyStore = (): AchievementStore => ({ seeded: false, unlockedAt: {}, dailyDates: [], rankedSessions: [] });
+const emptyStore = (): AchievementStore => ({ seeded: false, unlockedAt: {}, dailyDates: [], rankedSessions: [], syncedDuelWins: [], syncedPartyWins: [] });
+
+/** What the account keeps (Appwrite account prefs, key `achievements`), shared by every device. */
+export interface AccountAchievements {
+  v: 1;
+  unlockedAt: Record<string, number>;
+  dailyDates: string[];
+  rankedSessions: string[];
+  duelWins: string[];
+  partyWins: string[];
+}
+
+const union = (a: string[] = [], b: string[] = [], cap = 1000) => [...new Set([...a, ...b])].slice(-cap);
+
+/** Parses account prefs defensively; anything malformed is ignored. */
+export function parseAccountAchievements(value: unknown): AccountAchievements | null {
+  if (!value || typeof value !== "object") return null;
+  const raw = value as Partial<AccountAchievements>;
+  const strings = (list: unknown) => (Array.isArray(list) ? list.filter((item): item is string => typeof item === "string") : []);
+  const unlockedAt: Record<string, number> = {};
+  for (const [id, at] of Object.entries(raw.unlockedAt ?? {})) if (typeof at === "number" && Number.isFinite(at) && describe(id)) unlockedAt[id] = at;
+  return { v: 1, unlockedAt, dailyDates: strings(raw.dailyDates), rankedSessions: strings(raw.rankedSessions), duelWins: strings(raw.duelWins), partyWins: strings(raw.partyWins) };
+}
+
+/** Folds the account's record into this device's store: earliest unlock wins, lists are unioned. */
+export function mergeIntoStore(store: AchievementStore, remote: AccountAchievements): AchievementStore {
+  const unlockedAt = { ...store.unlockedAt };
+  for (const [id, at] of Object.entries(remote.unlockedAt)) unlockedAt[id] = Math.min(at, unlockedAt[id] ?? Infinity);
+  return {
+    ...store,
+    unlockedAt,
+    dailyDates: union(store.dailyDates, remote.dailyDates, 400),
+    rankedSessions: union(store.rankedSessions, remote.rankedSessions),
+    syncedDuelWins: union(store.syncedDuelWins, remote.duelWins, 200),
+    syncedPartyWins: union(store.syncedPartyWins, remote.partyWins, 50),
+  };
+}
+
+/** What to write back to the account: this store plus duel wins recorded on this device. */
+export function toAccountAchievements(store: AchievementStore, localDuelWins: string[], localPartyWins: string[]): AccountAchievements {
+  return {
+    v: 1,
+    unlockedAt: store.unlockedAt,
+    dailyDates: store.dailyDates.slice(-400),
+    rankedSessions: store.rankedSessions.slice(-400),
+    duelWins: union(store.syncedDuelWins, localDuelWins, 200),
+    partyWins: union(store.syncedPartyWins, localPartyWins, 50),
+  };
+}
 
 export function readStore(): AchievementStore {
   try {
@@ -144,7 +195,7 @@ export function readStore(): AchievementStore {
   }
 }
 
-function writeStore(store: AchievementStore) {
+export function writeStore(store: AchievementStore) {
   try {
     localStorage.setItem(STORE_KEY, JSON.stringify(store));
   } catch {
@@ -192,7 +243,7 @@ export const ACHIEVEMENT_EVENT = "codey:achievements-unlocked";
  * only records (so existing players are not flooded with toasts); later
  * runs announce new badges through ACHIEVEMENT_EVENT.
  */
-export function syncAchievements(snapshot: AchievementSnapshot, now = Date.now()): UnlockedBadge[] {
+export function syncAchievements(snapshot: AchievementSnapshot, now = Date.now(), { silent = false } = {}): UnlockedBadge[] {
   const store = readStore();
   const { earned } = evaluate(snapshot);
   const fresh = [...earned].filter((id) => !(id in store.unlockedAt));
@@ -200,7 +251,7 @@ export function syncAchievements(snapshot: AchievementSnapshot, now = Date.now()
   const unlockedAt = { ...store.unlockedAt };
   for (const id of fresh) unlockedAt[id] = now;
   writeStore({ ...store, seeded: true, unlockedAt });
-  if (!store.seeded) return [];
+  if (!store.seeded || silent) return [];
   const badges = fresh.map(describe).filter((badge): badge is UnlockedBadge => badge !== null);
   if (badges.length && typeof window !== "undefined") window.dispatchEvent(new CustomEvent(ACHIEVEMENT_EVENT, { detail: badges }));
   return badges;

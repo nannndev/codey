@@ -128,3 +128,27 @@ describe("syncAchievements", () => {
     expect(readStore().seeded).toBe(false);
   });
 });
+
+describe("account record", async () => {
+  const { mergeIntoStore, parseAccountAchievements, toAccountAchievements } = await import("./achievements");
+  const store = { seeded: true, unlockedAt: { "speed-1": 500, "runs-1": 100 }, dailyDates: ["a"], rankedSessions: ["r1"], syncedDuelWins: [], syncedPartyWins: [] };
+
+  it("merges with the earliest unlock and unions the lists", () => {
+    const merged = mergeIntoStore(store, { v: 1, unlockedAt: { "speed-1": 300, "duel-1": 900 }, dailyDates: ["a", "b"], rankedSessions: ["r2"], duelWins: ["d1"], partyWins: [] });
+    expect(merged.unlockedAt).toEqual({ "speed-1": 300, "runs-1": 100, "duel-1": 900 });
+    expect(merged.dailyDates).toEqual(["a", "b"]);
+    expect(merged.rankedSessions).toEqual(["r1", "r2"]);
+    expect(merged.syncedDuelWins).toEqual(["d1"]);
+  });
+
+  it("drops malformed data from the account", () => {
+    expect(parseAccountAchievements("nope")).toBeNull();
+    expect(parseAccountAchievements({ unlockedAt: { "speed-1": "x", "fake-1": 1, "speed-2": 7 }, dailyDates: [1, "d"] })).toMatchObject({ unlockedAt: { "speed-2": 7 }, dailyDates: ["d"] });
+  });
+
+  it("writes duel wins from this device together with ones from others", () => {
+    const record = toAccountAchievements({ ...store, syncedDuelWins: ["d1"] }, ["d1", "d2"], ["d2"]);
+    expect(record.duelWins).toEqual(["d1", "d2"]);
+    expect(record.partyWins).toEqual(["d2"]);
+  });
+});
