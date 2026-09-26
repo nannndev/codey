@@ -21,6 +21,7 @@ import { uploadRun } from "@/lib/cloud";
 import { canChallenge, challengeSnippet, getChallenge, type Challenge } from "@/lib/challenges";
 import { isProse, loadTextCorpus, passageSnippet, pickPassage, wordsSnippet, type TextCorpus, type TextLanguage } from "@/lib/text-practice";
 import { TextLanguagePicker } from "@/components/TextLanguagePicker";
+import { markOnboarded, OnboardingDialog, shouldOnboard, type OnboardingChoice } from "@/components/OnboardingDialog";
 import { ChallengeModeBanner, ChallengeResultBanner } from "@/components/ChallengeBanners";
 import { useGame, useKeyboardSound, useGhostRunner, useRankedGame, useDailyGame } from "@/hooks";
 import { DailyChallengeCard, DailyModeBanner, DailyResultBanner } from "@/components/daily/DailyWidgets";
@@ -703,6 +704,26 @@ export default function App() {
     });
   }, [challengeParam, setSearchParams, handleCustomSnippet]);
 
+  // First visit: a short welcome, unless a link already brought them here with a purpose.
+  const [showOnboarding, setShowOnboarding] = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    return !params.has("challenge") && !params.has("daily") && !params.has("drill") && shouldOnboard();
+  });
+  const finishOnboarding = useCallback((choice: OnboardingChoice | null) => {
+    markOnboarded();
+    setShowOnboarding(false);
+    if (choice?.kind === "code") {
+      if (devCategory !== "public") handleDevCategoryChange("public");
+      handleLanguageChange(choice.language);
+    } else if (choice?.kind === "words") {
+      handleTextLanguageChange(choice.textLanguage);
+      handleDevCategoryChange("words");
+    } else if (choice?.kind === "passages") {
+      handleDevCategoryChange("passages");
+    }
+    focusWorkspace();
+  }, [devCategory, handleDevCategoryChange, handleLanguageChange, handleTextLanguageChange, focusWorkspace]);
+
   const handleNextSnippet = useCallback(() => {
     setResult(null);
     resetPhysicalKeypresses();
@@ -771,6 +792,7 @@ export default function App() {
     >
       <div className="relative mx-auto max-w-5xl px-4 py-8 sm:px-6 sm:py-14">
         <Header />
+        <OnboardingDialog open={showOnboarding} languages={languages} onComplete={finishOnboarding} />
 
         {result && daily.active && <DailyResultBanner status={daily.status} outcome={daily.outcome} error={daily.error} />}
         {result && activeChallenge && <ChallengeResultBanner challenge={activeChallenge} result={result} />}
