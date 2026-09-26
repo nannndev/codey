@@ -17,6 +17,7 @@ export default async function handler(req: ApiRequest, res: HtmlResponse) {
   const origin = host ? `${proto}://${host}` : '';
   const run = isConfigured() ? await loadSharedRun(id) : null;
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
-  res.setHeader('Cache-Control', run ? 'public, max-age=300, s-maxage=86400' : 'public, max-age=60');
-  res.status(run ? 200 : 404).end(shareHtml(run, origin, id));
+  res.setHeader('Cache-Control', run ? 'public, max-age=300, s-maxage=3600' : 'public, max-age=60');
+  // Always 200: crawlers drop previews for error pages, and the fallback is a valid site card.
+  res.status(200).end(shareHtml(run, origin, id));
 }

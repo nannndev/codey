@@ -52,6 +52,11 @@ describe("loadSharedRun", () => {
   });
 });
 
+it("names the mixed-language mode", async () => {
+  const shared = await loadSharedRun("run_abc", fakeDb({ run_abc: { ...run, language: "All" } }));
+  expect(shared?.language).toBe("Mixed");
+});
+
 describe("formatLabel", () => {
   it("describes each mode", () => {
     expect(formatLabel({ mode: "timed", durationMs: 60_000 })).toBe("60s timed");
@@ -72,6 +77,8 @@ describe("shareHtml", () => {
     expect(html).toContain('<meta property="og:url" content="https://codey.example/r/run_abc">');
     expect(html).toContain('<meta name="twitter:card" content="summary_large_image">');
     expect(html).toContain('location.replace("https://codey.example/profile/user_1")');
+    // Meta's crawler follows meta refresh, which would replace these tags with the app's.
+    expect(html).not.toMatch(/http-equiv="refresh"/i);
   });
 
   it("escapes player-controlled text", () => {
