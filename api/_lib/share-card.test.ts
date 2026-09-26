@@ -74,7 +74,7 @@ describe("shareHtml", () => {
 
   it("points crawlers at the rendered card and people at the profile", () => {
     const html = shareHtml(shared, "https://codey.example", "run_abc");
-    expect(html).toContain('<meta property="og:image" content="https://codey.example/api/og/run_abc?v=3">');
+    expect(html).toContain('<meta property="og:image" content="https://codey.example/api/og/run_abc?v=4">');
     expect(html).toContain('<meta property="og:url" content="https://codey.example/r/run_abc">');
     expect(html).toContain('<meta name="twitter:card" content="summary_large_image">');
     expect(html).toContain('location.replace("https://codey.example/profile/user_1")');

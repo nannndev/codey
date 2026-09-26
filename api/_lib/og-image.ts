@@ -107,7 +107,7 @@ export function renderShareImage(run: SharedRun | null, host: string): ImageResp
     ),
     h('div', { flexDirection: 'column' },
       h('div', { fontSize: wpmSize(wpm), lineHeight: 0.85, color: COAL, letterSpacing: -8 }, wpm),
-      h('div', { fontSize: where.length > 20 ? 32 : 40, color: DEEP, marginTop: 10 }, where),
+      h('div', { fontSize: where.length >= 20 ? 30 : 40, color: DEEP, marginTop: 10 }, where),
     ),
     h('div', { alignItems: 'center', gap: 14 }, mark(COAL, AMBER), h('div', { fontSize: 28, color: COAL }, 'Codey')),
   );
