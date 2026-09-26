@@ -6,6 +6,7 @@
   },
   "rewrites": [
     { "source": "/r/:id", "destination": "/api/share/:id" },
+    { "source": "/p/:id", "destination": "/api/share/:id?kind=profile" },
     { "source": "/history", "destination": "/index.html" },
     { "source": "/statistics", "destination": "/index.html" },
     { "source": "/stats", "destination": "/index.html" },

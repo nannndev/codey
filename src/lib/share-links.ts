@@ -65,3 +65,18 @@ export function platformShareUrl(platform: SharePlatform, text: string, url: str
     case "bluesky": return `https://bsky.app/intent/compose?text=${q(withUrl)}`;
   }
 }
+
+export function profileShareUrl(origin: string, userId: string) {
+  return `${origin}/p/${encodeURIComponent(userId)}`;
+}
+
+/** The player's card, drawn by the server from their cloud runs. */
+export function profileCardUrl(origin: string, userId: string) {
+  return `${origin}/api/og/${encodeURIComponent(userId)}?kind=profile&v=${CARD_VERSION}`;
+}
+
+export function profileShareText(profile: { name: string; bestWpm: number; runs: number }, own: boolean) {
+  if (!profile.runs) return own ? "I'm practicing typing real code on Codey." : `${profile.name} is practicing typing real code on Codey.`;
+  const best = `${profile.bestWpm.toFixed(1)} WPM best over ${profile.runs} runs`;
+  return own ? `My Codey profile: ${best}. Real code, real speed.` : `${profile.name} on Codey: ${best}.`;
+}
