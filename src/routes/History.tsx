@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import { ArrowLeft, BarChart3, Clock3, Flame, Gauge, Keyboard, Share2, Target, Trophy } from "lucide-react";
 import { getHistory, getPersonalBests } from "@/utils/storage";
 import { useStreak } from "@/hooks/useStreak";
+import { WeeklyRecapCard } from "@/components/stats/WeeklyRecapCard";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import type { RunResult, TestMode } from "@/types";
@@ -142,6 +143,7 @@ export default function History() {
         </div>
 
         <main className="space-y-4 animate-fade-in-up">
+          <WeeklyRecapCard runs={allHistory} />
           <DailyGoals />
 
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
