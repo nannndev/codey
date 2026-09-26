@@ -11,8 +11,9 @@ describe("share links", () => {
 
   it("writes the score and rank into the text", () => {
     expect(shareText(result)).toContain("88.0 WPM with 97.5% accuracy in Rust");
-    expect(shareText(result, 1)).toContain("#1 Gold");
+    expect(shareText(result, 1)).toContain("#1 (Gold)");
     expect(shareText(result, 12)).toContain("#12");
+    expect(shareText({ ...result, language: "All" })).toContain("across languages");
     expect(shareCaption("hi", "https://x.test/r/1")).toBe("hi\nhttps://x.test/r/1\n#Codey #typingtest");
   });
 

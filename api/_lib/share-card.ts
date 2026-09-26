@@ -39,6 +39,12 @@ export function formatLabel(run: Doc): string {
   return `${text(run.snippetLength, 10) || 'medium'} snippet`;
 }
 
+/** "all" is the mixed-language mode. */
+export function languageLabel(language: string) {
+  if (!language) return 'Code';
+  return language.toLowerCase() === 'all' ? 'Mixed' : language;
+}
+
 export async function loadSharedRun(id: string, db: ShareDb = adminDatabases() as unknown as ShareDb): Promise<SharedRun | null> {
   if (!RUN_ID_PATTERN.test(id)) return null;
   let run: Doc;
@@ -61,7 +67,7 @@ export async function loadSharedRun(id: string, db: ShareDb = adminDatabases() a
     name: text(profile.displayName, 60) || username || 'A Codey typist',
     username,
     avatarUrl: typeof profile.avatarUrl === 'string' && profile.avatarUrl.startsWith('https://') ? profile.avatarUrl : username ? `https://avatars.githubusercontent.com/${encodeURIComponent(username)}?s=200` : null,
-    language: text(run.language, 40) || 'Code',
+    language: languageLabel(text(run.language, 40)),
     mode: text(run.mode, 10),
     format: formatLabel(run),
     wpm: Number(run.wpm) || 0,
@@ -75,14 +81,18 @@ export async function loadSharedRun(id: string, db: ShareDb = adminDatabases() a
 const escapeHtml = (value: string) => value.replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char]!);
 
 export function shareTitle(run: SharedRun) {
-  return `${run.name} typed ${run.wpm.toFixed(1)} WPM in ${run.language}`;
+  return `${run.name} typed ${run.wpm.toFixed(1)} WPM ${run.language === 'Mixed' ? 'across languages' : `in ${run.language}`}`;
 }
 
 export function shareDescription(run: SharedRun) {
   return `${run.accuracy.toFixed(1)}% accuracy · ${run.format}${run.verified ? ' · verified Ranked run' : ''}. Practice typing real code on Codey.`;
 }
 
-/** The page crawlers read. People are sent on to the player's profile. */
+/**
+ * The page crawlers read. People are sent on to the player's profile by script
+ * only: Meta's crawler (Threads, Facebook, WhatsApp) follows meta refresh and
+ * would read the app's generic tags instead of these.
+ */
 export function shareHtml(run: SharedRun | null, origin: string, id: string) {
   const target = run ? `${origin}/profile/${encodeURIComponent(run.userId)}` : origin;
   const title = run ? shareTitle(run) : 'Codey: type real code, faster';
@@ -110,7 +120,6 @@ ${meta('twitter:title', title, 'name')}
 ${meta('twitter:description', description, 'name')}
 ${meta('twitter:image', image, 'name')}
 <link rel="canonical" href="${escapeHtml(url)}">
-<meta http-equiv="refresh" content="0; url=${escapeHtml(target)}">
 </head><body style="font-family:system-ui;background:#0f1117;color:#e5e7eb;display:grid;place-items:center;min-height:100vh">
 <p>Opening <a style="color:#fbbf24" href="${escapeHtml(target)}">${escapeHtml(title)}</a>…</p>
 <script>location.replace(${JSON.stringify(target)})</script>

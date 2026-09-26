@@ -24,18 +24,21 @@ export function runShareUrl(origin: string, runId: string | null) {
 }
 
 function rankLine(rank: number) {
-  if (rank === 1) return "👑 #1 Gold";
-  if (rank === 2) return "🥈 #2 Silver";
-  if (rank === 3) return "🥉 #3 Bronze";
-  return `⚡ #${rank}`;
+  if (rank === 1) return "#1 (Gold)";
+  if (rank === 2) return "#2 (Silver)";
+  if (rank === 3) return "#3 (Bronze)";
+  return `#${rank}`;
 }
+
+const where = (language: string) => (language.toLowerCase() === "all" ? "across languages" : `in ${language}`);
 
 /** The post text without the link, so platforms that take a separate URL do not show it twice. */
 export function shareText(result: Pick<RunResult, "wpm" | "accuracy" | "language">, rank?: number) {
-  const score = `${result.wpm.toFixed(1)} WPM with ${result.accuracy.toFixed(1)}% accuracy in ${result.language}`;
+  // Plain text: some apps (Threads on the web) garble emoji passed through intent links.
+  const score = `${result.wpm.toFixed(1)} WPM with ${result.accuracy.toFixed(1)}% accuracy ${where(result.language)}`;
   return rank
-    ? `🏆 ${rankLine(rank)} on the Codey leaderboard: ${score}.`
-    : `⚡ Just typed ${score} on Codey. Real code, real speed.`;
+    ? `Ranked ${rankLine(rank)} on the Codey leaderboard: ${score}.`
+    : `Just typed ${score} on Codey. Real code, real speed.`;
 }
 
 export function shareCaption(text: string, url: string) {
