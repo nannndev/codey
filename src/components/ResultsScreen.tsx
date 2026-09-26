@@ -51,7 +51,7 @@ export function ResultsScreen({
   const rejection = rankRejectionReason(result);
 
   const tier = resultTier(result.wpm);
-  const username = user ? githubUsernameFromUser(user) || user.name || undefined : undefined;
+  const username = user ? githubUsernameFromUser(user) : undefined;
 
   return (
     <div className="mt-8 flex animate-fade-in-up flex-col gap-6 max-w-3xl mx-auto">

@@ -228,7 +228,7 @@ export default function Profile() {
                   {best && (
                     <button
                       type="button"
-                      onClick={() => setShareOptions({ result: cloudRunAsResult(best.source), username: githubUsername || profile?.displayName || undefined, heading: "Codey profile highlight" })}
+                      onClick={() => setShareOptions({ result: cloudRunAsResult(best.source), username: githubUsername || undefined, heading: "Codey profile highlight" })}
                       className="flex h-8 items-center gap-1.5 rounded-lg bg-foreground px-3 text-xs font-semibold text-background transition-opacity hover:opacity-90 cursor-pointer"
                     >
                       <Share2 className="size-3.5" /> Share

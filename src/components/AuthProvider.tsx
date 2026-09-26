@@ -10,6 +10,7 @@ import {
   signOut as appwriteSignOut,
 } from "@/lib/appwrite";
 import { syncLocalRuns } from "@/lib/cloud";
+import { updateAccountPrefs } from "@/lib/account-prefs";
 import { startAccountSync } from "@/lib/account-sync";
 import { ensureHistoryIds, getSettings, getStreak, saveSettings } from "@/utils/storage";
 
@@ -61,6 +62,14 @@ async function getGitHubProfile(): Promise<GitHubIdentityProfile | null> {
   }
 }
 
+function rememberGitHubUsername(user: Models.User<Models.Preferences>, username: string | undefined) {
+  if (!username || (user.prefs as Record<string, unknown>).githubUsername === username) return;
+  // Mirror it on the loaded user so this session sees it without a reload.
+  (user.prefs as Record<string, unknown>).githubUsername = username;
+  void updateAccountPrefs((prefs) => (prefs.githubUsername === username ? null : { ...prefs, githubUsername: username }))
+    .catch((error) => console.warn("Could not save the GitHub username to the account", error));
+}
+
 async function ensureProfile(user: Models.User<Models.Preferences>): Promise<void> {
   if (!databases) return;
 
@@ -77,6 +86,8 @@ async function ensureProfile(user: Models.User<Models.Preferences>): Promise<voi
       collectionId: appwriteConfig.profilesCollectionId,
       documentId: user.$id,
     });
+    // Keep the handle in the account prefs too, where the share card and header read it.
+    rememberGitHubUsername(user, profileData.githubUsername || (typeof existing.githubUsername === "string" ? existing.githubUsername : undefined));
     const needsUpdate = profileData.githubUsername !== existing.githubUsername
       || profileData.displayName !== existing.displayName
       || (profileData.avatarUrl && profileData.avatarUrl !== existing.avatarUrl);
@@ -91,6 +102,7 @@ async function ensureProfile(user: Models.User<Models.Preferences>): Promise<voi
   } catch (error) {
     if (!(error instanceof AppwriteException) || error.code !== 404) throw error;
 
+    rememberGitHubUsername(user, profileData.githubUsername);
     const owner = Role.user(user.$id);
     const streak = getStreak();
     await databases.createDocument({
