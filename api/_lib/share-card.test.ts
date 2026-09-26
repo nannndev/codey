@@ -69,12 +69,12 @@ describe("formatLabel", () => {
 describe("shareHtml", () => {
   const shared: SharedRun = {
     id: "run_abc", userId: "user_1", name: `"><script>alert(1)</script>`, username: null, avatarUrl: null,
-    language: "Go", mode: "timed", format: "30s timed", wpm: 90, accuracy: 99, consistency: 80, verified: false, createdAt: "",
+    language: "Go", mode: "timed", format: "30s timed", wpm: 90, rawWpm: 95, accuracy: 99, consistency: 80, keystrokes: 300, mistakes: 3, trace: [], verified: false, createdAt: "",
   };
 
   it("points crawlers at the rendered card and people at the profile", () => {
     const html = shareHtml(shared, "https://codey.example", "run_abc");
-    expect(html).toContain('<meta property="og:image" content="https://codey.example/api/og/run_abc?v=2">');
+    expect(html).toContain('<meta property="og:image" content="https://codey.example/api/og/run_abc?v=3">');
     expect(html).toContain('<meta property="og:url" content="https://codey.example/r/run_abc">');
     expect(html).toContain('<meta name="twitter:card" content="summary_large_image">');
     expect(html).toContain('location.replace("https://codey.example/profile/user_1")');

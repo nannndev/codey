@@ -35,6 +35,7 @@ Indexes:
 | `mode` | enum: `snippet`, `timed`, `zen` | yes |
 | `snippetLength` | string (10): `short`, `medium`, `long` | no |
 | `targetChars` | integer | no |
+| `speedTrace` | string (400) | no |
 | `durationMs` | integer | yes |
 | `durationSeconds` | integer | no |
 | `wpm` | float | yes |
@@ -67,6 +68,10 @@ filtered by the accuracy floor before ordering by `wpm`.
 `targetChars` records how long a snippet run actually was. The client only ranks
 a run when that length falls inside the bounds its `snippetLength` category
 guarantees, which keeps a "medium" score comparable to another "medium" score.
+
+`speedTrace` is the run's pace over time as up to 16 comma-separated WPM values,
+drawn as bars on the share card. It is optional: add it with
+`npm run setup:share`; until then runs are stored without it.
 
 ## `run_sessions`
 

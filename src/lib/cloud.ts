@@ -1,4 +1,5 @@
 import { AppwriteException, Permission, Query, Role, type Models } from "appwrite";
+import { encodeTrace, traceFromSnapshots } from "@/utils/speed-trace";
 import type { RunResult, Settings, SnippetLength, TestMode } from "@/types";
 import { appwriteConfig, databases } from "@/lib/appwrite";
 import { updateAccountPrefs } from "@/lib/account-prefs";
@@ -84,7 +85,7 @@ function markSyncedMany(newKeys: Iterable<string>): void {
 }
 
 /** Attributes added after the first schema rollout; a project missing them must not break sync. */
-const OPTIONAL_ATTRIBUTES = ["snippetLength", "targetChars"] as const;
+const OPTIONAL_ATTRIBUTES = ["snippetLength", "targetChars", "speedTrace"] as const;
 
 function runData(userId: string, run: RunResult): Record<string, unknown> {
   const data: Record<string, unknown> = {
@@ -106,6 +107,8 @@ function runData(userId: string, run: RunResult): Record<string, unknown> {
   if (run.mode === "snippet") data.snippetLength = run.snippetLength ?? "medium";
   if (run.mode === "snippet" && run.targetChars !== undefined) data.targetChars = Math.max(0, Math.round(run.targetChars));
   if (run.sourceRepo) data.sourceRepo = run.sourceRepo;
+  const trace = encodeTrace(traceFromSnapshots(run.wpmSnapshots ?? []));
+  if (trace) data.speedTrace = trace;
   return data;
 }
 

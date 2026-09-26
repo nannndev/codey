@@ -1,6 +1,7 @@
 import { Client, Databases, Account, Permission, Role } from 'node-appwrite';
 import { MIN_RANKED_ACCURACY, MIN_RANKED_WPM } from '../../src/utils/ranking.js';
 import type { SnippetLength, TestMode } from '../../src/types.js';
+import { encodeTrace, traceFromIntervals } from '../../src/utils/speed-trace.js';
 
 interface ApiRequest {
   method?: string;
@@ -184,33 +185,43 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
   // Create Verified Run Document
   const documentId = `run_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
   try {
-    const runDocument = await databases.createDocument({
+    const speedTrace = encodeTrace(traceFromIntervals(keyIntervals, totalMs));
+    const runData = {
+      userId,
+      sessionId,
+      language,
+      mode,
+      snippetLength,
+      targetChars: charLength,
+      durationMs: Math.round(totalMs),
+      durationSeconds: durationSeconds ?? (mode === 'timed' ? Math.round(totalMs / 1000) : undefined),
+      wpm: calculatedWpm,
+      rawWpm: calculatedRawWpm,
+      accuracy: calculatedAccuracy,
+      consistency: 92.5,
+      correctChars: finalCorrectChars,
+      keystrokes: totalKeystrokes,
+      mistakes,
+      snippetsCompleted: 1,
+      verified: true,
+    };
+    const createRun = (data: Record<string, unknown>) => databases.createDocument({
       databaseId: APPWRITE_DATABASE_ID,
       collectionId: APPWRITE_RUNS_ID,
       documentId,
-      data: {
-        userId,
-        sessionId,
-        language,
-        mode,
-        snippetLength,
-        targetChars: charLength,
-        durationMs: Math.round(totalMs),
-        durationSeconds: durationSeconds ?? (mode === 'timed' ? Math.round(totalMs / 1000) : undefined),
-        wpm: calculatedWpm,
-        rawWpm: calculatedRawWpm,
-        accuracy: calculatedAccuracy,
-        consistency: 92.5,
-        correctChars: finalCorrectChars,
-        keystrokes: totalKeystrokes,
-        mistakes,
-        snippetsCompleted: 1,
-        verified: true,
-      },
+      data,
       permissions: [
         Permission.read(Role.any()),
       ],
     });
+    let runDocument;
+    try {
+      runDocument = await createRun(speedTrace ? { ...runData, speedTrace } : runData);
+    } catch (error) {
+      // The speedTrace attribute is optional; a project without it still stores the run.
+      if (!speedTrace || (error as { code?: number })?.code !== 400) throw error;
+      runDocument = await createRun(runData);
+    }
 
     // Mark session completed
     try {
