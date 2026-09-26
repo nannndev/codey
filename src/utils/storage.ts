@@ -155,20 +155,30 @@ export function saveSettings(settings: Settings): void {
 
 // Personal Bests
 
+/**
+ * Groups runs that are comparable: same language and mode, and the same length
+ * (snippet) or clock (timed). Snippet and zen runs vary in elapsed time, so their
+ * duration is not part of the key; timed runs are keyed by whole seconds.
+ */
+function personalBestKey(language: string, mode: TestMode, duration: number | null | undefined, snippetLength?: RunResult['snippetLength']): string {
+  const lengthKey = mode === 'snippet' ? snippetLength ?? 'legacy' : '-';
+  const clock = mode === 'timed' && duration ? Math.round(duration / 1000) : 0;
+  return `${language}|${mode}|${clock}|${lengthKey}`;
+}
+
 export function getPersonalBests(): PersonalBest[] {
   const history = getHistory();
   const map = new Map<string, PersonalBest>();
 
   for (const run of history) {
-    const lengthKey = run.mode === 'snippet' ? run.snippetLength ?? 'legacy' : '-';
-    const key = `${run.language}|${run.mode}|${run.duration ?? 0}|${lengthKey}`;
+    const key = personalBestKey(run.language, run.mode, run.duration, run.snippetLength);
     const existing = map.get(key);
 
     if (!existing) {
       map.set(key, {
         language: run.language,
         mode: run.mode,
-        duration: run.duration ?? null,
+        duration: run.mode === 'timed' ? run.duration ?? null : null,
         snippetLength: run.snippetLength,
         bestWpm: run.wpm,
         bestAccuracy: run.accuracy,
@@ -194,14 +204,8 @@ export function getPersonalBest(
   duration: number | null,
   snippetLength?: RunResult['snippetLength'],
 ): PersonalBest | null {
-  const lengthKey = mode === 'snippet' ? snippetLength ?? 'legacy' : '-';
-  const key = `${language}|${mode}|${duration ?? 0}|${lengthKey}`;
-  const all = getPersonalBests();
-  return all.find((pb) => {
-    const pbLengthKey = pb.mode === 'snippet' ? pb.snippetLength ?? 'legacy' : '-';
-    const pbKey = `${pb.language}|${pb.mode}|${pb.duration ?? 0}|${pbLengthKey}`;
-    return pbKey === key;
-  }) ?? null;
+  const key = personalBestKey(language, mode, duration, snippetLength);
+  return getPersonalBests().find((pb) => personalBestKey(pb.language, pb.mode, pb.duration, pb.snippetLength) === key) ?? null;
 }
 
 export function getBestRunForGhost(

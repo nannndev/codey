@@ -1385,3 +1385,28 @@ html {
 @media (prefers-reduced-motion: reduce) {
   .duel-count { animation: none; }
 }
+
+/* Stats charts: mark colors (never text), stepped per theme for 3:1 contrast on the card. */
+:root {
+  --chart-speed: #d97706;
+  --chart-accuracy: #059669;
+  --color-card-solid: #ffffff;
+}
+.dark {
+  --chart-speed: #cc8214;
+  --chart-accuracy: #0ea774;
+  --color-card-solid: hsl(224 18% 10%);
+}
+.activity-cell { background: var(--color-muted); }
+.activity-cell[data-level="1"] { background: color-mix(in oklab, var(--chart-speed) 30%, var(--color-card-solid)); }
+.activity-cell[data-level="2"] { background: color-mix(in oklab, var(--chart-speed) 52%, var(--color-card-solid)); }
+.activity-cell[data-level="3"] { background: color-mix(in oklab, var(--chart-speed) 76%, var(--color-card-solid)); }
+.activity-cell[data-level="4"] { background: var(--chart-speed); }
+
+/* Profile hero: warm wash with a faint dot grid, so the banner has texture without competing with the avatar. */
+.profile-hero__banner {
+  background:
+    radial-gradient(circle at 1px 1px, color-mix(in oklab, var(--color-foreground) 14%, transparent) 1px, transparent 0) 0 0 / 14px 14px,
+    linear-gradient(115deg, color-mix(in oklab, var(--chart-speed) 38%, transparent), color-mix(in oklab, var(--chart-speed) 10%, transparent) 55%, transparent);
+  mask-image: linear-gradient(to bottom, black 55%, transparent);
+}
