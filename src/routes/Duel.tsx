@@ -16,6 +16,7 @@ import {
   MinusCircle,
   Play,
   RotateCcw,
+  Share2,
   Swords,
   Timer,
   Trophy,
@@ -44,6 +45,8 @@ import { getLanguages, maxSnippetCharsForLanguage } from "@/data";
 import { publishRoom, unpublishRoom, type PublicRoom } from "@/lib/duel-rooms";
 import { checkAchievements } from "@/lib/achievement-snapshot";
 import { cn } from "@/lib/utils";
+import { createDuelCard, duelShareText, type DuelCardInput } from "@/lib/duel-card";
+import { ImageShareDialog, type ImageShare } from "@/components/ImageShareDialog";
 import { SNIPPET_LENGTH_SPEC } from "@/utils/ranking";
 import { computeCharStates, computeWpm } from "@/utils";
 import { getDuelHistory, saveDuelRecord, getDuelStats, type DuelRecord } from "@/utils/duel-history";
@@ -128,6 +131,7 @@ export default function Duel() {
   const [myFinishTimeMs, setMyFinishTimeMs] = useState<number | null>(null);
   const [secondsLeft, setSecondsLeft] = useState<number | null>(null);
   const [rematchSent, setRematchSent] = useState(false);
+  const [duelShare, setDuelShare] = useState<ImageShare | null>(null);
 
   const editorContainerRef = useRef<HTMLDivElement>(null);
   const hiddenInputRef = useRef<HTMLTextAreaElement>(null);
@@ -860,6 +864,34 @@ export default function Duel() {
                         {rematchSent ? <Loader2 className="size-4 animate-spin" /> : <RotateCcw className="size-4" />}
                         {rematchSent ? "Setting up rematch…" : "Rematch"}
                       </button>
+                      {iRaced && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const card: DuelCardInput = {
+                              place: myPlace,
+                              outcome,
+                              racers: standings.map((player) => ({ name: player.name, wpm: player.wpm, accuracy: player.accuracy, you: player.id === selfId })),
+                              language: snippet.language,
+                              format: mode === "timed" ? "Timed" : "Snippet race",
+                              margin: marginText,
+                            };
+                            setDuelShare({
+                              title: "Share this duel",
+                              subtitle: "The final standings as an image, with a link to start a duel.",
+                              icon: Swords,
+                              load: () => createDuelCard(card),
+                              text: duelShareText(card),
+                              url: `${window.location.origin}/duel`,
+                              hint: "The link opens Codey Duel, so friends can start their own race. For Instagram stories, download the image.",
+                              filename: "codey-duel.png",
+                            });
+                          }}
+                          className="flex h-11 items-center gap-2 rounded-xl border border-border/70 px-5 text-sm font-semibold transition-colors hover:bg-muted cursor-pointer"
+                        >
+                          <Share2 className="size-4" /> Share
+                        </button>
+                      )}
                       <button type="button" onClick={handleLeave} className="flex h-11 items-center gap-2 rounded-xl border border-border/70 px-5 text-sm font-semibold transition-colors hover:bg-muted cursor-pointer">
                         <LogOut className="size-4" /> Leave
                       </button>
@@ -917,6 +949,7 @@ export default function Duel() {
           </div>
         )}
       </div>
+      <ImageShareDialog share={duelShare} onClose={() => setDuelShare(null)} />
       <Footer />
     </div>
   );
