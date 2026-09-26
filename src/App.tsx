@@ -161,6 +161,24 @@ export default function App() {
     focusWorkspace();
   }, [focusWorkspace]);
 
+  // Ranked code always comes from the server; any settings change fetches a new challenge for them.
+  const loadRankedChallenge = useCallback(() => {
+    void ranked.fetchChallenge({
+      language,
+      mode,
+      snippetLength: preferences.snippetLength,
+      durationSeconds: duration ?? 30,
+    }).then((ch) => {
+      loadSnippet({
+        id: ch.sessionId,
+        language: ch.language,
+        code: ch.snippetCode,
+        sourceType: "public",
+      });
+      focusWorkspace();
+    }).catch(() => undefined);
+  }, [ranked, language, mode, preferences.snippetLength, duration, loadSnippet, focusWorkspace]);
+
   useEffect(() => {
     const previous = previousSelectionRef.current;
     const selectionChanged = previous.language !== language
@@ -174,9 +192,11 @@ export default function App() {
       setResult(null);
       resetPhysicalKeypresses();
       reset();
-      focusWorkspace();
+      // reset() draws a local snippet; a ranked run must race the server's instead.
+      if (isRanked && user) loadRankedChallenge();
+      else focusWorkspace();
     }
-  }, [language, mode, duration, devCategory, preferences.snippetLength, status, reset, focusWorkspace, resetPhysicalKeypresses]);
+  }, [language, mode, duration, devCategory, preferences.snippetLength, status, reset, focusWorkspace, resetPhysicalKeypresses, isRanked, user, loadRankedChallenge]);
 
   useEffect(() => {
     if (status === "finished" && keystrokes > 0) {
@@ -334,26 +354,13 @@ export default function App() {
     }
 
     if (isRanked && user) {
-      void ranked.fetchChallenge({
-        language,
-        mode,
-        snippetLength: preferences.snippetLength,
-        durationSeconds: duration ?? 30,
-      }).then((ch) => {
-        loadSnippet({
-          id: ch.sessionId,
-          language: ch.language,
-          code: ch.snippetCode,
-          sourceType: "public",
-        });
-        focusWorkspace();
-      }).catch(() => undefined);
+      loadRankedChallenge();
       return;
     }
 
     reset();
     focusWorkspace();
-  }, [isRanked, user, ranked, daily, language, mode, preferences.snippetLength, duration, loadSnippet, reset, focusWorkspace, resetPhysicalKeypresses]);
+  }, [isRanked, user, daily, loadRankedChallenge, reset, focusWorkspace, resetPhysicalKeypresses]);
 
   const handleDevCategoryChange = useCallback(
     (cat: DevPracticeCategory) => {
@@ -550,6 +557,9 @@ export default function App() {
   });
 
   const handleCustomSnippet = useCallback((nextSnippet: import("@/types").Snippet) => {
+    // Your own code can never count for Ranked or the Daily board.
+    if (ranked.isRanked) ranked.exitRanked();
+    if (daily.active) daily.exit();
     resetPhysicalKeypresses();
     previousSelectionRef.current = { language: nextSnippet.language, mode: "snippet", duration: null, devCategory, snippetLength: preferences.snippetLength };
     setCustomSnippet(nextSnippet);
@@ -559,7 +569,7 @@ export default function App() {
     setResult(null);
     loadSnippet(nextSnippet);
     focusWorkspace();
-  }, [loadSnippet, focusWorkspace, devCategory, preferences.snippetLength, resetPhysicalKeypresses]);
+  }, [ranked, daily, loadSnippet, focusWorkspace, devCategory, preferences.snippetLength, resetPhysicalKeypresses]);
 
   const exitCustomPractice = useCallback(() => {
     resetPhysicalKeypresses();
@@ -621,6 +631,13 @@ export default function App() {
       return;
     }
 
+    if (customSnippet) setCustomSnippet(null);
+    if (devCategory !== "public") {
+      // Update the ref first so the selection effect does not fetch a second challenge.
+      previousSelectionRef.current = { ...previousSelectionRef.current, devCategory: "public" };
+      setDevCategory("public");
+    }
+
     void ranked.fetchChallenge({
       language,
       mode,
@@ -634,7 +651,7 @@ export default function App() {
         sourceType: "public",
       });
     }).catch(() => undefined);
-  }, [status, rankedStatus, isRanked, ranked, daily, user, language, mode, preferences.snippetLength, duration, loadSnippet, reset, resetPhysicalKeypresses]);
+  }, [status, rankedStatus, isRanked, ranked, daily, user, customSnippet, devCategory, language, mode, preferences.snippetLength, duration, loadSnippet, reset, resetPhysicalKeypresses]);
 
   return (
     <div
@@ -765,15 +782,23 @@ export default function App() {
                 </div>
                 {/* When the custom-code panel opens it takes the full toolbar width. */}
                 <div className="ml-auto flex flex-wrap items-center gap-2 has-[>section]:ml-0 has-[>section]:basis-full">
-                  <WeakKeyDrillModal onDrill={handleCustomSnippet} />
-                  <CustomPractice onLoad={handleCustomSnippet} />
+                  {rankedSwitchEngaged || daily.active ? (
+                    <span className="text-[11px] text-muted-foreground" title="Ranked and Daily runs use code picked by the server, so everyone races the same thing.">
+                      {daily.active ? "Daily uses today's shared code" : "Ranked uses server-picked code"}
+                    </span>
+                  ) : (
+                    <>
+                      <WeakKeyDrillModal onDrill={handleCustomSnippet} />
+                      <CustomPractice onLoad={handleCustomSnippet} />
+                    </>
+                  )}
                 </div>
               </div>
               <div className="flex flex-wrap items-center gap-2 border-t border-border/50 pt-2">
                 <DevPracticeSelector
                   activeCategory={devCategory}
                   onSelectCategory={handleDevCategoryChange}
-                  disabled={status === "running"}
+                  disabled={status === "running" || rankedSwitchEngaged}
                 />
                 {devCategory === "public" && (
                   <LanguagePicker
