@@ -23,6 +23,7 @@ interface KapMascotProps {
 const INK = "#1c1917";
 const SLEEP_CAP: [string, string, string] = ["#e4e4e7", "#c4c4cc", "#9f9fa9"];
 const RISK_CAP: [string, string, string] = ["#fff7e6", "#f4dfb6", "#d9bd86"];
+const ICE_CAP: [string, string, string] = ["#f0f9ff", "#bae6fd", "#7dd3fc"];
 
 function flamePaths(cx: number, base: number, scale: number, outer: string, inner: string) {
   const h = 78 * scale;
@@ -60,7 +61,7 @@ function Face({ mood, crown }: { mood: StreakMood; crown: boolean }) {
             <circle cx={cx + 24} cy={y - 1} r="2" fill="#fff" />
           </>
         )}
-        {mood === "lit" && !crown && <path d={`M${cx - 31} ${y + 4} q9 -13 18 0 M${cx + 13} ${y + 4} q9 -13 18 0`} stroke={INK} strokeWidth="4.5" fill="none" strokeLinecap="round" />}
+        {(mood === "lit" && !crown) || mood === "frozen" ? <path d={`M${cx - 31} ${y + 4} q9 -13 18 0 M${cx + 13} ${y + 4} q9 -13 18 0`} stroke={INK} strokeWidth="4.5" fill="none" strokeLinecap="round" /> : null}
         {mood === "lit" && crown && (
           <>
             <Star x={cx - 22} y={y} />
@@ -72,6 +73,7 @@ function Face({ mood, crown }: { mood: StreakMood; crown: boolean }) {
       {mood === "sleep" && <ellipse cx={cx} cy={y + 20} rx="4.5" ry="3.5" fill={INK} />}
       {mood === "risk" && <path d={`M${cx - 10} ${y + 24} q10 -8 20 0`} stroke={INK} strokeWidth="4" fill="none" strokeLinecap="round" />}
       {mood === "lit" && smile}
+      {mood === "frozen" && <path d={`M${cx - 9} ${y + 20} q9 7 18 0`} stroke={INK} strokeWidth="4" fill="none" strokeLinecap="round" />}
       {mood !== "sleep" && (
         <>
           <ellipse cx={cx - 38} cy={y + 16} rx="7" ry="4.5" fill="#fb7185" opacity=".45" />
@@ -84,10 +86,10 @@ function Face({ mood, crown }: { mood: StreakMood; crown: boolean }) {
 
 export function KapMascot({ mood, tier, size = 120, animate = true, jump = false, className, title }: KapMascotProps) {
   const id = useId().replace(/:/g, "");
-  const cap = mood === "sleep" ? SLEEP_CAP : mood === "risk" ? RISK_CAP : tier?.cap ?? SLEEP_CAP;
+  const cap = mood === "sleep" ? SLEEP_CAP : mood === "risk" ? RISK_CAP : mood === "frozen" ? ICE_CAP : tier?.cap ?? SLEEP_CAP;
   const [top, front, side] = cap;
   // At risk, the flame shrinks to an ember of its usual colour.
-  const flameScale = mood === "sleep" || !tier ? 0 : mood === "risk" ? Math.min(0.55, tier.scale * 0.6) : tier.scale;
+  const flameScale = mood === "sleep" || !tier ? 0 : mood === "risk" || mood === "frozen" ? Math.min(0.55, tier.scale * 0.6) : tier.scale;
   const crown = mood === "lit" && Boolean(tier?.crown);
   const armsUp = mood === "lit";
 
@@ -137,6 +139,17 @@ export function KapMascot({ mood, tier, size = 120, animate = true, jump = false
         )}
         {crown && <path d={`M96 ${108 - 78 * flameScale + 6} l6 -22 12 12 6 -18 6 18 12 -12 6 22z`} fill="#facc15" stroke="#a16207" strokeWidth="2" strokeLinejoin="round" />}
         <Face mood={mood} crown={crown} />
+        {mood === "frozen" && (
+          <g className="kap-scarf">
+            {/* An ice-blue scarf, tied at the side with a snowflake. */}
+            <path d="M62 124 Q120 142 178 124 L181 140 Q120 158 59 140 Z" fill="#38bdf8" />
+            <path d="M62 124 Q120 142 178 124 L179 130 Q120 148 61 130 Z" fill="#7dd3fc" />
+            <path d="M154 138 L168 180 L153 183 L146 142 Z" fill="#0ea5e9" />
+            <g stroke="#f0f9ff" strokeWidth="2.5" strokeLinecap="round">
+              <path d="M96 134 v10 M91 139 h10 M92.5 135.5 l7 7 M99.5 135.5 l-7 7" />
+            </g>
+          </g>
+        )}
         {mood === "risk" && <path className="kap-sweat" d="M178 120 q7 11 0 15 q-7 -4 0 -15z" fill="#7dd3fc" />}
       </g>
       {mood === "sleep" && (

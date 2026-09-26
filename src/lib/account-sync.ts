@@ -54,6 +54,8 @@ export const SLICES: Slice[] = [
   single("theme", "codetype-theme"),
   single("settings", "codetype_settings"),
   single("radio", "codetype-flow-radio"),
+  single("freezes", "codey_streak_freezes"),
+  single("textLanguage", "codey_text_language"),
   {
     id: "sound",
     keys: ["codey_soundpack_id_v1", "codey_sound_volume_v1"],

@@ -1,11 +1,11 @@
 import { useEffect, useState } from "react";
 import { getHistory, getStreak, STREAK_EVENT } from "@/utils/storage";
 import { SYNC_EVENT } from "@/lib/account-sync";
-import { dateKey, streakStatus, type StreakStatus } from "@/lib/streak";
+import { dateKey, readFreezes, streakStatus, type StreakStatus } from "@/lib/streak";
 
 function read(): StreakStatus {
   const days = getHistory().map((run) => dateKey(new Date(run.timestamp)));
-  return streakStatus(getStreak(), days);
+  return streakStatus(getStreak(), days, new Date(), readFreezes());
 }
 
 /** The streak as Kap sees it, kept fresh after runs, account syncs, other tabs and midnight. */
@@ -15,7 +15,7 @@ export function useStreak(): StreakStatus {
   useEffect(() => {
     const refresh = () => setStatus(read());
     const onStorage = (event: StorageEvent) => {
-      if (!event.key || event.key.startsWith("codetype_")) refresh();
+      if (!event.key || event.key.startsWith("codetype_") || event.key === "codey_streak_freezes") refresh();
     };
     window.addEventListener(STREAK_EVENT, refresh);
     window.addEventListener(SYNC_EVENT, refresh);

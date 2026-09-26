@@ -24,7 +24,9 @@ export function StreakButton() {
     };
   }, [open]);
 
-  const label = status.mood === "risk"
+  const label = status.mood === "frozen"
+    ? `${status.current}-day streak, saved by a freeze; practice today`
+    : status.mood === "risk"
     ? `${status.current}-day streak, practice today to keep it`
     : status.current > 0 ? `${status.current}-day streak` : "No streak yet";
 
@@ -42,12 +44,12 @@ export function StreakButton() {
           status.mood === "lit" ? "text-foreground" : "text-muted-foreground",
         )}
       >
-        <KapMascot mood={status.mood} tier={status.tier} size={26} animate={status.mood === "risk"} className="-mt-1" />
+        <KapMascot mood={status.mood} tier={status.tier} size={26} animate={status.mood === "risk" || status.mood === "frozen"} className="-mt-1" />
         <span>{status.current}</span>
-        {status.mood === "risk" && (
+        {(status.mood === "risk" || status.mood === "frozen") && (
           <span className="absolute right-1 top-1 flex size-2" aria-hidden>
-            <span className="absolute inline-flex size-full animate-ping rounded-full bg-amber-500 opacity-75" />
-            <span className="relative inline-flex size-2 rounded-full bg-amber-500" />
+            <span className={cn("absolute inline-flex size-full animate-ping rounded-full opacity-75", status.mood === "frozen" ? "bg-sky-400" : "bg-amber-500")} />
+            <span className={cn("relative inline-flex size-2 rounded-full", status.mood === "frozen" ? "bg-sky-400" : "bg-amber-500")} />
           </span>
         )}
       </button>
