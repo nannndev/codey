@@ -19,7 +19,7 @@ import { Footer } from "@/components/Footer";
 import { useAuth } from "@/components/AuthProvider";
 import { uploadRun } from "@/lib/cloud";
 import { canChallenge, challengeSnippet, getChallenge, type Challenge } from "@/lib/challenges";
-import { isProse, loadTextCorpus, passageSnippet, pickPassage, wordsSnippet, type TextCorpus, type TextLanguage } from "@/lib/text-practice";
+import { isProse, loadTextCorpus, TEXT_LANGUAGE_NAMES, passageSnippet, pickPassage, wordsSnippet, type TextCorpus, type TextLanguage } from "@/lib/text-practice";
 import { TextLanguagePicker } from "@/components/TextLanguagePicker";
 import { markOnboarded, OnboardingDialog, shouldOnboard, type OnboardingChoice } from "@/components/OnboardingDialog";
 import { ChallengeModeBanner, ChallengeResultBanner } from "@/components/ChallengeBanners";
@@ -114,6 +114,8 @@ export default function App() {
   }, [customSnippet, devCategory, getPublicSnippet, textCorpus, textLanguage, preferences.snippetLength]);
 
   const config = useMemo(() => ({ mode, duration }), [mode, duration]);
+  // Ranked races the board of what is being practised: a code language, or a text board.
+  const rankedLanguage = devCategory === "words" ? TEXT_LANGUAGE_NAMES[textLanguage] : devCategory === "passages" ? "Passages" : language;
   const {
     snippet,
     input,
@@ -185,7 +187,7 @@ export default function App() {
   // Ranked code always comes from the server; any settings change fetches a new challenge for them.
   const loadRankedChallenge = useCallback(() => {
     void ranked.fetchChallenge({
-      language,
+      language: rankedLanguage,
       mode,
       snippetLength: preferences.snippetLength,
       durationSeconds: duration ?? 30,
@@ -198,7 +200,7 @@ export default function App() {
       });
       focusWorkspace();
     }).catch(() => undefined);
-  }, [ranked, language, mode, preferences.snippetLength, duration, loadSnippet, focusWorkspace]);
+  }, [ranked, rankedLanguage, mode, preferences.snippetLength, duration, loadSnippet, focusWorkspace]);
 
   useEffect(() => {
     const previous = previousSelectionRef.current;
@@ -457,9 +459,11 @@ export default function App() {
       setResult(null);
       resetPhysicalKeypresses();
       reset();
-      focusWorkspace();
+      // A ranked run must race the server's words for the new board.
+      if (isRanked && user) loadRankedChallenge();
+      else focusWorkspace();
     }
-  }, [textLanguage, devCategory, status, reset, focusWorkspace, resetPhysicalKeypresses]);
+  }, [textLanguage, devCategory, status, reset, focusWorkspace, resetPhysicalKeypresses, isRanked, user, loadRankedChallenge]);
 
   const handleLanguageChange = useCallback(
     (lang: string) => {
@@ -762,14 +766,15 @@ export default function App() {
     }
 
     if (customSnippet) setCustomSnippet(null);
-    if (devCategory !== "public") {
+    // Text practice ranks on its own boards; every other source ranks as GitHub code.
+    if (devCategory !== "public" && devCategory !== "words" && devCategory !== "passages") {
       // Update the ref first so the selection effect does not fetch a second challenge.
       previousSelectionRef.current = { ...previousSelectionRef.current, devCategory: "public" };
       setDevCategory("public");
     }
 
     void ranked.fetchChallenge({
-      language,
+      language: rankedLanguage,
       mode,
       snippetLength: preferences.snippetLength,
       durationSeconds: duration ?? 30,
@@ -781,7 +786,7 @@ export default function App() {
         sourceType: "public",
       });
     }).catch(() => undefined);
-  }, [status, rankedStatus, isRanked, ranked, daily, user, customSnippet, devCategory, language, mode, preferences.snippetLength, duration, loadSnippet, reset, resetPhysicalKeypresses]);
+  }, [status, rankedStatus, isRanked, ranked, daily, user, customSnippet, devCategory, rankedLanguage, mode, preferences.snippetLength, duration, loadSnippet, reset, resetPhysicalKeypresses]);
 
   return (
     <div

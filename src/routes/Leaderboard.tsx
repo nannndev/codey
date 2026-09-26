@@ -6,6 +6,9 @@ import { PodiumCard, YourRankBar } from "@/components/leaderboard/BoardParts";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { getLanguages } from "@/data";
+import { TEXT_BOARDS } from "@/utils/ranking";
+
+const TEXT_BOARD_LABELS: Record<(typeof TEXT_BOARDS)[number], string> = { English: "English words", Indonesian: "Kata Indonesia", Passages: "Passages" };
 import { cloudRunAsResult, type CloudProfile, type CloudRun } from "@/lib/cloud";
 import { getLeaderboardView } from "@/lib/leaderboard-api";
 import type { SnippetLength } from "@/types";
@@ -202,7 +205,7 @@ export default function Leaderboard() {
   }, [board, language, snippetLength, duration]);
 
   const formatLabel = board === "snippet" ? `${snippetLength.charAt(0).toUpperCase()}${snippetLength.slice(1)} snippet` : `${duration}s timed`;
-  const boardTitle = language === "All" ? `All Languages · ${formatLabel}` : `${language} · ${formatLabel}`;
+  const boardTitle = language === "All" ? `All code · ${formatLabel}` : `${(TEXT_BOARD_LABELS as Record<string, string>)[language] ?? language} · ${formatLabel}`;
   const podium = runs.slice(0, 3);
   const remaining = runs.slice(3);
   const podiumOrder = podium.length === 1 ? [podium[0]] : podium.length === 2 ? [podium[1], podium[0]] : [podium[1], podium[0], podium[2]];
@@ -263,6 +266,21 @@ export default function Leaderboard() {
                   }`}
                 >
                   {item}
+                </button>
+              ))}
+            </div>
+            <div className="flex flex-wrap items-center gap-1 rounded-lg border bg-card/70 p-1" role="group" aria-label="Text boards">
+              <span className="px-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Text</span>
+              {TEXT_BOARDS.map((item) => (
+                <button
+                  key={item}
+                  type="button"
+                  onClick={() => setLanguage(item)}
+                  className={`rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors ${
+                    language === item ? "bg-foreground text-background" : "text-muted-foreground hover:bg-muted"
+                  }`}
+                >
+                  {TEXT_BOARD_LABELS[item]}
                 </button>
               ))}
             </div>

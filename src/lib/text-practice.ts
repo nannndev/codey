@@ -11,7 +11,7 @@ export type TextLanguage = "english" | "indonesian";
 
 export const TEXT_LANGUAGE_NAMES: Record<TextLanguage, string> = { english: "English", indonesian: "Indonesian" };
 /** Languages that are prose, not code: shown wrapped, without line numbers. */
-export const PROSE_LANGUAGES = new Set(["English", "Indonesian"]);
+export const PROSE_LANGUAGES = new Set(["English", "Indonesian", "Passages"]);
 
 export const isProse = (snippet: Pick<Snippet, "language"> & { kind?: string }) => snippet.kind === "text" || PROSE_LANGUAGES.has(snippet.language);
 
@@ -62,7 +62,8 @@ export function pickPassage(passages: readonly Passage[], length: SnippetLength,
 export function passageSnippet(passage: Passage): Snippet {
   return {
     id: `passage-${passage.gutenberg}-${passage.text.length}`,
-    language: "English",
+    // Its own "language", so passages rank apart from English words.
+    language: "Passages",
     code: passage.text,
     filename: passage.title,
     source: { repo: `${passage.title} · ${passage.author}`, url: `https://www.gutenberg.org/ebooks/${passage.gutenberg}` },

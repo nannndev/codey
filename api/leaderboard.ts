@@ -1,6 +1,6 @@
 import { Client, Databases, Query } from "node-appwrite";
 import type { SnippetLength, TestMode } from "../src/types.js";
-import { MIN_RANKED_ACCURACY, MIN_RANKED_WPM, isWithinLengthSpec } from "../src/utils/ranking.js";
+import { MIN_RANKED_ACCURACY, MIN_RANKED_WPM, isTextLanguage, isWithinLengthSpec } from "../src/utils/ranking.js";
 
 interface ApiRequest {
   method?: string;
@@ -50,6 +50,8 @@ function createDatabases(): Databases {
 function matchesRun(run: RunDocument, language: string, mode: TestMode, snippetLength: SnippetLength, durationSeconds: number): boolean {
   if (!run.verified || run.accuracy < MIN_RANKED_ACCURACY || run.wpm < MIN_RANKED_WPM) return false;
   if (language !== "All" && run.language !== language) return false;
+  // "All" is every code language; text has its own boards.
+  if (language === "All" && isTextLanguage(run.language)) return false;
   if (run.mode !== mode) return false;
   if (mode === "timed" && run.durationSeconds !== durationSeconds) return false;
   if (mode === "snippet") {
