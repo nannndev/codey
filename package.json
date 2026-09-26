@@ -10,7 +10,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "setup:daily": "node --env-file=.env scripts/setup-appwrite-daily.mjs",
-    "setup:duel": "node --env-file=.env scripts/setup-appwrite-duel.mjs"
+    "setup:duel": "node --env-file=.env scripts/setup-appwrite-duel.mjs",
+    "setup:share": "node --env-file=.env scripts/setup-appwrite-share.mjs"
   },
   "dependencies": {
     "@radix-ui/react-slot": "^1.3.3",

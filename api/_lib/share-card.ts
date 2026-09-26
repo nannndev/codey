@@ -1,4 +1,5 @@
 import { APPWRITE, adminDatabases } from './appwrite-admin.js';
+import { parseTrace } from '../../src/utils/speed-trace.js';
 
 /**
  * Public share links for a run: /r/<runId> serves Open Graph tags so Threads,
@@ -7,7 +8,7 @@ import { APPWRITE, adminDatabases } from './appwrite-admin.js';
  * the card always match the database.
  */
 
-export const CARD_VERSION = 2;
+export const CARD_VERSION = 3;
 
 export const RUN_ID_PATTERN = /^[A-Za-z0-9_]{1,36}$/;
 
@@ -21,8 +22,13 @@ export interface SharedRun {
   mode: string;
   format: string;
   wpm: number;
+  rawWpm: number;
   accuracy: number;
   consistency: number;
+  keystrokes: number;
+  mistakes: number;
+  /** Pace over the run, for the card's bars; empty for runs stored before it existed. */
+  trace: number[];
   verified: boolean;
   createdAt: string;
 }
@@ -73,8 +79,12 @@ export async function loadSharedRun(id: string, db: ShareDb = adminDatabases() a
     mode: text(run.mode, 10),
     format: formatLabel(run),
     wpm: Number(run.wpm) || 0,
+    rawWpm: Number(run.rawWpm) || 0,
     accuracy: Number(run.accuracy) || 0,
     consistency: Number(run.consistency) || 0,
+    keystrokes: Math.max(0, Math.round(Number(run.keystrokes) || 0)),
+    mistakes: Math.max(0, Math.round(Number(run.mistakes) || 0)),
+    trace: parseTrace(run.speedTrace),
     verified: run.verified === true,
     createdAt: text(run.$createdAt, 40),
   };
