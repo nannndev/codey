@@ -26,6 +26,7 @@ import { cloudRunAsResult, getProfile, listUserRuns, type CloudProfile, type Clo
 import { getStreak } from "@/utils/storage";
 import type { ShareCardOptions } from "@/lib/share-result";
 import { SharePreviewDialog } from "@/components/SharePreviewDialog";
+import { ProfileShareDialog, type ProfileShareTarget } from "@/components/ProfileShareDialog";
 import { computeKeyStatsFromCloudRuns, getPendingKeyboardStats, getStoredKeyStats, getVisibleKeyStats, mergeStatsMaps, type KeyboardStatsMap } from "@/utils/keyboard-analytics";
 import { getCloudKeyboardStats } from "@/lib/keyboard-stats-cloud";
 import { DivisionBadge } from "@/components/DivisionBadge";
@@ -75,6 +76,7 @@ export default function Profile() {
   const [runs, setRuns] = useState<CloudRun[]>([]);
   const [dataLoading, setDataLoading] = useState(false);
   const [shareOptions, setShareOptions] = useState<ShareCardOptions | null>(null);
+  const [profileShare, setProfileShare] = useState<ProfileShareTarget | null>(null);
   const [cloudKeyStats, setCloudKeyStats] = useState<KeyboardStatsMap | null>(null);
   const localStreak = useMemo(() => getStreak(), []);
 
@@ -229,11 +231,18 @@ export default function Profile() {
                     <button
                       type="button"
                       onClick={() => setShareOptions({ result: cloudRunAsResult(best.source), username: githubUsername || undefined, heading: "Codey profile highlight" })}
-                      className="flex h-8 items-center gap-1.5 rounded-lg bg-foreground px-3 text-xs font-semibold text-background transition-opacity hover:opacity-90 cursor-pointer"
+                      className="flex h-8 items-center gap-1.5 rounded-lg border px-2.5 text-xs font-semibold text-muted-foreground transition-colors hover:bg-muted hover:text-foreground cursor-pointer"
                     >
-                      <Share2 className="size-3.5" /> Share
+                      <Trophy className="size-3.5" /> Best run
                     </button>
                   )}
+                  <button
+                    type="button"
+                    onClick={() => setProfileShare({ userId: viewedUserId, name: displayName, username: githubUsername, bestWpm: best?.wpm ?? 0, runs: timeline.length, own: isOwnProfile })}
+                    className="flex h-8 items-center gap-1.5 rounded-lg bg-foreground px-3 text-xs font-semibold text-background transition-opacity hover:opacity-90 cursor-pointer"
+                  >
+                    <Share2 className="size-3.5" /> Share profile
+                  </button>
                 </div>
               </div>
             </section>
@@ -400,6 +409,7 @@ export default function Profile() {
       </div>
       <Footer />
       <SharePreviewDialog options={shareOptions} onClose={() => setShareOptions(null)} />
+      <ProfileShareDialog target={profileShare} onClose={() => setProfileShare(null)} />
     </div>
   );
 }

@@ -100,17 +100,23 @@ export function shareDescription(run: SharedRun) {
   return `${run.accuracy.toFixed(1)}% accuracy · ${run.format}${run.verified ? ' · verified Ranked run' : ''}. Practice typing real code on Codey.`;
 }
 
+export interface MetaPage {
+  title: string;
+  description: string;
+  /** Absolute URL of the preview image. */
+  image: string;
+  /** Canonical share URL. */
+  url: string;
+  /** Where people are sent. */
+  target: string;
+}
+
 /**
- * The page crawlers read. People are sent on to the player's profile by script
- * only: Meta's crawler (Threads, Facebook, WhatsApp) follows meta refresh and
- * would read the app's generic tags instead of these.
+ * The page crawlers read. People are sent on by script only: Meta's crawler
+ * (Threads, Facebook, WhatsApp) follows meta refresh and would read the app's
+ * generic tags instead of these.
  */
-export function shareHtml(run: SharedRun | null, origin: string, id: string) {
-  const target = run ? `${origin}/profile/${encodeURIComponent(run.userId)}` : origin;
-  const title = run ? shareTitle(run) : 'Codey: type real code, faster';
-  const description = run ? shareDescription(run) : 'Typing practice with real code from GitHub, daily challenges and live duels.';
-  const image = run ? `${origin}/api/og/${encodeURIComponent(id)}?v=${CARD_VERSION}` : `${origin}/og-default.png?v=${CARD_VERSION}`;
-  const url = `${origin}/r/${encodeURIComponent(id)}`;
+export function metaPageHtml({ title, description, image, url, target }: MetaPage) {
   const meta = (property: string, content: string, attr = 'property') => `<meta ${attr}="${property}" content="${escapeHtml(content)}">`;
   return `<!doctype html>
 <html lang="en"><head>
@@ -136,4 +142,14 @@ ${meta('twitter:image', image, 'name')}
 <p>Opening <a style="color:#fbbf24" href="${escapeHtml(target)}">${escapeHtml(title)}</a>…</p>
 <script>location.replace(${JSON.stringify(target)})</script>
 </body></html>`;
+}
+
+export function shareHtml(run: SharedRun | null, origin: string, id: string) {
+  return metaPageHtml({
+    title: run ? shareTitle(run) : 'Codey: type real code, faster',
+    description: run ? shareDescription(run) : 'Typing practice with real code from GitHub, daily challenges and live duels.',
+    image: run ? `${origin}/api/og/${encodeURIComponent(id)}?v=${CARD_VERSION}` : `${origin}/og-default.png?v=${CARD_VERSION}`,
+    url: `${origin}/r/${encodeURIComponent(id)}`,
+    target: run ? `${origin}/profile/${encodeURIComponent(run.userId)}` : origin,
+  });
 }

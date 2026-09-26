@@ -1,5 +1,6 @@
 import { ImageResponse } from '@vercel/og';
 import type { SharedRun } from './share-card.js';
+import type { SharedProfile } from './profile-card.js';
 
 /**
  * 1200×630 preview card, drawn with Satori from plain element objects (no JSX
@@ -65,6 +66,13 @@ function paceBars(trace: number[], width: number, height: number) {
   );
 }
 
+/** The line under the big number must stay on one line inside the amber panel. */
+function captionSize(text: string) {
+  if (text.length <= 16) return 40;
+  if (text.length <= 22) return 30;
+  return 26;
+}
+
 function wpmSize(text: string) {
   if (text.length <= 3) return 200;
   if (text.length === 4) return 150;
@@ -107,7 +115,7 @@ export function renderShareImage(run: SharedRun | null, host: string): ImageResp
     ),
     h('div', { flexDirection: 'column' },
       h('div', { fontSize: wpmSize(wpm), lineHeight: 0.85, color: COAL, letterSpacing: -8 }, wpm),
-      h('div', { fontSize: where.length >= 20 ? 30 : 40, color: DEEP, marginTop: 10 }, where),
+      h('div', { fontSize: captionSize(where), color: DEEP, marginTop: 10 }, where),
     ),
     h('div', { alignItems: 'center', gap: 14 }, mark(COAL, AMBER), h('div', { fontSize: 28, color: COAL }, 'Codey')),
   );
@@ -135,6 +143,61 @@ export function renderShareImage(run: SharedRun | null, host: string): ImageResp
       stat('Accuracy', `${run.accuracy.toFixed(1)}%`),
       stat('Format', run.format),
       stat('Raw speed', formatWpm(run.rawWpm)),
+    ),
+  );
+
+  const root = h('div', { width: 1200, height: 630, background: DARK, fontFamily: 'Geist' }, left, right);
+  return new ImageResponse(root as never, { width: 1200, height: 630 });
+}
+
+function avatar(name: string, url: string | null) {
+  return url
+    ? img(url, { width: 70, height: 70, borderRadius: 35, border: `3px solid ${COAL}` })
+    : h('div', { width: 70, height: 70, borderRadius: 35, background: COAL, color: AMBER, fontSize: 34, alignItems: 'center', justifyContent: 'center' }, name.slice(0, 1).toUpperCase());
+}
+
+/** The player's card: best WPM on the amber side, recent form and totals on the dark side. */
+export function renderProfileImage(profile: SharedProfile, host: string): ImageResponse {
+  const best = profile.runs ? formatWpm(profile.bestWpm) : '–';
+  const where = !profile.runs ? 'no runs yet' : profile.bestLanguage === 'Mixed' ? 'best wpm across languages' : `best wpm in ${profile.bestLanguage}`;
+  const hasTrend = profile.trend.length >= 3;
+
+  const left = h('div', { width: PANEL, height: 630, background: AMBER, flexDirection: 'column', justifyContent: 'space-between', padding: '56px 52px' },
+    h('div', { alignItems: 'center', gap: 16 },
+      avatar(profile.name, profile.avatarUrl),
+      h('div', { flexDirection: 'column', maxWidth: 280 },
+        h('div', { fontSize: 32, color: COAL, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }, profile.name),
+        h('div', { fontSize: 22, color: DEEP }, profile.username ? `@${profile.username}` : 'Codey typist'),
+      ),
+    ),
+    h('div', { flexDirection: 'column' },
+      h('div', { fontSize: wpmSize(best), lineHeight: 0.85, color: COAL, letterSpacing: -8 }, best),
+      h('div', { fontSize: captionSize(where), color: DEEP, marginTop: 10 }, where),
+    ),
+    h('div', { alignItems: 'center', gap: 14 }, mark(COAL, AMBER), h('div', { fontSize: 28, color: COAL }, 'Codey')),
+  );
+
+  const middle = hasTrend
+    ? h('div', { flexDirection: 'column', gap: 14 },
+        h('div', { fontSize: 20, color: MUTED, letterSpacing: 2 }, `LAST ${profile.trend.length} RUNS`),
+        paceBars(profile.trend, 618, 170),
+      )
+    : h('div', { flexDirection: 'column', gap: 14 },
+        h('div', { fontSize: 20, color: MUTED, letterSpacing: 2 }, 'JUST GETTING STARTED'),
+        h('div', { fontSize: 44, color: INK }, profile.topLanguage ? `Mostly ${profile.topLanguage}` : 'Typing real code on Codey'),
+      );
+
+  const right = h('div', { flex: 1, flexDirection: 'column', justifyContent: 'space-between', padding: '56px 56px' },
+    h('div', { justifyContent: 'space-between', alignItems: 'center' },
+      profile.division ? pill(profile.division.name, profile.division.color, false) : pill('Codey profile', MUTED, false),
+      h('div', { fontSize: 22, color: MUTED }, host),
+    ),
+    middle,
+    h('div', { gap: 44 },
+      stat('Runs', profile.runs.toLocaleString('en-US'), 36),
+      stat('Avg speed', profile.runs ? formatWpm(profile.avgWpm) : '–', 36),
+      stat('Accuracy', profile.runs ? `${profile.avgAccuracy.toFixed(1)}%` : '–', 36),
+      stat('Best streak', `${profile.bestStreak}d`, 36),
     ),
   );
 

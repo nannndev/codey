@@ -1,6 +1,7 @@
 import { isConfigured, type ApiRequest } from '../_lib/appwrite-admin.js';
 import { loadSharedRun } from '../_lib/share-card.js';
-import { renderShareImage } from '../_lib/og-image.js';
+import { renderProfileImage, renderShareImage } from '../_lib/og-image.js';
+import { loadSharedProfile } from '../_lib/profile-card.js';
 
 interface BinaryResponse {
   status: (code: number) => BinaryResponse;
@@ -10,10 +11,22 @@ interface BinaryResponse {
 
 const first = (value: string | string[] | undefined) => (Array.isArray(value) ? value[0] : value) ?? '';
 
-/** GET /api/og/<runId>: the PNG preview for a shared run. Runs never change, so it caches hard. */
+/**
+ * GET /api/og/<runId>: the PNG preview for a shared run; runs never change, so it caches hard.
+ * GET /api/og/<userId>?kind=profile: a player's card, cached briefly since it moves with each run.
+ */
 export default async function handler(req: ApiRequest, res: BinaryResponse) {
   const id = first(req.query.id).replace(/\.png$/, '');
   const host = first(req.headers['x-forwarded-host']) || first(req.headers.host) || 'codey';
+  if (first(req.query.kind) === 'profile') {
+    const profile = isConfigured() ? await loadSharedProfile(id) : null;
+    const image = profile ? renderProfileImage(profile, host) : renderShareImage(null, host);
+    const body = Buffer.from(await image.arrayBuffer());
+    res.setHeader('Content-Type', 'image/png');
+    res.setHeader('Cache-Control', profile ? 'public, max-age=300, s-maxage=600' : 'public, max-age=300');
+    res.status(200).end(body);
+    return;
+  }
   const run = isConfigured() ? await loadSharedRun(id) : null;
   const image = renderShareImage(run, host);
   const body = Buffer.from(await image.arrayBuffer());

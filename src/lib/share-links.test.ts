@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { platformShareUrl, runShareUrl, SHARE_PLATFORMS, shareCaption, shareText } from "./share-links";
+import { platformShareUrl, profileCardUrl, profileShareText, profileShareUrl, runShareUrl, SHARE_PLATFORMS, shareCaption, shareText } from "./share-links";
 
 const result = { wpm: 88.04, accuracy: 97.46, language: "Rust" };
 
@@ -30,5 +30,18 @@ describe("share links", () => {
     const x = new URL(platformShareUrl("x", "a & b", url));
     expect(x.searchParams.get("text")).toBe("a & b");
     expect(x.searchParams.get("url")).toBe(url);
+  });
+});
+
+describe("profile share links", () => {
+  it("links to the profile page and its card", () => {
+    expect(profileShareUrl("https://codey.example", "user_1")).toBe("https://codey.example/p/user_1");
+    expect(profileCardUrl("https://codey.example", "user_1")).toMatch(/^https:\/\/codey\.example\/api\/og\/user_1\?kind=profile&v=\d+$/);
+  });
+
+  it("speaks as the owner or about another player", () => {
+    expect(profileShareText({ name: "Ada", bestWpm: 101.25, runs: 12 }, true)).toBe("My Codey profile: 101.3 WPM best over 12 runs. Real code, real speed.");
+    expect(profileShareText({ name: "Ada", bestWpm: 101.25, runs: 12 }, false)).toBe("Ada on Codey: 101.3 WPM best over 12 runs.");
+    expect(profileShareText({ name: "Ada", bestWpm: 0, runs: 0 }, false)).toContain("Ada is practicing");
   });
 });
