@@ -1,4 +1,5 @@
 {
+  "id": "/",
   "name": "Codey",
   "short_name": "Codey",
   "description": "Type real code, get faster.",
@@ -24,6 +25,39 @@
       "sizes": "any",
       "type": "image/svg+xml",
       "purpose": "any maskable"
+    }
+  ],
+  "scope": "/",
+  "shortcuts": [
+    {
+      "name": "Daily challenge",
+      "url": "/daily",
+      "icons": [
+        {
+          "src": "/app-icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "Duel",
+      "url": "/duel",
+      "icons": [
+        {
+          "src": "/app-icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "Stats",
+      "url": "/stats",
+      "icons": [
+        {
+          "src": "/app-icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
     }
   ]
 }

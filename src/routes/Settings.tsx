@@ -22,6 +22,7 @@ import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { getSettings, saveSettings } from "@/utils/storage";
 import { useAuth } from "@/components/AuthProvider";
 import { AccountSyncCard } from "@/components/AccountSyncCard";
+import { InstallAppCard } from "@/components/InstallAppCard";
 import { saveCloudGoals } from "@/lib/cloud";
 import { useKeyboardSound } from "@/hooks";
 import { cn } from "@/lib/utils";
@@ -634,6 +635,8 @@ export default function Settings() {
               </p>
             </div>
           </div>
+
+          <InstallAppCard />
         </div>
       </div>
       <Footer />
