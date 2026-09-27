@@ -21,6 +21,8 @@ import { uploadRun } from "@/lib/cloud";
 import { canChallenge, challengeSnippet, getChallenge, type Challenge } from "@/lib/challenges";
 import { isProse, loadTextCorpus, TEXT_LANGUAGE_NAMES, passageSnippet, pickPassage, wordsSnippet, type TextCorpus, type TextLanguage } from "@/lib/text-practice";
 import { TextLanguagePicker } from "@/components/TextLanguagePicker";
+import { emitKap } from "@/lib/kap-events";
+import { KapBuddy } from "@/components/streak/KapBuddy";
 import { markOnboarded, OnboardingDialog, shouldOnboard, type OnboardingChoice } from "@/components/OnboardingDialog";
 import { ChallengeModeBanner, ChallengeResultBanner } from "@/components/ChallengeBanners";
 import { useGame, useKeyboardSound, useGhostRunner, useRankedGame, useDailyGame } from "@/hooks";
@@ -567,6 +569,13 @@ export default function App() {
         }
       }
 
+      // Kap nods along with each key and jumps at a typo.
+      if ((e.key.length === 1 || e.key === "Enter" || e.key === "Tab") && !e.ctrlKey && !e.metaKey && !e.altKey) {
+        const expectedChar = snippet.code[input.length];
+        const typed = e.key === "Enter" ? "\n" : e.key === "Tab" ? "\t" : e.key;
+        emitKap({ type: "key", error: typed === "\t" ? expectedChar !== "\t" && expectedChar !== " " : typed !== expectedChar });
+      }
+
       if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
         e.preventDefault();
         if (ranked.isRanked) ranked.recordKeypress();
@@ -806,6 +815,7 @@ export default function App() {
       <div className="relative mx-auto max-w-5xl px-4 py-8 sm:px-6 sm:py-14">
         <Header />
         <OnboardingDialog open={showOnboarding} languages={languages} onComplete={finishOnboarding} />
+        {!result && !editorFocusMode && !showOnboarding && <KapBuddy />}
 
         {result && daily.active && <DailyResultBanner status={daily.status} outcome={daily.outcome} error={daily.error} />}
         {result && activeChallenge && <ChallengeResultBanner challenge={activeChallenge} result={result} />}

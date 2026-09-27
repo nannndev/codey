@@ -3,6 +3,7 @@ import { RoundedBoxGeometry } from "three/examples/jsm/geometries/RoundedBoxGeom
 import type { FlameTier } from "@/utils/flame-tiers";
 import { colorway, KAP_INK, type KapLook } from "@/utils/kap-art";
 import type { StreakMood } from "@/lib/streak";
+import { KAP_EVENT, type KapEvent } from "@/lib/kap-events";
 
 /**
  * Kap in 3D: an SA keycap (a tapered, dished rounded box) on MX-stem feet,
@@ -14,8 +15,8 @@ export interface KapSceneOptions {
   mood: StreakMood;
   tier: FlameTier | null;
   look: KapLook;
-  /** React to keystrokes anywhere on the page. */
-  typing?: boolean;
+  /** React to typing and results through the "codey:kap" events. */
+  listen?: boolean;
 }
 
 const SLEEP_CAP: [string, string, string] = ["#e4e4e7", "#c4c4cc", "#9f9fa9"];
@@ -64,6 +65,14 @@ export class KapScene {
   private hop = 0;
   private nod = 0;
   private heat = 0;
+  /** 0-1: a typo just startled him. */
+  private shock = 0;
+  private hopsLeft = 0;
+  /** Extra turn still to spin, for a celebration pirouette. */
+  private twirl = 0;
+  private exclaim: THREE.Group | null = null;
+  private confetti: THREE.InstancedMesh | null = null;
+  private confettiState: Array<{ position: THREE.Vector3; velocity: THREE.Vector3; spin: THREE.Vector3; rotation: THREE.Euler; life: number }> = [];
   private nextBlink = 2;
   private blink = 0;
 
@@ -106,7 +115,7 @@ export class KapScene {
     canvas.addEventListener("pointerdown", this.handlePointerDown);
     window.addEventListener("pointermove", this.handlePointerMove);
     window.addEventListener("pointerup", this.handlePointerUp);
-    if (options.typing) window.addEventListener("keydown", this.handleKey);
+    if (options.listen) window.addEventListener(KAP_EVENT, this.handleKapEvent);
     this.loop();
   }
 
@@ -209,6 +218,61 @@ export class KapScene {
     this.buildFace(ink, mood);
     if (tier && mood !== "sleep") this.buildFlame(tier, mood === "lit" ? tier.scale : Math.min(0.55, tier.scale * 0.6));
     this.buildLook(look, ink);
+    this.buildExclaim();
+  }
+
+  /** A red "!" that pops over his head when a typo startles him. */
+  private buildExclaim() {
+    const red = this.material("#ef4444", { emissive: "#ef4444", emissiveIntensity: 0.5 });
+    const group = new THREE.Group();
+    this.mesh(new THREE.CapsuleGeometry(0.07, 0.28, 4, 10), red, group).position.y = 0.3;
+    this.mesh(new THREE.SphereGeometry(0.08, 12, 10), red, group).position.y = 0;
+    group.position.set(0.75, LIFT + HEIGHT + 0.55, 0.3);
+    group.visible = false;
+    this.root.add(group);
+    this.exclaim = group;
+  }
+
+  private burstConfetti() {
+    if (this.reducedMotion) return;
+    if (!this.confetti) {
+      const colors = ["#f59e0b", "#f472b6", "#38bdf8", "#4ade80", "#facc15", "#a78bfa"];
+      const mesh = new THREE.InstancedMesh(this.track(new THREE.PlaneGeometry(0.09, 0.14)), this.track(new THREE.MeshBasicMaterial({ side: THREE.DoubleSide })), 70);
+      for (let index = 0; index < 70; index += 1) mesh.setColorAt(index, new THREE.Color(colors[index % colors.length]));
+      this.scene.add(mesh);
+      this.confetti = mesh;
+    }
+    this.confettiState = Array.from({ length: 70 }, () => ({
+      position: new THREE.Vector3((Math.random() - 0.5) * 0.4, LIFT + HEIGHT + 0.4, (Math.random() - 0.5) * 0.4),
+      velocity: new THREE.Vector3((Math.random() - 0.5) * 3.2, 2.4 + Math.random() * 2.4, (Math.random() - 0.5) * 2),
+      spin: new THREE.Vector3(Math.random() * 8, Math.random() * 8, Math.random() * 8),
+      rotation: new THREE.Euler(Math.random() * 6, Math.random() * 6, Math.random() * 6),
+      life: 2.2 + Math.random() * 0.8,
+    }));
+  }
+
+  private updateConfetti(dt: number) {
+    if (!this.confetti || !this.confettiState.length) return;
+    const matrix = new THREE.Matrix4();
+    const quaternion = new THREE.Quaternion();
+    const scale = new THREE.Vector3();
+    let alive = 0;
+    this.confettiState.forEach((piece, index) => {
+      piece.life -= dt;
+      piece.velocity.y -= 5.5 * dt;
+      piece.velocity.multiplyScalar(0.985);
+      piece.position.addScaledVector(piece.velocity, dt);
+      piece.rotation.x += piece.spin.x * dt;
+      piece.rotation.y += piece.spin.y * dt;
+      piece.rotation.z += piece.spin.z * dt;
+      const visible = piece.life > 0 && piece.position.y > 0;
+      if (visible) alive += 1;
+      scale.setScalar(visible ? Math.min(1, piece.life) : 0);
+      matrix.compose(piece.position, quaternion.setFromEuler(piece.rotation), scale);
+      this.confetti!.setMatrixAt(index, matrix);
+    });
+    this.confetti.instanceMatrix.needsUpdate = true;
+    if (!alive) this.confettiState = [];
   }
 
   private buildFace(ink: THREE.Material, mood: StreakMood) {
@@ -386,11 +450,34 @@ export class KapScene {
     this.renderer.domElement.style.cursor = "grab";
   };
 
-  private handleKey = (event: KeyboardEvent) => {
-    if (event.repeat || event.metaKey || event.ctrlKey || event.key.length > 1 && event.key !== "Backspace" && event.key !== "Enter") return;
-    this.nod = 1;
-    this.heat = Math.min(1, this.heat + 0.08);
+  private handleKapEvent = (event: Event) => {
+    const detail = (event as CustomEvent<KapEvent>).detail;
+    if (detail) this.react(detail);
   };
+
+  /** Keystrokes nod him along and stoke the flame; a typo startles him; results make him cheer. */
+  react(event: KapEvent) {
+    if (event.type === "key") {
+      if (event.error) {
+        this.shock = 1;
+        this.heat = Math.max(0, this.heat - 0.25);
+      } else {
+        this.nod = 1;
+        this.heat = Math.min(1, this.heat + 0.06);
+      }
+      return;
+    }
+    if (event.type === "celebrate") {
+      this.heat = 1;
+      this.shock = 0;
+      this.hopsLeft = event.level === "pb" ? 3 : event.level === "good" ? 2 : 1;
+      if (event.level === "pb") {
+        this.twirl = Math.PI * 2;
+        this.burstConfetti();
+      }
+      this.jump();
+    }
+  }
 
   /** A happy hop, e.g. when the streak goes up. */
   jump() {
@@ -427,13 +514,20 @@ export class KapScene {
       this.spinVelocity *= 0.9;
       if (Math.abs(this.spinVelocity) < 0.002) this.spin += (0.35 - this.spin) * Math.min(1, dt * 1.6);
     }
-    this.root.rotation.y = this.spin + (calm ? 0 : this.pointer.x * 0.12);
+    // A celebration pirouette on top of wherever he faces.
+    if (this.twirl > 0) this.twirl = Math.max(0, this.twirl - dt * 7);
+    this.root.rotation.y = this.spin + (calm ? 0 : this.pointer.x * 0.12) + (Math.PI * 2 - this.twirl) % (Math.PI * 2);
 
     // Hop with squash and stretch.
     let lift = 0;
     let squash = 1;
+    if (this.hop <= 0 && this.hopsLeft > 1) {
+      this.hopsLeft -= 1;
+      this.hop = 1;
+    }
     if (this.hop > 0) {
       this.hop = Math.max(0, this.hop - dt * 1.9);
+      if (this.hop === 0 && this.hopsLeft === 1) this.hopsLeft = 0;
       const t = 1 - this.hop;
       lift = Math.sin(Math.PI * Math.min(1, t * 1.15)) * 0.7;
       squash = t < 0.12 ? 1 - Math.sin((t / 0.12) * Math.PI) * 0.16 : t > 0.88 ? 1 - Math.sin(((t - 0.88) / 0.12) * Math.PI) * 0.12 : 1 + lift * 0.08;
@@ -441,15 +535,25 @@ export class KapScene {
     const breathe = calm ? 0 : Math.sin(this.time * 2.2) * 0.015;
     this.nod = Math.max(0, this.nod - dt * 7);
     this.heat = Math.max(0, this.heat - dt * 0.12);
-    this.body.position.y = lift - this.nod * 0.05;
+    // A typo: he jolts back and shivers for a moment.
+    this.shock = Math.max(0, this.shock - dt * 2.2);
+    const jolt = Math.sin(Math.min(1, (1 - this.shock) * 4) * Math.PI) * this.shock;
+    this.body.position.y = lift - this.nod * 0.05 + jolt * 0.12;
+    this.body.position.x = calm ? 0 : Math.sin(this.time * 70) * 0.025 * this.shock;
     this.body.scale.set(1 / Math.sqrt(squash), squash + breathe, 1 / Math.sqrt(squash));
-    this.body.rotation.x = -this.pointer.y * 0.08 + this.nod * 0.1;
+    this.body.rotation.x = -this.pointer.y * 0.08 + this.nod * 0.1 - this.shock * 0.22;
+    if (this.exclaim) {
+      this.exclaim.visible = this.shock > 0.05;
+      this.exclaim.scale.setScalar(0.6 + Math.min(1, (1 - this.shock) * 6) * 0.4);
+    }
     this.shadow.scale.set(1 - lift * 0.35, 0.55 * (1 - lift * 0.35), 1);
 
     // Arms wave when happy, swing when hopping.
     this.arms.forEach((arm, index) => {
       const side = index === 0 ? 1 : -1;
-      arm.rotation.z = (arm.userData.base as number) + (calm ? 0 : Math.sin(this.time * 3 + index) * 0.12 * side) + side * lift * 0.5;
+      const cheer = this.hopsLeft > 0 ? Math.sin(this.time * 14) * 0.35 * side : 0;
+      const startled = this.shock * side * 0.9;
+      arm.rotation.z = (arm.userData.base as number) + (calm ? 0 : Math.sin(this.time * 3 + index) * 0.12 * side) + side * lift * 0.5 + cheer - startled;
     });
 
     // Eyes follow the pointer; a blink every few seconds.
@@ -461,7 +565,13 @@ export class KapScene {
     }
     this.blink = Math.max(0, this.blink - dt * 7);
     const open = this.options.mood === "sleep" ? 1 : 1 - Math.sin(this.blink * Math.PI) * 0.9;
-    for (const eye of this.eyes) if (this.options.mood !== "sleep") eye.scale.y = 1.25 * open;
+    // Wide eyes when startled.
+    const wide = 1 + this.shock * 0.55;
+    for (const eye of this.eyes) {
+      if (this.options.mood === "sleep") continue;
+      eye.scale.y = 1.25 * (this.shock > 0.05 ? 1 : open) * wide;
+      eye.scale.x = wide;
+    }
 
     // The flame flickers, and burns brighter while you type.
     if (this.flame) {
@@ -472,6 +582,7 @@ export class KapScene {
       if (this.flameLight) this.flameLight.intensity = (1.6 + this.heat * 2.4) * flicker;
     }
 
+    this.updateConfetti(dt);
     this.renderer.render(this.scene, this.camera);
   };
 
@@ -482,7 +593,7 @@ export class KapScene {
     this.renderer.domElement.removeEventListener("pointerdown", this.handlePointerDown);
     window.removeEventListener("pointermove", this.handlePointerMove);
     window.removeEventListener("pointerup", this.handlePointerUp);
-    window.removeEventListener("keydown", this.handleKey);
+    window.removeEventListener(KAP_EVENT, this.handleKapEvent);
     for (const item of this.disposables) item.dispose();
     this.renderer.dispose();
     this.renderer.domElement.remove();
