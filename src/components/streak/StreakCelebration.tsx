@@ -1,3 +1,4 @@
+import { useKapLook } from "@/hooks/useKapLook";
 import { useEffect, useState } from "react";
 import { X } from "lucide-react";
 import { STREAK_EVENT } from "@/utils/storage";
@@ -19,6 +20,7 @@ interface Celebration {
 
 /** Kap hops in when a run extends the streak; milestones get a bigger moment. */
 export function StreakCelebration() {
+  const look = useKapLook();
   const [shown, setShown] = useState<Celebration | null>(null);
 
   useEffect(() => {
@@ -50,7 +52,7 @@ export function StreakCelebration() {
   return (
     <div className="pointer-events-none fixed inset-x-0 top-20 z-[60] flex justify-center px-4" aria-live="polite">
       <div className="streak-toast pointer-events-auto relative flex items-center gap-3 rounded-2xl border bg-popover/95 py-2 pl-2 pr-9 text-popover-foreground shadow-2xl backdrop-blur-md">
-        <KapMascot mood="lit" tier={shown.tier} size={64} jump className="shrink-0" />
+        <KapMascot mood="lit" tier={shown.tier} look={look} size={64} jump className="shrink-0" />
         <div className="min-w-0">
           <p className="text-sm font-black tracking-tight" style={{ color: shown.tier?.flame }}>{title}</p>
           <p className="max-w-60 text-xs text-muted-foreground">{body}</p>

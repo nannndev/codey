@@ -16,6 +16,7 @@ import { AchievementToaster } from './components/achievements/AchievementToaster
 import { StreakCelebration } from './components/streak/StreakCelebration';
 import { StreakReminder } from './components/streak/StreakReminder';
 import { PwaPrompt } from './components/PwaPrompt';
+import { KapWardrobe } from './components/streak/KapWardrobe';
 import './index.css';
 
 const { Settings, History, Leaderboard, Profile, Donate, Contributors, Duel, Arcade, Daily, KeyboardAnalytics, Achievements } = Pages;
@@ -55,6 +56,7 @@ createRoot(document.getElementById('root')!).render(
               <StreakCelebration />
               <StreakReminder />
               <PwaPrompt />
+              <KapWardrobe />
             </BrowserRouter>
             <Analytics />
           </RadioProvider>

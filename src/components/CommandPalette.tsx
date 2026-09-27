@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   BarChart3,
+  Shirt,
   CalendarDays,
   Check,
   CornerDownLeft,
@@ -31,6 +32,7 @@ import { useFlowRadio } from "./RadioProvider";
 import { useTheme } from "./ThemeProvider";
 import { THEMES } from "./ThemeStudioModal";
 import { openKeycapStudio } from "./KeycapStudioModal";
+import { openKapWardrobe } from "./streak/KapWardrobe";
 import { EDITOR_KEYCAPS, KEYCAP_COLORWAYS } from "@/lib/keycaps";
 import { cn } from "@/lib/utils";
 
@@ -165,6 +167,7 @@ export function CommandPalette() {
         run: () => setPreference("editorTheme", option.id),
       })),
       { id: "keycap-studio", group: "Appearance", label: "Keycap Studio", keywords: "customize paint keyboard 3d colors", icon: Keyboard, run: openKeycapStudio },
+      { id: "kap-wardrobe", group: "Appearance", label: "Kap's wardrobe", keywords: "mascot skins streak outfit hat glasses", icon: Shirt, run: openKapWardrobe },
       { id: "keycaps-editor", group: "Appearance", label: "Keycaps: Editor theme", keywords: "colorway keyboard", icon: Keyboard, state: preferences.keycapTheme === EDITOR_KEYCAPS ? "active" : undefined, run: () => setPreference("keycapTheme", EDITOR_KEYCAPS) },
       ...KEYCAP_COLORWAYS.map((option): Command => ({
         id: `keycaps-${option.id}`,

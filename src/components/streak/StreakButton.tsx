@@ -1,3 +1,4 @@
+import { useKapLook } from "@/hooks/useKapLook";
 import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 import { useStreak } from "@/hooks/useStreak";
@@ -6,6 +7,7 @@ import { StreakPanel } from "./StreakPanel";
 
 /** Kap in the header: the streak at a glance, the full panel on click. */
 export function StreakButton() {
+  const look = useKapLook();
   const status = useStreak();
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
@@ -44,7 +46,7 @@ export function StreakButton() {
           status.mood === "lit" ? "text-foreground" : "text-muted-foreground",
         )}
       >
-        <KapMascot mood={status.mood} tier={status.tier} size={26} animate={status.mood === "risk" || status.mood === "frozen"} className="-mt-1" />
+        <KapMascot mood={status.mood} tier={status.tier} look={look} size={26} animate={status.mood === "risk" || status.mood === "frozen"} className="-mt-1" />
         <span>{status.current}</span>
         {(status.mood === "risk" || status.mood === "frozen") && (
           <span className="absolute right-1 top-1 flex size-2" aria-hidden>
