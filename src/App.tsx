@@ -711,11 +711,19 @@ export default function App() {
   // First visit: a short welcome, unless a link already brought them here with a purpose.
   const [showOnboarding, setShowOnboarding] = useState(() => {
     const params = new URLSearchParams(window.location.search);
+    // ?welcome replays it on purpose (from Settings).
+    if (params.has("welcome")) return true;
     return !params.has("challenge") && !params.has("daily") && !params.has("drill") && shouldOnboard();
   });
   const finishOnboarding = useCallback((choice: OnboardingChoice | null) => {
     markOnboarded();
     setShowOnboarding(false);
+    if (new URLSearchParams(window.location.search).has("welcome")) {
+      setSearchParams((params) => {
+        params.delete("welcome");
+        return params;
+      }, { replace: true });
+    }
     if (choice?.kind === "code") {
       if (devCategory !== "public") handleDevCategoryChange("public");
       handleLanguageChange(choice.language);
@@ -726,7 +734,7 @@ export default function App() {
       handleDevCategoryChange("passages");
     }
     focusWorkspace();
-  }, [devCategory, handleDevCategoryChange, handleLanguageChange, handleTextLanguageChange, focusWorkspace]);
+  }, [devCategory, handleDevCategoryChange, handleLanguageChange, handleTextLanguageChange, focusWorkspace, setSearchParams]);
 
   const handleNextSnippet = useCallback(() => {
     setResult(null);

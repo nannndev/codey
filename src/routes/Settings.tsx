@@ -588,6 +588,9 @@ export default function Settings() {
                 <span className="rounded-md border border-border/50 bg-background/60 px-1.5 py-0.5">Esc: restart</span>
                 <span className="rounded-md border border-border/50 bg-background/60 px-1.5 py-0.5">Tab: indent / stop</span>
                 <span className="rounded-md border border-border/50 bg-background/60 px-1.5 py-0.5">Enter: retry</span>
+                <Link to="/?welcome" className="ml-auto flex items-center gap-1 rounded-md px-1.5 py-0.5 font-sans font-semibold text-amber-600 hover:underline dark:text-amber-400">
+                  <Sparkles className="size-3" /> Replay welcome tour
+                </Link>
               </div>
             </div>
 
