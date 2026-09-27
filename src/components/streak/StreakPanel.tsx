@@ -5,6 +5,7 @@ import { Check, Crown, Play, Shirt, Snowflake } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { FLAME_TIERS, streakMessage, type StreakStatus } from "@/lib/streak";
 import { KapMascot } from "./KapMascot";
+import { Kap3D } from "./Kap3D";
 import { ReminderSettings } from "./ReminderSettings";
 
 function FlameGlyph({ color, core, className }: { color: string; core: string; className?: string }) {
@@ -30,7 +31,14 @@ export function StreakPanel({ status, onNavigate }: { status: StreakStatus; onNa
           style={{ background: status.mood === "sleep" ? "transparent" : accent }}
           aria-hidden
         />
-        <KapMascot mood={status.mood} tier={status.tier} look={look} size={124} className="relative mx-auto" title={`Kap: ${message.title}`} />
+        <Kap3D
+          mood={status.mood}
+          tier={status.tier}
+          look={look}
+          height={150}
+          className="relative mx-auto w-44"
+          fallback={<KapMascot mood={status.mood} tier={status.tier} look={look} size={124} title={`Kap: ${message.title}`} />}
+        />
         <p className="relative mt-1 text-base font-black tracking-tight">{message.title}</p>
         <p className="relative mx-auto mt-0.5 max-w-64 text-xs leading-relaxed text-muted-foreground">{message.body}</p>
         <button

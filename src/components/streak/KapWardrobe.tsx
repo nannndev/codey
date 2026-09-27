@@ -6,6 +6,7 @@ import { useStreak } from "@/hooks/useStreak";
 import { useKapLook } from "@/hooks/useKapLook";
 import { earnedBadges, isUnlocked, SLOT_NAMES, toggleItem, unlockHint, WARDROBE, writeLook, type WardrobeItem, type WardrobeSlot } from "@/lib/kap-wardrobe";
 import { KapMascot } from "./KapMascot";
+import { Kap3D } from "./Kap3D";
 import type { KapLook } from "./kap-skins";
 
 export const OPEN_WARDROBE_EVENT = "codey:open-wardrobe";
@@ -54,7 +55,8 @@ export function KapWardrobe() {
       <div className="flex max-h-[calc(100dvh-2rem)] w-full max-w-3xl flex-col overflow-hidden rounded-2xl border bg-background shadow-2xl animate-scale-in sm:flex-row">
         <div className="relative flex shrink-0 flex-col items-center justify-center gap-2 border-b bg-gradient-to-b from-amber-500/15 to-transparent px-6 py-5 sm:w-64 sm:border-b-0 sm:border-r">
           <div className="pointer-events-none absolute left-1/2 top-10 size-40 -translate-x-1/2 rounded-full opacity-30 blur-3xl" style={{ background: tier.flame }} aria-hidden />
-          <KapMascot mood="lit" tier={tier} size={150} look={look} className="relative" title="Kap in your look" />
+          <Kap3D mood="lit" tier={tier} look={look} height={190} className="relative w-full" fallback={<KapMascot mood="lit" tier={tier} size={150} look={look} title="Kap in your look" />} />
+          <p className="relative -mt-1 text-[10px] text-muted-foreground">Drag to spin · tap to hop</p>
           <p className="relative text-sm font-black tracking-tight">Kap's wardrobe</p>
           <p className="relative text-xs text-muted-foreground">{unlockedCount} of {WARDROBE.length} unlocked</p>
           <div className="relative h-1.5 w-40 overflow-hidden rounded-full bg-muted">
