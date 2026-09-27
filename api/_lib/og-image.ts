@@ -39,6 +39,20 @@ function stat(label: string, value: string, size = 38) {
   );
 }
 
+/** Bottom-left branding: the player's Kap on a coal tile when there is one, else the </> mark. */
+function brand(kap?: string, tile = 132) {
+  if (!kap) return h('div', { alignItems: 'center', gap: 14 }, mark(COAL, AMBER), h('div', { fontSize: 28, color: COAL }, 'Codey'));
+  return h('div', { alignItems: 'center', gap: 16 },
+    h('div', { width: tile, height: tile, borderRadius: Math.round(tile / 4), background: 'rgba(120,53,15,0.16)', alignItems: 'center', justifyContent: 'center' },
+      img(kap, { width: Math.round(tile * 0.85), height: Math.round(tile * 0.91) }),
+    ),
+    h('div', { flexDirection: 'column' },
+      h('div', { fontSize: 30, color: COAL }, 'Codey'),
+      h('div', { fontSize: 20, color: DEEP }, 'with Kap'),
+    ),
+  );
+}
+
 function mark(background: string, color: string) {
   return h('div', { width: 44, height: 44, borderRadius: 12, background, color, fontSize: 26, alignItems: 'center', justifyContent: 'center' }, '</>');
 }
@@ -80,7 +94,7 @@ function wpmSize(text: string) {
   return 128;
 }
 
-export function renderShareImage(run: SharedRun | null, host: string): ImageResponse {
+export function renderShareImage(run: SharedRun | null, host: string, kap?: string): ImageResponse {
   if (!run) {
     const root = h('div', { width: 1200, height: 630, background: DARK, fontFamily: 'Geist' },
       h('div', { width: PANEL, height: 630, background: AMBER, flexDirection: 'column', justifyContent: 'space-between', padding: '56px 52px' },
@@ -118,7 +132,7 @@ export function renderShareImage(run: SharedRun | null, host: string): ImageResp
       h('div', { fontSize: wpmSize(wpm), lineHeight: 0.85, color: COAL, letterSpacing: -8 }, wpm),
       h('div', { fontSize: captionSize(where), color: DEEP, marginTop: 10 }, where),
     ),
-    h('div', { alignItems: 'center', gap: 14 }, mark(COAL, AMBER), h('div', { fontSize: 28, color: COAL }, 'Codey')),
+    brand(kap),
   );
 
   const middle = hasTrace
@@ -158,7 +172,7 @@ function avatar(name: string, url: string | null) {
 }
 
 /** The player's card: best WPM on the amber side, recent form and totals on the dark side. */
-export function renderProfileImage(profile: SharedProfile, host: string): ImageResponse {
+export function renderProfileImage(profile: SharedProfile, host: string, kap?: string): ImageResponse {
   const best = profile.runs ? formatWpm(profile.bestWpm) : '–';
   const where = !profile.runs ? 'no runs yet' : profile.bestLanguage === 'Mixed' ? 'best wpm across languages' : `best wpm in ${profile.bestLanguage}`;
   const hasTrend = profile.trend.length >= 3;
@@ -175,7 +189,7 @@ export function renderProfileImage(profile: SharedProfile, host: string): ImageR
       h('div', { fontSize: wpmSize(best), lineHeight: 0.85, color: COAL, letterSpacing: -8 }, best),
       h('div', { fontSize: captionSize(where), color: DEEP, marginTop: 10 }, where),
     ),
-    h('div', { alignItems: 'center', gap: 14 }, mark(COAL, AMBER), h('div', { fontSize: 28, color: COAL }, 'Codey')),
+    brand(kap),
   );
 
   const middle = hasTrend
@@ -221,7 +235,7 @@ export function renderProfileImage(profile: SharedProfile, host: string): ImageR
 }
 
 /** "Can you beat it?": the score to beat on the amber side, the snippet on the dark side. */
-export function renderChallengeImage(challenge: SharedChallenge, host: string): ImageResponse {
+export function renderChallengeImage(challenge: SharedChallenge, host: string, kap?: string): ImageResponse {
   const wpm = formatWpm(challenge.wpm);
   const left = h('div', { width: PANEL, height: 630, background: AMBER, flexDirection: 'column', justifyContent: 'space-between', padding: '56px 52px' },
     h('div', { alignItems: 'center', gap: 16 },
@@ -236,7 +250,7 @@ export function renderChallengeImage(challenge: SharedChallenge, host: string): 
       h('div', { fontSize: wpmSize(wpm), lineHeight: 0.85, color: COAL, letterSpacing: -8 }, wpm),
       h('div', { fontSize: 40, color: DEEP, marginTop: 10 }, 'wpm?'),
     ),
-    h('div', { alignItems: 'center', gap: 14 }, mark(COAL, AMBER), h('div', { fontSize: 28, color: COAL }, 'Codey')),
+    brand(kap, 96),
   );
 
   const code = h('div', { flexDirection: 'column', gap: 8, padding: '22px 24px', borderRadius: 18, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' },
