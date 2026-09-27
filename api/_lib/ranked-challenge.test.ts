@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { selectSnippetCode } from "./challenge";
+import { selectSnippetCode } from "../ranked/challenge";
 import { isWithinLengthSpec } from "../../src/utils/ranking";
 import type { SnippetLength } from "../../src/types";
 
