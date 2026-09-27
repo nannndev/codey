@@ -13,6 +13,12 @@ import { rankRejectionReason, describeRankRejection } from "@/utils/ranking";
 import type { RankedStatus } from "@/hooks/useRankedGame";
 import { cn } from "@/lib/utils";
 import { PROSE_LANGUAGES } from "@/lib/text-practice";
+import { Kap3D } from "@/components/streak/Kap3D";
+import { KapMascot } from "@/components/streak/KapMascot";
+import { useKapLook } from "@/hooks/useKapLook";
+import { useStreak } from "@/hooks/useStreak";
+import { celebrationFor, celebrationLine } from "@/lib/kap-events";
+import { FLAME_TIERS } from "@/lib/streak";
 
 interface ResultsScreenProps {
   result: RunResult;
@@ -58,12 +64,31 @@ export function ResultsScreen({
   const rejection = rankRejectionReason(result);
 
   const tier = resultTier(result.wpm);
+  const kapLook = useKapLook();
+  const streak = useStreak();
+  const kapTier = streak.tier ?? FLAME_TIERS[1];
+  // Decided once per result, so a later re-render (e.g. Ranked verification) does not re-cheer.
+  const [cheer] = useState(() => celebrationFor(result, previousBest?.bestWpm ?? null, result.sourceType === "custom"));
   const username = user ? githubUsernameFromUser(user) : undefined;
 
   return (
     <div className="mt-8 flex animate-fade-in-up flex-col gap-6 max-w-3xl mx-auto">
       {/* Title & Badge */}
       <div className="text-center flex flex-col items-center gap-2">
+        <div className="flex items-end justify-center gap-1">
+          <Kap3D
+            mood="lit"
+            tier={kapTier}
+            look={kapLook}
+            height={150}
+            celebrate={cheer}
+            className="w-36"
+            fallback={<KapMascot mood="lit" tier={kapTier} look={kapLook} size={96} jump />}
+          />
+          <p className={cn("kap-bubble relative mb-16 max-w-48 rounded-2xl border bg-card px-3 py-2 text-left text-xs font-semibold shadow-sm", cheer === "pb" && "border-amber-500/50 text-amber-600 dark:text-amber-400")}>
+            {celebrationLine(cheer, result)}
+          </p>
+        </div>
         <div
           className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border text-xs font-bold uppercase tracking-wider font-mono"
           style={{ color: tier.accent, borderColor: `${tier.accent}55`, backgroundColor: `${tier.accent}1a` }}

@@ -6,6 +6,7 @@ import { useStreak } from "@/hooks/useStreak";
 import { useKapLook } from "@/hooks/useKapLook";
 import { earnedBadges, isUnlocked, SLOT_NAMES, toggleItem, unlockHint, WARDROBE, writeLook, type WardrobeItem, type WardrobeSlot } from "@/lib/kap-wardrobe";
 import { KapMascot } from "./KapMascot";
+import { readBuddy, writeBuddy } from "@/lib/kap-buddy";
 import { Kap3D } from "./Kap3D";
 import type { KapLook } from "./kap-skins";
 
@@ -27,10 +28,12 @@ export function KapWardrobe() {
   const look = useKapLook();
   const status = useStreak();
   const [earned, setEarned] = useState<Set<string>>(() => new Set());
+  const [buddy, setBuddy] = useState(readBuddy);
 
   useEffect(() => {
     const show = () => {
       setEarned(earnedBadges());
+      setBuddy(readBuddy());
       setOpen(true);
     };
     window.addEventListener(OPEN_WARDROBE_EVENT, show);
@@ -103,6 +106,13 @@ export function KapWardrobe() {
               </div>
             </section>
           ))}
+          <label className="mt-3 flex cursor-pointer items-center justify-between gap-3 rounded-xl border bg-card/60 px-3 py-2.5 text-xs">
+            <span>
+              <span className="font-semibold">Kap keeps you company while you type</span>
+              <span className="block text-[11px] text-muted-foreground">He nods along, stokes his flame and jumps at typos (wide screens).</span>
+            </span>
+            <input type="checkbox" checked={buddy} onChange={(event) => { writeBuddy(event.target.checked); setBuddy(event.target.checked); }} className="size-4 accent-amber-500" />
+          </label>
           <p className="mt-2 text-[11px] text-muted-foreground">Items unlock with achievements. Your look syncs to your account and shows wherever Kap does.</p>
         </div>
       </div>
