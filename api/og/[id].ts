@@ -3,6 +3,7 @@ import { loadSharedRun } from '../_lib/share-card.js';
 import { renderChallengeImage, renderProfileImage, renderShareImage } from '../_lib/og-image.js';
 import { loadChallenge } from '../_lib/challenge-card.js';
 import { loadSharedProfile } from '../_lib/profile-card.js';
+import { playerKap } from '../_lib/kap-look.js';
 
 interface BinaryResponse {
   status: (code: number) => BinaryResponse;
@@ -22,7 +23,7 @@ export default async function handler(req: ApiRequest, res: BinaryResponse) {
   const host = first(req.headers['x-forwarded-host']) || first(req.headers.host) || 'codey';
   if (first(req.query.kind) === 'challenge') {
     const challenge = isConfigured() ? await loadChallenge(id) : null;
-    const image = challenge ? renderChallengeImage(challenge, host) : renderShareImage(null, host);
+    const image = challenge ? renderChallengeImage(challenge, host, await playerKap(challenge.userId)) : renderShareImage(null, host);
     const body = Buffer.from(await image.arrayBuffer());
     res.setHeader('Content-Type', 'image/png');
     // Challenges never change once created.
@@ -32,7 +33,7 @@ export default async function handler(req: ApiRequest, res: BinaryResponse) {
   }
   if (first(req.query.kind) === 'profile') {
     const profile = isConfigured() ? await loadSharedProfile(id) : null;
-    const image = profile ? renderProfileImage(profile, host) : renderShareImage(null, host);
+    const image = profile ? renderProfileImage(profile, host, await playerKap(profile.userId, profile.bestStreak)) : renderShareImage(null, host);
     const body = Buffer.from(await image.arrayBuffer());
     res.setHeader('Content-Type', 'image/png');
     res.setHeader('Cache-Control', profile ? 'public, max-age=300, s-maxage=600' : 'public, max-age=300');
@@ -40,7 +41,7 @@ export default async function handler(req: ApiRequest, res: BinaryResponse) {
     return;
   }
   const run = isConfigured() ? await loadSharedRun(id) : null;
-  const image = renderShareImage(run, host);
+  const image = renderShareImage(run, host, run ? await playerKap(run.userId) : undefined);
   const body = Buffer.from(await image.arrayBuffer());
   res.setHeader('Content-Type', 'image/png');
   res.setHeader('Cache-Control', run ? 'public, max-age=86400, s-maxage=31536000, immutable' : 'public, max-age=300');

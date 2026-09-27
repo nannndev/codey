@@ -1,3 +1,4 @@
+import { drawPlayerKap } from "./kap-canvas";
 /** A duel's result as a 1200×630 image, in the same split style as the other cards. */
 
 export interface DuelCardRacer {
@@ -102,6 +103,7 @@ export async function createDuelCard(input: DuelCardInput, host = window.locatio
   context.fillStyle = COAL;
   context.font = `500 28px ${FONT}`;
   context.fillText("Codey", 110, 562);
+  await drawPlayerKap(context, 322, 454, 124);
 
   context.fillStyle = MUTED;
   context.font = `500 18px ${FONT}`;

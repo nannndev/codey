@@ -1,3 +1,4 @@
+import { drawPlayerKap } from "./kap-canvas";
 import type { WeeklyRecap } from "./weekly-recap";
 
 /** The weekly recap as a 1200×630 image, in the same split style as the link cards. */
@@ -69,6 +70,7 @@ export async function createRecapCard(recap: WeeklyRecap, player: { name?: strin
   context.fillStyle = COAL;
   context.font = `500 28px ${FONT}`;
   context.fillText("Codey", 110, 562);
+  await drawPlayerKap(context, 322, 454, 124);
 
   // Dark side: who, the days, the numbers.
   context.fillStyle = INK;

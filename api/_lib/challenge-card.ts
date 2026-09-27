@@ -9,6 +9,7 @@ import { CARD_VERSION } from '../../src/utils/share-card-version.js';
 
 export interface SharedChallenge {
   id: string;
+  userId: string;
   name: string;
   username: string | null;
   avatarUrl: string | null;
@@ -41,6 +42,7 @@ export async function loadChallenge(id: string, db: ChallengeDb = adminDatabases
   const lines = code.split('\n');
   return {
     id,
+    userId: text(doc.userId, 36),
     name: text(doc.name, 64) || username || 'A Codey typist',
     username,
     avatarUrl: username ? `https://avatars.githubusercontent.com/${encodeURIComponent(username)}?s=200` : null,
