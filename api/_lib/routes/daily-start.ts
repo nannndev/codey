@@ -1,7 +1,7 @@
 import crypto from 'node:crypto';
 import { Permission, Role } from 'node-appwrite';
-import { APPWRITE, adminDatabases, applyCors, authenticateRequest, isConfigured, type ApiRequest, type ApiResponse } from '../_lib/appwrite-admin.js';
-import { getOrCreateChallenge, sessionChallengeHash, utcDateKey, type DailyDb } from '../_lib/daily.js';
+import { APPWRITE, adminDatabases, applyCors, authenticateRequest, isConfigured, type ApiRequest, type ApiResponse } from '../appwrite-admin.js';
+import { getOrCreateChallenge, sessionChallengeHash, utcDateKey, type DailyDb } from '../daily.js';
 
 const RUN_WINDOW_MS = 20 * 60 * 1000;
 

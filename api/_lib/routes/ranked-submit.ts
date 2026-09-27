@@ -1,7 +1,7 @@
 import { Client, Databases, Account, Permission, Role } from 'node-appwrite';
-import { MIN_RANKED_ACCURACY, MIN_RANKED_WPM } from '../../src/utils/ranking.js';
-import type { SnippetLength, TestMode } from '../../src/types.js';
-import { consistencyFromIntervals, encodeTrace, traceFromIntervals } from '../../src/utils/speed-trace.js';
+import { MIN_RANKED_ACCURACY, MIN_RANKED_WPM } from '../../../src/utils/ranking.js';
+import type { SnippetLength, TestMode } from '../../../src/types.js';
+import { consistencyFromIntervals, encodeTrace, traceFromIntervals } from '../../../src/utils/speed-trace.js';
 
 interface ApiRequest {
   method?: string;

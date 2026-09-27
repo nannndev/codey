@@ -20,7 +20,10 @@ export function StreakReminder() {
           notification.close();
         };
       } catch {
-        // Some browsers only allow notifications from a service worker.
+        // Android Chrome only allows notifications from the service worker.
+        void navigator.serviceWorker?.ready
+          .then((registration) => registration.showNotification(title, { body, icon: "/app-icon-192.png", badge: "/app-icon-192.png", tag: "codey-streak" }))
+          .catch(() => {});
       }
     };
     check();

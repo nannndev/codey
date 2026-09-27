@@ -1,6 +1,6 @@
 import { Query } from 'node-appwrite';
-import { APPWRITE, adminDatabases, applyCors, isConfigured, type ApiRequest, type ApiResponse } from '../_lib/appwrite-admin.js';
-import { getOrCreateChallenge, listBoard, nextResetAt, userStreaks, utcDateKey, type DailyDb } from '../_lib/daily.js';
+import { APPWRITE, adminDatabases, applyCors, isConfigured, type ApiRequest, type ApiResponse } from '../appwrite-admin.js';
+import { getOrCreateChallenge, listBoard, nextResetAt, userStreaks, utcDateKey, type DailyDb } from '../daily.js';
 
 /**
  * GET /api/daily?userId=...
