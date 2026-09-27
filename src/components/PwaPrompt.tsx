@@ -3,9 +3,17 @@ import { useRegisterSW } from "virtual:pwa-register/react";
 import { RefreshCw, WifiOff, X } from "lucide-react";
 
 /**
- * Registers the service worker and says when a new version is ready. It never
- * reloads by itself, so an update cannot cut off a run mid-snippet.
+ * Registers the service worker and applies new versions. A waiting version
+ * would otherwise stay parked until every tab closes, so it is applied on its
+ * own whenever that cannot cut off a run: right after the page loads, when the
+ * tab is hidden, or after a while without typing. The toast lets you reload
+ * sooner.
  */
+
+const IDLE_MS = 20_000;
+const FRESH_LOAD_MS = 15_000;
+let lastKeyAt = 0;
+if (typeof window !== "undefined") window.addEventListener("keydown", () => { lastKeyAt = Date.now(); }, { capture: true, passive: true });
 export function PwaPrompt() {
   const {
     needRefresh: [needRefresh, setNeedRefresh],
@@ -14,7 +22,11 @@ export function PwaPrompt() {
   } = useRegisterSW({
     onRegisteredSW(_url, registration) {
       // Long-lived tabs look for a new version every hour.
-      if (registration) window.setInterval(() => void registration.update().catch(() => {}), 60 * 60 * 1000);
+      if (!registration) return;
+      const check = () => void registration.update().catch(() => {});
+      window.setInterval(check, 60 * 60 * 1000);
+      // Coming back to a tab left open for days also looks for a new version.
+      document.addEventListener("visibilitychange", () => document.visibilityState === "visible" && check());
     },
   });
   const [online, setOnline] = useState(() => navigator.onLine);
@@ -28,6 +40,23 @@ export function PwaPrompt() {
       window.removeEventListener("offline", update);
     };
   }, []);
+
+  useEffect(() => {
+    if (!needRefresh) return;
+    const apply = () => void updateServiceWorker(true);
+    const safe = () => performance.now() < FRESH_LOAD_MS || document.visibilityState === "hidden" || Date.now() - lastKeyAt > IDLE_MS;
+    if (safe()) {
+      apply();
+      return;
+    }
+    const timer = window.setInterval(() => safe() && apply(), 5000);
+    const onHide = () => document.visibilityState === "hidden" && apply();
+    document.addEventListener("visibilitychange", onHide);
+    return () => {
+      window.clearInterval(timer);
+      document.removeEventListener("visibilitychange", onHide);
+    };
+  }, [needRefresh, updateServiceWorker]);
 
   useEffect(() => {
     if (!offlineReady) return;
