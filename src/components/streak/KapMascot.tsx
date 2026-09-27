@@ -1,6 +1,7 @@
 import { useId } from "react";
 import { cn } from "@/lib/utils";
 import type { FlameTier, StreakMood } from "@/lib/streak";
+import { colorway, KapBehind, KapFront, type KapLook } from "./kap-skins";
 
 /**
  * Kap, the streak mascot: an SA-profile keycap on MX-stem feet with a flame
@@ -18,6 +19,8 @@ interface KapMascotProps {
   jump?: boolean;
   className?: string;
   title?: string;
+  /** Colourway and accessories from Kap's wardrobe. */
+  look?: KapLook;
 }
 
 const INK = "#1c1917";
@@ -36,11 +39,11 @@ function flamePaths(cx: number, base: number, scale: number, outer: string, inne
   );
 }
 
-function Star({ x, y }: { x: number; y: number }) {
-  return <path d={`M${x} ${y - 9} l3 6 7 1 -5 5 1 7 -6 -3 -6 3 1 -7 -5 -5 7 -1z`} fill={INK} />;
+function Star({ x, y, ink }: { x: number; y: number; ink: string }) {
+  return <path d={`M${x} ${y - 9} l3 6 7 1 -5 5 1 7 -6 -3 -6 3 1 -7 -5 -5 7 -1z`} fill={ink} />;
 }
 
-function Face({ mood, crown }: { mood: StreakMood; crown: boolean }) {
+function Face({ mood, crown, ink: INK }: { mood: StreakMood; crown: boolean; ink: string }) {
   const cx = 120;
   const y = 156;
   const smile = (
@@ -64,8 +67,8 @@ function Face({ mood, crown }: { mood: StreakMood; crown: boolean }) {
         {(mood === "lit" && !crown) || mood === "frozen" ? <path d={`M${cx - 31} ${y + 4} q9 -13 18 0 M${cx + 13} ${y + 4} q9 -13 18 0`} stroke={INK} strokeWidth="4.5" fill="none" strokeLinecap="round" /> : null}
         {mood === "lit" && crown && (
           <>
-            <Star x={cx - 22} y={y} />
-            <Star x={cx + 22} y={y} />
+            <Star x={cx - 22} y={y} ink={INK} />
+            <Star x={cx + 22} y={y} ink={INK} />
           </>
         )}
       </g>
@@ -84,9 +87,11 @@ function Face({ mood, crown }: { mood: StreakMood; crown: boolean }) {
   );
 }
 
-export function KapMascot({ mood, tier, size = 120, animate = true, jump = false, className, title }: KapMascotProps) {
+export function KapMascot({ mood, tier, size = 120, animate = true, jump = false, className, title, look = {} }: KapMascotProps) {
   const id = useId().replace(/:/g, "");
-  const cap = mood === "sleep" ? SLEEP_CAP : mood === "risk" ? RISK_CAP : mood === "frozen" ? ICE_CAP : tier?.cap ?? SLEEP_CAP;
+  const paint = colorway(look.color);
+  const cap = mood === "sleep" ? SLEEP_CAP : mood === "risk" ? RISK_CAP : mood === "frozen" ? ICE_CAP : paint.cap ?? tier?.cap ?? SLEEP_CAP;
+  const ink = mood === "lit" && paint.ink ? paint.ink : INK;
   const [top, front, side] = cap;
   // At risk, the flame shrinks to an ember of its usual colour.
   const flameScale = mood === "sleep" || !tier ? 0 : mood === "risk" || mood === "frozen" ? Math.min(0.55, tier.scale * 0.6) : tier.scale;
@@ -112,6 +117,7 @@ export function KapMascot({ mood, tier, size = 120, animate = true, jump = false
       </defs>
       <ellipse className="kap-shadow" cx="120" cy="222" rx="74" ry="8" fill="#000" opacity=".3" />
       <g className="kap-body">
+        <KapBehind look={look} />
         <rect x="92" y="196" width="14" height="22" rx="5" fill="#3f3f46" />
         <rect x="134" y="196" width="14" height="22" rx="5" fill="#3f3f46" />
         <rect x="86" y="212" width="24" height="9" rx="4.5" fill="#27272a" />
@@ -138,7 +144,8 @@ export function KapMascot({ mood, tier, size = 120, animate = true, jump = false
           </g>
         )}
         {crown && <path d={`M96 ${108 - 78 * flameScale + 6} l6 -22 12 12 6 -18 6 18 12 -12 6 22z`} fill="#facc15" stroke="#a16207" strokeWidth="2" strokeLinejoin="round" />}
-        <Face mood={mood} crown={crown} />
+        <Face mood={mood} crown={crown} ink={ink} />
+        <KapFront look={{ ...look, wear: mood === "frozen" ? null : look.wear }} ink={ink} />
         {mood === "frozen" && (
           <g className="kap-scarf">
             {/* An ice-blue scarf, tied at the side with a snowflake. */}

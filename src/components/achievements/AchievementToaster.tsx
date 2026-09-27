@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { X } from "lucide-react";
+import { Shirt, X } from "lucide-react";
 import { ACHIEVEMENT_EVENT, type UnlockedBadge } from "@/lib/achievements";
+import { itemsUnlockedBy } from "@/lib/kap-wardrobe";
+import { openKapWardrobe } from "@/components/streak/KapWardrobe";
 import { AchievementBadge } from "./Badge";
 
 const SHOW_MS = 5200;
@@ -47,6 +49,11 @@ export function AchievementToaster() {
           <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-amber-600 dark:text-amber-400">Achievement unlocked</p>
           <p className="truncate text-base font-black tracking-tight">{current.name}</p>
           <p className="text-xs text-muted-foreground">{current.goal}</p>
+          {itemsUnlockedBy(current.id).length > 0 && (
+            <button type="button" onClick={() => { setQueue((items) => items.slice(1)); openKapWardrobe(); }} className="mt-1 flex items-center gap-1 text-xs font-semibold text-amber-600 hover:underline dark:text-amber-400 cursor-pointer">
+              <Shirt className="size-3.5" /> New for Kap: {itemsUnlockedBy(current.id).map((item) => item.name).join(", ")}
+            </button>
+          )}
           <Link to="/achievements" onClick={() => setQueue((items) => items.slice(1))} className="mt-1 inline-block text-xs font-semibold underline-offset-2 hover:underline">
             See all achievements
           </Link>

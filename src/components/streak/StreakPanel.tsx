@@ -1,5 +1,7 @@
+import { useKapLook } from "@/hooks/useKapLook";
+import { openKapWardrobe } from "./KapWardrobe";
 import { Link } from "react-router-dom";
-import { Check, Crown, Play, Snowflake } from "lucide-react";
+import { Check, Crown, Play, Shirt, Snowflake } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { FLAME_TIERS, streakMessage, type StreakStatus } from "@/lib/streak";
 import { KapMascot } from "./KapMascot";
@@ -18,6 +20,7 @@ function FlameGlyph({ color, core, className }: { color: string; core: string; c
 export function StreakPanel({ status, onNavigate }: { status: StreakStatus; onNavigate?: () => void }) {
   const message = streakMessage(status);
   const accent = status.tier?.flame ?? "#a1a1aa";
+  const look = useKapLook();
 
   return (
     <div className="w-full sm:w-[22rem]">
@@ -27,9 +30,19 @@ export function StreakPanel({ status, onNavigate }: { status: StreakStatus; onNa
           style={{ background: status.mood === "sleep" ? "transparent" : accent }}
           aria-hidden
         />
-        <KapMascot mood={status.mood} tier={status.tier} size={124} className="relative mx-auto" title={`Kap: ${message.title}`} />
+        <KapMascot mood={status.mood} tier={status.tier} look={look} size={124} className="relative mx-auto" title={`Kap: ${message.title}`} />
         <p className="relative mt-1 text-base font-black tracking-tight">{message.title}</p>
         <p className="relative mx-auto mt-0.5 max-w-64 text-xs leading-relaxed text-muted-foreground">{message.body}</p>
+        <button
+          type="button"
+          onClick={() => {
+            onNavigate?.();
+            openKapWardrobe();
+          }}
+          className="absolute right-2.5 top-2.5 flex items-center gap-1 rounded-lg border bg-background/70 px-2 py-1 text-[11px] font-semibold text-muted-foreground backdrop-blur transition-colors hover:border-amber-500/60 hover:text-foreground cursor-pointer"
+        >
+          <Shirt className="size-3.5" /> Wardrobe
+        </button>
       </div>
 
       <div className="mt-3 grid grid-cols-3 gap-2 text-center">

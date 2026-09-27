@@ -57,6 +57,7 @@ export const SLICES: Slice[] = [
   single("freezes", "codey_streak_freezes"),
   single("textLanguage", "codey_text_language"),
   single("reminder", "codey_streak_reminder"),
+  single("kapLook", "codey_kap_look"),
   {
     id: "sound",
     keys: ["codey_soundpack_id_v1", "codey_sound_volume_v1"],
