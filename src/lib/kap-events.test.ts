@@ -25,3 +25,18 @@ describe("kap events", () => {
     expect((listener.mock.calls[0][0] as CustomEvent).detail).toEqual({ type: "key", error: true });
   });
 });
+
+describe("kap buddy position", async () => {
+  const { placeBuddy } = await import("./kap-buddy");
+  const box = { width: 128, height: 162 };
+  const view = { width: 1440, height: 900 };
+
+  it("starts bottom-left", () => {
+    expect(placeBuddy(null, box, view)).toEqual({ left: 12, top: 900 - 162 - 12 });
+  });
+
+  it("keeps Kap on screen when dragged off or the window shrinks", () => {
+    expect(placeBuddy({ x: -1, y: 2 }, box, view)).toEqual({ left: 8, top: 900 - 162 - 8 });
+    expect(placeBuddy({ x: 0.95, y: 0.5 }, box, { width: 1280, height: 700 })).toEqual({ left: 1280 - 128 - 8, top: 350 });
+  });
+});
