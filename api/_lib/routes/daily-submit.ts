@@ -1,4 +1,4 @@
-import { APPWRITE, adminDatabases, applyCors, authenticateRequest, isConfigured, readBody, type ApiRequest, type ApiResponse } from '../_lib/appwrite-admin.js';
+import { APPWRITE, adminDatabases, applyCors, authenticateRequest, isConfigured, readBody, type ApiRequest, type ApiResponse } from '../appwrite-admin.js';
 import {
   findChallenge,
   isDateKey,
@@ -10,7 +10,7 @@ import {
   utcDateKey,
   type DailyDb,
   type SubmittedMetrics,
-} from '../_lib/daily.js';
+} from '../daily.js';
 
 interface SubmitBody extends SubmittedMetrics {
   sessionId: string;

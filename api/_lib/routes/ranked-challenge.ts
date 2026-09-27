@@ -1,11 +1,11 @@
 import { Client, Databases, Account, Permission, Role } from 'node-appwrite';
 import crypto from 'node:crypto';
-import { SNIPPETS } from '../../src/data/snippets.js';
-import { SNIPPET_LENGTH_SPEC, isTextLanguage } from '../../src/utils/ranking.js';
-import { ENGLISH_WORDS } from '../../src/data/text/english-words.js';
-import { INDONESIAN_WORDS } from '../../src/data/text/indonesian-words.js';
-import { PASSAGES } from '../../src/data/text/passages.js';
-import type { SnippetLength, TestMode } from '../../src/types.js';
+import { SNIPPETS } from '../../../src/data/snippets.js';
+import { SNIPPET_LENGTH_SPEC, isTextLanguage } from '../../../src/utils/ranking.js';
+import { ENGLISH_WORDS } from '../../../src/data/text/english-words.js';
+import { INDONESIAN_WORDS } from '../../../src/data/text/indonesian-words.js';
+import { PASSAGES } from '../../../src/data/text/passages.js';
+import type { SnippetLength, TestMode } from '../../../src/types.js';
 
 interface ApiRequest {
   method?: string;

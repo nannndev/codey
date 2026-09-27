@@ -5,6 +5,8 @@
     }
   },
   "rewrites": [
+    { "source": "/api/daily/:action", "destination": "/api/daily?action=:action" },
+    { "source": "/api/ranked/:action", "destination": "/api/ranked?action=:action" },
     { "source": "/r/:id", "destination": "/api/share/:id" },
     { "source": "/p/:id", "destination": "/api/share/:id?kind=profile" },
     { "source": "/c/:id", "destination": "/api/share/:id?kind=challenge" },
