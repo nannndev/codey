@@ -19,7 +19,7 @@ export function ProfileFollow({ userId, own }: { userId: string; own: boolean })
 
   return (
     <div className="flex items-center gap-2">
-      {relation && (
+      {typeof relation?.followers === "number" && (
         <Link to="/league#friends" className="flex h-8 items-center gap-2 rounded-lg border px-2.5 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground">
           <span><b className="font-mono text-foreground">{relation.followers}</b> followers</span>
           <span><b className="font-mono text-foreground">{relation.following}</b> following</span>

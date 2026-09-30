@@ -12,7 +12,7 @@ describe("kap wardrobe", () => {
 
   it("every requirement is a real achievement with a goal", () => {
     for (const entry of WARDROBE) if (entry.requires) expect(unlockHint(entry)).not.toBe("Keep practicing");
-    expect(unlockHint(item("shades"))).toBe("Hit 100 WPM in a run");
+    expect(unlockHint(item("shades"))).toBe("Hit 100 WPM on code");
   });
 
   it("drops unknown and locked items from a stored look", () => {

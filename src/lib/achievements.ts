@@ -1,3 +1,5 @@
+import { isTextLanguage } from "../utils/ranking.js";
+
 /**
  * Achievements: tiered families (Bronze → Diamond) plus a few one-off feats.
  * Everything is derived from data the app already keeps; the only extra
@@ -36,7 +38,7 @@ export type SingleId = "flawless" | "party" | "night-owl" | "early-bird";
 export interface Family {
   id: FamilyId;
   name: string;
-  /** Sentence for one tier's goal, e.g. "Hit 75 WPM in a run". */
+  /** Sentence for one tier's goal, e.g. "Hit 75 WPM on code". */
   goal: (target: number) => string;
   unit: string;
   tiers: [number, number, number, number];
@@ -54,7 +56,8 @@ const hourOf = (timestamp: number) => new Date(timestamp).getHours();
 const compact = (value: number) => (value >= 1_000_000 ? `${value / 1_000_000}M` : value >= 1000 ? `${value / 1000}k` : `${value}`);
 
 export const FAMILIES: Family[] = [
-  { id: "speed", name: "Velocity", unit: "wpm", tiers: [50, 75, 100, 125], goal: (t) => `Hit ${t} WPM in a run`, metric: (s) => Math.max(0, ...s.runs.map((run) => run.wpm)) },
+  // Words and passages are much faster than code, so speed badges count code runs only.
+  { id: "speed", name: "Velocity", unit: "wpm", tiers: [50, 75, 100, 125], goal: (t) => `Hit ${t} WPM on code`, metric: (s) => Math.max(0, ...s.runs.filter((run) => !isTextLanguage(run.language)).map((run) => run.wpm)) },
   { id: "precision", name: "Precision", unit: "runs", tiers: [5, 25, 75, 200], goal: (t) => `Finish ${t} runs at 98% accuracy or better`, metric: (s) => s.runs.filter((run) => run.accuracy >= 98).length },
   { id: "streak", name: "On Fire", unit: "days", tiers: [3, 7, 14, 30], goal: (t) => `Practice ${t} days in a row`, metric: (s) => s.bestStreak },
   { id: "runs", name: "Dedicated", unit: "runs", tiers: [10, 50, 200, 500], goal: (t) => `Complete ${t} runs`, metric: (s) => s.runs.length },

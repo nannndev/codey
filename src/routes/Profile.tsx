@@ -38,6 +38,7 @@ import { average, dailyBuckets, formatMinutes, formatRelative, languageSummary, 
 import { drillCharFor, rankKeys } from "@/lib/key-metrics";
 import { keyLabel } from "@/lib/keyboard-layout";
 import { cn } from "@/lib/utils";
+import { bestByKind, runKind, type RunKind } from "@/utils/ranking";
 import { AchievementBadge } from "@/components/achievements/Badge";
 import { TIER_NAMES } from "@/lib/achievements";
 import { useAchievements } from "@/hooks/useAchievements";
@@ -120,21 +121,31 @@ export default function Profile() {
   const [avatarFailed, setAvatarFailed] = useState(false);
 
   // Oldest first for charts; cloud returns newest first.
-  const timeline = useMemo(() => runs.map(asRunLike).sort((a, b) => a.timestamp - b.timestamp), [runs]);
+  const allRuns = useMemo(() => runs.map(asRunLike).sort((a, b) => a.timestamp - b.timestamp), [runs]);
+  // Code and plain text are different sports: speed stats show one at a time.
+  const hasText = allRuns.some((run) => runKind(run.language) === "text");
+  const hasCode = allRuns.some((run) => runKind(run.language) === "code");
+  const [kindChoice, setKind] = useState<RunKind>("code");
+  const kind: RunKind = kindChoice === "text" ? (hasText ? "text" : "code") : hasCode || !hasText ? "code" : "text";
+  const timeline = useMemo(() => allRuns.filter((run) => runKind(run.language) === kind), [allRuns, kind]);
   const wpms = timeline.map((run) => run.wpm);
   const accs = timeline.map((run) => run.accuracy);
   const best = timeline.reduce<(typeof timeline)[number] | null>((top, run) => (!top || run.wpm > top.wpm ? run : top), null);
   const avgAccuracy = average(accs);
+  // Divisions rank coding speed, whichever view is showing.
+  const codeRuns = useMemo(() => allRuns.filter((run) => runKind(run.language) === "code"), [allRuns]);
+  const codeBest = bestByKind(codeRuns).code;
+  const codeAccuracy = average(codeRuns.map((run) => run.accuracy));
   const recentAvg = average(wpms.slice(-10));
   const deltaSize = Math.min(10, Math.floor(timeline.length / 2));
-  const minutes = timeline.reduce((sum, run) => sum + run.duration / 60_000, 0);
-  const cloudStreak = useMemo(() => streakFromRuns(timeline), [timeline]);
+  const minutes = allRuns.reduce((sum, run) => sum + run.duration / 60_000, 0);
+  const cloudStreak = useMemo(() => streakFromRuns(allRuns), [allRuns]);
   // A stored streak only counts while its last day is today or yesterday.
   const storedStreak = profile ? streakStatus({ current: profile.currentStreak ?? 0, best: profile.bestStreak ?? 0, lastDate: profile.lastActiveDate ? dateKey(new Date(profile.lastActiveDate)) : "" }, []).current : 0;
   const currentStreak = Math.max(storedStreak, cloudStreak.current, isOwnProfile ? ownStreak.current : 0);
   const bestStreak = Math.max(profile?.bestStreak ?? 0, cloudStreak.best, isOwnProfile ? localStreak.best : 0);
   const byLanguage = useMemo(() => languageSummary(timeline), [timeline]);
-  const calendar = useMemo(() => dailyBuckets(timeline, 26 * 7), [timeline]);
+  const calendar = useMemo(() => dailyBuckets(allRuns, 26 * 7), [allRuns]);
   const trend = timeline.slice(-80).map((run) => ({ t: run.timestamp, value: run.wpm, detail: `${run.language} · ${formatLabel(run.source)}` }));
   const joined = profile?.$createdAt ? new Date(profile.$createdAt).toLocaleDateString(undefined, { month: "short", year: "numeric" }) : null;
 
@@ -245,7 +256,7 @@ export default function Profile() {
                   )}
                   <button
                     type="button"
-                    onClick={() => setProfileShare({ userId: viewedUserId, name: displayName, username: githubUsername, bestWpm: best?.wpm ?? 0, runs: timeline.length, own: isOwnProfile })}
+                    onClick={() => setProfileShare({ userId: viewedUserId, name: displayName, username: githubUsername, bestWpm: (codeBest ?? best)?.wpm ?? 0, runs: allRuns.length, own: isOwnProfile })}
                     className="flex h-8 items-center gap-1.5 rounded-lg bg-foreground px-3 text-xs font-semibold text-background transition-opacity hover:opacity-90 cursor-pointer"
                   >
                     <Share2 className="size-3.5" /> Share profile
@@ -254,7 +265,24 @@ export default function Profile() {
               </div>
             </section>
 
-            <DivisionBadge bestWpm={best?.wpm ?? 0} avgAccuracy={avgAccuracy} size="lg" showProgress />
+            <DivisionBadge bestWpm={codeBest?.wpm ?? 0} avgAccuracy={codeAccuracy} size="lg" showProgress />
+
+            {hasCode && hasText && (
+              <div className="inline-flex self-start rounded-xl border bg-card/80 p-1" role="tablist" aria-label="Speed stats for">
+                {([["code", "Code"], ["text", "Words & passages"]] as const).map(([id, label]) => (
+                  <button
+                    key={id}
+                    type="button"
+                    role="tab"
+                    aria-selected={kind === id}
+                    onClick={() => setKind(id)}
+                    className={cn("rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors cursor-pointer", kind === id ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground")}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            )}
 
             {dataLoading && runs.length === 0 ? (
               <div className="grid h-48 place-items-center rounded-2xl border bg-card/60"><LoaderCircle className="size-5 animate-spin text-muted-foreground" /></div>
@@ -265,7 +293,7 @@ export default function Profile() {
             ) : (
               <>
                 <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-                  <StatTile icon={<Trophy className="size-3.5" />} label="Best run" value={best ? best.wpm.toFixed(1) : "–"} unit="wpm" sub={best ? `${best.language} · ${formatRelative(best.timestamp)}` : undefined} />
+                  <StatTile icon={<Trophy className="size-3.5" />} label={kind === "text" ? "Best text run" : "Best code run"} value={best ? best.wpm.toFixed(1) : "–"} unit="wpm" sub={best ? `${best.language} · ${formatRelative(best.timestamp)}` : undefined} />
                   <StatTile
                     icon={<Gauge className="size-3.5" />}
                     label="Recent speed"
