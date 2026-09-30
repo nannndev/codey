@@ -1,6 +1,7 @@
 import crypto from 'node:crypto';
 import { Query } from 'node-appwrite';
 import { APPWRITE } from './appwrite-admin.js';
+import { runKind } from '../../src/utils/ranking.js';
 import { DEMOTE, DIVISIONS, GROUP_SIZE, LEAGUE, listGroup, loadPlayer, memberId, MIN_SIZE_TO_DEMOTE, PROMOTE, TOP_DIVISION, weekEndsAt, weekKey, type LeagueDb, type MemberProfile } from './league.js';
 
 /**
@@ -149,7 +150,8 @@ export async function friendsBoard(database: SocialDb, userId: string, now = new
   for (const run of runs) {
     const id = String(run.userId);
     const wpm = Number(run.wpm) || 0;
-    if (wpm > (best.get(id)?.wpm ?? -1)) best.set(id, { wpm, language: text(run.language, 40) });
+    // Best coding speed; words and passages are a different race.
+    if (runKind(text(run.language, 40)) === 'code' && wpm > (best.get(id)?.wpm ?? -1)) best.set(id, { wpm, language: text(run.language, 40) });
   }
   const rows = ids.map((id) => ({
     ...profiles.get(id)!,

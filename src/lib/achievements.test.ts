@@ -85,7 +85,7 @@ describe("evaluate", () => {
 
 describe("describe", () => {
   it("names tiers and singles", () => {
-    expect(describeBadge("speed-3")).toMatchObject({ name: "Velocity III", goal: "Hit 100 WPM in a run", tier: 3 });
+    expect(describeBadge("speed-3")).toMatchObject({ name: "Velocity III", goal: "Hit 100 WPM on code", tier: 3 });
     expect(describeBadge("night-owl")).toMatchObject({ name: "Night Owl", single: "night-owl" });
     expect(describeBadge("speed-9")).toBeNull();
     expect(describeBadge("nope-1")).toBeNull();
@@ -150,5 +150,15 @@ describe("account record", async () => {
     const record = toAccountAchievements({ ...store, syncedDuelWins: ["d1"] }, ["d1", "d2"], ["d2"]);
     expect(record.duelWins).toEqual(["d1", "d2"]);
     expect(record.partyWins).toEqual(["d2"]);
+  });
+});
+
+describe("speed badges", () => {
+  it("count code runs only, not words or passages", () => {
+    const run = (wpm: number, language: string) => ({ timestamp: 0, wpm, accuracy: 98, language, duration: 30_000, charsTyped: 200 });
+    const snapshot = { runs: [run(130, "English"), run(80, "TypeScript")], bestStreak: 0, keystrokes: 0, duelWins: 0, partyWins: 0, dailyCompleted: 0, rankedVerified: 0 };
+    const speed = evaluate(snapshot).families.find((family) => family.family.id === "speed");
+    expect(speed?.value).toBe(80);
+    expect(speed?.tier).toBe(2);
   });
 });

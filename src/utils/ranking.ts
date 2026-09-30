@@ -70,3 +70,18 @@ export function describeRankRejection(reason: RankRejection): string {
       return 'This snippet fell outside the length its category guarantees.';
   }
 }
+
+export type RunKind = 'code' | 'text';
+
+/** Plain-text practice (words, passages) is far faster than code, so bests and divisions keep them apart. */
+export const runKind = (language: string): RunKind => (isTextLanguage(language) ? 'text' : 'code');
+
+/** The fastest run of each kind. */
+export function bestByKind<T extends { wpm: number; language: string }>(runs: T[]): Record<RunKind, T | null> {
+  const best: Record<RunKind, T | null> = { code: null, text: null };
+  for (const run of runs) {
+    const kind = runKind(run.language);
+    if (!best[kind] || run.wpm > best[kind]!.wpm) best[kind] = run;
+  }
+  return best;
+}

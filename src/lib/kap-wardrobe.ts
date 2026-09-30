@@ -10,7 +10,7 @@ export { isUnlocked, sanitizeLook, WARDROBE, type WardrobeItem, type WardrobeSlo
 
 export const SLOT_NAMES: Record<WardrobeSlot, string> = { color: "Keycap", head: "Head", eyes: "Eyes", wear: "Wear" };
 
-/** What it takes, from the badge's own goal text, e.g. "Hit 100 WPM in a run". */
+/** What it takes, from the badge's own goal text, e.g. "Hit 100 WPM on code". */
 export function unlockHint(item: WardrobeItem): string {
   if (!item.requires) return "Free";
   return describeBadge(item.requires)?.goal ?? "Keep practicing";

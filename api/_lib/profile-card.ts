@@ -4,6 +4,7 @@ import { languageLabel, metaPageHtml, RUN_ID_PATTERN } from './share-card.js';
 import { CARD_VERSION } from '../../src/utils/share-card-version.js';
 import { average, languageSummary, streakFromRuns } from '../../src/lib/run-stats.js';
 import { calculateCodeIndex, getDivisionInfo } from '../../src/utils/division.js';
+import { bestByKind, runKind } from '../../src/utils/ranking.js';
 import { evaluate, TIER_NAMES, type SnapshotRun, type Tier } from '../../src/lib/achievements.js';
 
 /**
@@ -95,11 +96,15 @@ export async function loadSharedProfile(userId: string, db: ProfileDb = adminDat
       verified: doc.verified === true,
     }))
     .sort((a, b) => a.timestamp - b.timestamp);
-  const best = runs.reduce<(typeof runs)[number] | null>((top, run) => (!top || run.wpm > top.wpm ? run : top), null);
+  // Code and plain text are kept apart: the card leads with coding speed, and
+  // only falls back to words for someone who has only typed words.
+  const split = bestByKind(runs);
+  const best = split.code ?? split.text;
   const avgAccuracy = average(runs.map((run) => run.accuracy));
+  const codeAccuracy = average(runs.filter((run) => runKind(run.language) === 'code').map((run) => run.accuracy));
   const username = text(profile.githubUsername, 100) || null;
   const byLanguage = languageSummary(runs);
-  const division = best ? getDivisionInfo(calculateCodeIndex(best.wpm, avgAccuracy)) : null;
+  const division = split.code ? getDivisionInfo(calculateCodeIndex(split.code.wpm, codeAccuracy)) : null;
   const bestStreak = Math.max(Number(profile.bestStreak) || 0, streakFromRuns(runs).best);
   const snapshotRuns: SnapshotRun[] = runs.map(({ timestamp, wpm, accuracy, language, duration, charsTyped }) => ({ timestamp, wpm, accuracy, language, duration, charsTyped }));
   const evaluation = evaluate({
