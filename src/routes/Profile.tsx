@@ -29,6 +29,7 @@ import { dateKey, streakStatus } from "@/lib/streak";
 import type { ShareCardOptions } from "@/lib/share-result";
 import { SharePreviewDialog } from "@/components/SharePreviewDialog";
 import { ProfileShareDialog, type ProfileShareTarget } from "@/components/ProfileShareDialog";
+import { ProfileFollow } from "@/components/social/ProfileFollow";
 import { computeKeyStatsFromCloudRuns, getPendingKeyboardStats, getStoredKeyStats, getVisibleKeyStats, mergeStatsMaps, type KeyboardStatsMap } from "@/utils/keyboard-analytics";
 import { getCloudKeyboardStats } from "@/lib/keyboard-stats-cloud";
 import { DivisionBadge } from "@/components/DivisionBadge";
@@ -232,6 +233,7 @@ export default function Profile() {
                       <SyncIcon className={cn("size-3.5", syncStatus === "syncing" && "animate-spin")} /> {syncLabel}
                     </button>
                   )}
+                  {viewedUserId && <ProfileFollow userId={viewedUserId} own={isOwnProfile} />}
                   {best && (
                     <button
                       type="button"

@@ -10,6 +10,7 @@ import {
   signOut as appwriteSignOut,
 } from "@/lib/appwrite";
 import { syncLocalRuns } from "@/lib/cloud";
+import { clearJwtToken } from "@/lib/ranked";
 import { updateAccountPrefs } from "@/lib/account-prefs";
 import { startAccountSync } from "@/lib/account-sync";
 import { ensureHistoryIds, getSettings, getStreak, saveSettings } from "@/utils/storage";
@@ -185,6 +186,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = useCallback(async () => {
     await appwriteSignOut();
+    clearJwtToken();
     setUser(null);
     setSyncStatus("idle");
   }, []);

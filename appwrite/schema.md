@@ -229,3 +229,50 @@ nobody can edit or delete a challenge once it exists.
 | `accuracy` | float | yes |
 
 Index: `by_user` on `userId`.
+
+## Weekly leagues, friends and push
+
+Created with `npm run setup:social`. Every collection below is server-only
+(no client permissions); the app reaches them through `/api/social/*` and
+`/api/push/*`, which use the server API key.
+
+### `league_players`
+
+One per player (document id = user id): `division` (0 Bronze … 3 Diamond),
+the `week` and `groupId` they are playing this week, last week's settlement
+(`lastWeek`, `lastResult` up/down/stay, `lastRank`, `lastDivision`),
+`bestDivision`, and the daily XP cap counter (`xpDate`, `xpToday`).
+
+A finished week is settled the first time the player is seen in a new week:
+top 5 of the group move up, bottom 5 move down (groups of 10 or more).
+
+### `league_groups`
+
+`week`, `division`, `number`, `size`. Groups hold up to 30 players; id
+`<week>-<division>-<number>`. Index: `week`, `division`, `size`, `number`.
+
+### `league_members`
+
+One per player per week (id `<week>_<userId>`): `week`, `groupId`, `userId`,
+`division`, `xp`, and the display `name`, `username`, `avatarUrl`.
+Indexes: `groupId` + `xp` desc, `userId`.
+
+### `league_xp`
+
+One per run counted towards a league (document id = the run's id), so a run
+never earns XP twice: `userId`, `week`, `xp`.
+
+### `follows`
+
+One-way follows, id = hash of follower and followee: `followerId`,
+`followeeId`. Indexes on each.
+
+### `push_subscriptions`
+
+One per browser (id = hash of the endpoint): `userId`, `endpoint`, `p256dh`,
+`auth`, `streak` and `league` opt-ins, and `tzOffset` (minutes east of UTC).
+Indexes: `userId`, `streak`.
+
+Push needs these Vercel environment variables (`npm run setup:push-keys`
+prints a fresh set): `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`
+and `CRON_SECRET`. The daily streak reminder runs from Vercel Cron at 12:00 UTC.

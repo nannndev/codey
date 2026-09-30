@@ -23,6 +23,7 @@ import { getSettings, saveSettings } from "@/utils/storage";
 import { useAuth } from "@/components/AuthProvider";
 import { AccountSyncCard } from "@/components/AccountSyncCard";
 import { InstallAppCard } from "@/components/InstallAppCard";
+import { PushCard } from "@/components/social/PushCard";
 import { saveCloudGoals } from "@/lib/cloud";
 import { useKeyboardSound } from "@/hooks";
 import { cn } from "@/lib/utils";
@@ -637,6 +638,8 @@ export default function Settings() {
           </div>
 
           <InstallAppCard />
+
+          <PushCard />
         </div>
       </div>
       <Footer />

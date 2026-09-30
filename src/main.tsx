@@ -19,7 +19,7 @@ import { PwaPrompt } from './components/PwaPrompt';
 import { KapWardrobe } from './components/streak/KapWardrobe';
 import './index.css';
 
-const { Settings, History, Leaderboard, Profile, Donate, Contributors, Duel, Arcade, Daily, KeyboardAnalytics, Achievements } = Pages;
+const { Settings, History, Leaderboard, Profile, Donate, Contributors, Duel, Arcade, Daily, KeyboardAnalytics, Achievements, League } = Pages;
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
@@ -44,6 +44,7 @@ createRoot(document.getElementById('root')!).render(
                 <Route path="/arcade" element={<Arcade />} />
                 <Route path="/analytics/keyboard" element={<KeyboardAnalytics />} />
                 <Route path="/achievements" element={<Achievements />} />
+                <Route path="/league" element={<League />} />
                 <Route path="/donate" element={<Donate />} />
                 <Route path="/support" element={<Donate />} />
                 <Route path="/contributors" element={<Contributors />} />

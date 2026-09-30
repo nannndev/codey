@@ -17,6 +17,7 @@ const loaders = {
   Daily: () => import("./Daily"),
   KeyboardAnalytics: () => import("./KeyboardAnalytics"),
   Achievements: () => import("./Achievements"),
+  League: () => import("./League"),
 } satisfies Record<string, () => Promise<{ default: ComponentType }>>;
 
 type RouteName = keyof typeof loaders;
@@ -26,7 +27,7 @@ export const Pages = Object.fromEntries(
 ) as unknown as Record<RouteName, LazyExoticComponent<ComponentType>>;
 
 /** Pages reachable from the header, warmed first. */
-const PRELOAD_ORDER: RouteName[] = ["Duel", "Daily", "Leaderboard", "KeyboardAnalytics", "History", "Profile", "Achievements", "Arcade", "Settings"];
+const PRELOAD_ORDER: RouteName[] = ["Duel", "Daily", "Leaderboard", "KeyboardAnalytics", "History", "Profile", "Achievements", "League", "Arcade", "Settings"];
 
 export function preloadRoutes() {
   const connection = (navigator as Navigator & { connection?: { saveData?: boolean; effectiveType?: string } }).connection;

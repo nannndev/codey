@@ -14,6 +14,7 @@ import type { RankedStatus } from "@/hooks/useRankedGame";
 import { cn } from "@/lib/utils";
 import { PROSE_LANGUAGES } from "@/lib/text-practice";
 import { Kap3D } from "@/components/streak/Kap3D";
+import { LeagueXpChip } from "@/components/social/LeagueXpChip";
 import { KapMascot } from "@/components/streak/KapMascot";
 import { useKapLook } from "@/hooks/useKapLook";
 import { useStreak } from "@/hooks/useStreak";
@@ -109,6 +110,8 @@ export function ResultsScreen({
         modeLabel={modeLabel}
         username={username}
       />
+
+      <LeagueXpChip />
 
       {/* Ranked Score Banner / Verification */}
       {verifiedResult?.verified && (

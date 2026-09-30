@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { useStreak } from "@/hooks/useStreak";
+import { readPush } from "@/lib/push";
 import { lastNotifiedOn, markNotified, readReminder, reminderDue, reminderMessage, notificationsSupported } from "@/lib/streak-reminder";
 
 /** Fires Kap's evening reminder while a Codey tab is open. Renders nothing. */
@@ -9,6 +10,9 @@ export function StreakReminder() {
   useEffect(() => {
     const check = () => {
       if (!notificationsSupported() || Notification.permission !== "granted") return;
+      // The server already sends the streak reminder to this device.
+      const push = readPush();
+      if (push.enabled && push.streak) return;
       const now = new Date();
       if (!reminderDue(readReminder(), status, now, lastNotifiedOn())) return;
       markNotified(now);

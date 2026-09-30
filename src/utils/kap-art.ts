@@ -17,7 +17,12 @@ export interface KapLook {
   head?: KapHeadId | null;
   eyes?: KapEyesId | null;
   wear?: KapWearId | null;
+  /** League division medal (0 Bronze … 3 Diamond); earned, not picked in the Wardrobe. */
+  medal?: number | null;
 }
+
+/** Medal colours by league division: face, rim. */
+export const MEDAL_COLORS: [string, string][] = [["#f59e0b", "#b45309"], ["#e2e8f0", "#94a3b8"], ["#fde047", "#ca8a04"], ["#a5f3fc", "#0891b2"]];
 
 export interface KapColorway {
   id: KapColorId;
@@ -148,6 +153,12 @@ export function frontMarkup(look: KapLook, ink: string): string {
       + '<rect x="182" y="108" width="28" height="50" rx="12" fill="#18181b"/>'
       + '<rect x="34" y="114" width="8" height="38" rx="4" fill="#f59e0b"/>'
       + '<rect x="198" y="114" width="8" height="38" rx="4" fill="#f59e0b"/>';
+  }
+  if (typeof look.medal === "number" && MEDAL_COLORS[look.medal]) {
+    const [face, rim] = MEDAL_COLORS[look.medal];
+    out += '<path d="M138 146 L150 172 L158 168 L148 146 Z" fill="#2563eb"/><path d="M168 146 L158 172 L150 168 L160 146 Z" fill="#dc2626"/>'
+      + `<circle cx="154" cy="180" r="12" fill="${face}" stroke="${rim}" stroke-width="3"/>`
+      + `<path d="M154 173 l2.2 4.6 5 .7 -3.6 3.5 .9 5 -4.5 -2.4 -4.5 2.4 .9 -5 -3.6 -3.5 5 -.7z" fill="${rim}"/>`;
   }
   if (look.head === "party") {
     out += '<g transform="translate(-30 -34) scale(1.4) rotate(-18 88 80)">'
