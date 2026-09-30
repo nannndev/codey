@@ -1,7 +1,7 @@
 import * as THREE from "three";
 import { RoundedBoxGeometry } from "three/examples/jsm/geometries/RoundedBoxGeometry.js";
 import type { FlameTier } from "@/utils/flame-tiers";
-import { colorway, KAP_INK, type KapLook } from "@/utils/kap-art";
+import { colorway, KAP_INK, MEDAL_COLORS, type KapLook } from "@/utils/kap-art";
 import type { StreakMood } from "@/lib/streak";
 import { KAP_EVENT, type KapEvent } from "@/lib/kap-events";
 
@@ -413,6 +413,23 @@ export class KapScene {
       const tail = this.mesh(new RoundedBoxGeometry(0.18, 0.55, 0.06, 2, 0.03), this.material("#b91c1c", { roughness: 0.8 }));
       tail.position.set(width / 2 - 0.1, y - 0.3, faceZ(y) + 0.02);
       tail.rotation.z = 0.25;
+    }
+    if (typeof look.medal === "number" && MEDAL_COLORS[look.medal]) {
+      const [face, rim] = MEDAL_COLORS[look.medal];
+      const y = CENTER_Y - 0.42;
+      const medal = new THREE.Group();
+      const disc = this.mesh(new THREE.CylinderGeometry(0.17, 0.17, 0.05, 28), this.material(face, { metalness: 0.75, roughness: 0.25, emissive: face, emissiveIntensity: 0.15 }), medal);
+      disc.rotation.x = Math.PI / 2;
+      const ring = this.mesh(new THREE.TorusGeometry(0.17, 0.025, 8, 28), this.material(rim, { metalness: 0.8, roughness: 0.3 }), medal);
+      ring.position.z = 0.02;
+      for (const [x, color] of [[-0.06, "#2563eb"], [0.06, "#dc2626"]] as const) {
+        const ribbon = this.mesh(new THREE.BoxGeometry(0.09, 0.3, 0.015), this.material(color, { roughness: 0.8 }), medal);
+        ribbon.position.set(x, 0.24, -0.01);
+        ribbon.rotation.z = x < 0 ? 0.25 : -0.25;
+      }
+      medal.position.set(0.42, y, halfWidthAt(y) + 0.05);
+      medal.rotation.x = -SLOPE;
+      this.body.add(medal);
     }
     if (look.wear === "cape") {
       const cape = this.mesh(new THREE.PlaneGeometry(1.9, 1.7, 1, 6), this.material("#dc2626", { side: THREE.DoubleSide, roughness: 0.7 }));

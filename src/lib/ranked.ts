@@ -50,14 +50,29 @@ export interface RankedStart {
   expiresAt: string;
 }
 
+// Appwrite JWTs last 15 minutes and creating them is rate limited, so one is reused for a while.
+let cachedJwt: { jwt: string; until: number } | null = null;
+let pendingJwt: Promise<string | null> | null = null;
+
 export async function getJwtToken(): Promise<string | null> {
   if (!account) return null;
-  try {
-    const session = await account.createJWT();
-    return session.jwt;
-  } catch {
-    return null;
-  }
+  if (cachedJwt && cachedJwt.until > Date.now()) return cachedJwt.jwt;
+  const client = account;
+  pendingJwt ??= client.createJWT().then(
+    (session) => {
+      cachedJwt = { jwt: session.jwt, until: Date.now() + 10 * 60_000 };
+      return session.jwt;
+    },
+    () => null,
+  ).finally(() => {
+    pendingJwt = null;
+  });
+  return pendingJwt;
+}
+
+/** Forget the cached JWT, e.g. after signing out. */
+export function clearJwtToken() {
+  cachedJwt = null;
 }
 
 export async function apiError(response: Response, fallback: string): Promise<Error> {

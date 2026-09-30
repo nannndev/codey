@@ -24,6 +24,8 @@ export default defineConfig({
         // Server-rendered: API calls and the share pages that link previews read.
         navigateFallbackDenylist: [/^\/api\//, /^\/r\//, /^\/p\//, /^\/c\//],
         cleanupOutdatedCaches: true,
+        // Push and notification clicks (public/push-sw.js).
+        importScripts: ["/push-sw.js"],
         runtimeCaching: [
           {
             urlPattern: ({ url }) => url.origin === "https://fonts.googleapis.com",

@@ -15,6 +15,7 @@ import {
   Palette,
   Search,
   Settings,
+  Shield,
   SlidersHorizontal,
   Swords,
   Trophy,
@@ -39,6 +40,7 @@ const NAV: { to: string; label: string; icon: LucideIcon; title: string }[] = [
   { to: "/duel", label: "Duel", icon: Swords, title: "1v1 live code race" },
   { to: "/arcade", label: "Arcade", icon: Gamepad2, title: "Code Rain Arcade" },
   { to: "/daily", label: "Daily", icon: CalendarDays, title: "Daily Challenge" },
+  { to: "/league", label: "League", icon: Shield, title: "Weekly league and friends" },
   { to: "/leaderboard", label: "Leaderboard", icon: Trophy, title: "Global ranked leaderboard" },
   { to: "/analytics/keyboard", label: "Analytics", icon: Keyboard, title: "Keyboard analytics" },
 ];

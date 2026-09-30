@@ -44,6 +44,11 @@ function runKey(run: RunResult): string {
   return run.id ?? `${run.timestamp}-${run.language}-${run.mode}`;
 }
 
+/** The id a run is stored under in the cloud (its share link id). */
+export function cloudRunId(userId: string, run: RunResult): string {
+  return documentId(userId, run);
+}
+
 function documentId(userId: string, run: RunResult): string {
   if (run.cloudId) return run.cloudId;
   const value = `${userId}:${runKey(run)}`;

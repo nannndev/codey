@@ -17,11 +17,12 @@ import { usePreferences } from "@/components/PreferencesProvider";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { useAuth } from "@/components/AuthProvider";
-import { uploadRun } from "@/lib/cloud";
+import { cloudRunId, uploadRun } from "@/lib/cloud";
 import { canChallenge, challengeSnippet, getChallenge, type Challenge } from "@/lib/challenges";
 import { isProse, loadTextCorpus, TEXT_LANGUAGE_NAMES, passageSnippet, pickPassage, wordsSnippet, type TextCorpus, type TextLanguage } from "@/lib/text-practice";
 import { TextLanguagePicker } from "@/components/TextLanguagePicker";
 import { emitKap } from "@/lib/kap-events";
+import { awardLeagueXp } from "@/lib/social";
 import { KapBuddy } from "@/components/streak/KapBuddy";
 import { markOnboarded, OnboardingDialog, shouldOnboard, type OnboardingChoice } from "@/components/OnboardingDialog";
 import { ChallengeModeBanner, ChallengeResultBanner } from "@/components/ChallengeBanners";
@@ -285,8 +286,12 @@ export default function App() {
         setGoalRefreshKey((key) => key + 1);
         // Every run syncs to the account; Ranked runs are stored by the server when verified.
         if (!isRanked && userIdRef.current) {
-          void uploadRun(userIdRef.current, saved)
-            .then(() => setGoalRefreshKey((key) => key + 1))
+          const uploader = userIdRef.current;
+          void uploadRun(uploader, saved)
+            .then(() => {
+              setGoalRefreshKey((key) => key + 1);
+              void awardLeagueXp(cloudRunId(uploader, saved));
+            })
             .catch((error) => console.error("Unable to save cloud run", error));
         }
       } catch {
@@ -351,6 +356,7 @@ export default function App() {
   useEffect(() => {
     if (!verifiedResult?.verified) return;
     recordRankedVerified(verifiedResult.runId);
+    if (verifiedResult.runId) void awardLeagueXp(verifiedResult.runId);
     // The server stored the verified copy; link it so the local run is not uploaded again.
     if (lastSavedRunIdRef.current) setRunCloudId(lastSavedRunIdRef.current, verifiedResult.runId);
     checkAchievements(userIdRef.current);

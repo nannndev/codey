@@ -7,6 +7,8 @@
   "rewrites": [
     { "source": "/api/daily/:action", "destination": "/api/daily?action=:action" },
     { "source": "/api/ranked/:action", "destination": "/api/ranked?action=:action" },
+    { "source": "/api/social/:action", "destination": "/api/social?action=:action" },
+    { "source": "/api/push/:action", "destination": "/api/push?action=:action" },
     { "source": "/r/:id", "destination": "/api/share/:id" },
     { "source": "/p/:id", "destination": "/api/share/:id?kind=profile" },
     { "source": "/c/:id", "destination": "/api/share/:id?kind=challenge" },
@@ -26,10 +28,14 @@
     { "source": "/support", "destination": "/index.html" },
     { "source": "/contributors", "destination": "/index.html" },
     { "source": "/achievements", "destination": "/index.html" },
+    { "source": "/league", "destination": "/index.html" },
     {
       "source": "/((?!api/|.*\\.[\\w]+$).*)",
       "destination": "/index.html"
     }
+  ],
+  "crons": [
+    { "path": "/api/push/cron", "schedule": "0 12 * * *" }
   ],
   "headers": [
     { "source": "/sw.js", "headers": [{ "key": "Cache-Control", "value": "no-cache" }] }
