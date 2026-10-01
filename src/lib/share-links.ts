@@ -80,3 +80,33 @@ export function profileShareText(profile: { name: string; bestWpm: number; runs:
   const best = `${profile.bestWpm.toFixed(1)} WPM best over ${profile.runs} runs`;
   return own ? `My Codey profile: ${best}. Real code, real speed.` : `${profile.name} on Codey: ${best}.`;
 }
+
+export type BadgeStyle = "card" | "flat";
+export type BadgeTheme = "auto" | "dark" | "light";
+
+/** The README badge image: /b/<userId>, an SVG kept fresh by the server. */
+export function badgeImageUrl(origin: string, userId: string, style: BadgeStyle, theme: Exclude<BadgeTheme, "auto">) {
+  const params = new URLSearchParams();
+  if (style !== "card") params.set("style", style);
+  if (theme !== "dark") params.set("theme", theme);
+  const query = params.toString();
+  return `${origin}/b/${encodeURIComponent(userId)}${query ? `?${query}` : ""}`;
+}
+
+/**
+ * What to paste in a GitHub README. "auto" uses <picture>, which GitHub
+ * renders with the reader's light or dark theme.
+ */
+export function badgeSnippet(origin: string, userId: string, style: BadgeStyle, theme: BadgeTheme): string {
+  const link = profileShareUrl(origin, userId);
+  const alt = "Codey typing stats";
+  if (theme !== "auto") return `[![${alt}](${badgeImageUrl(origin, userId, style, theme)})](${link})`;
+  return [
+    `<a href="${link}">`,
+    "  <picture>",
+    `    <source media="(prefers-color-scheme: dark)" srcset="${badgeImageUrl(origin, userId, style, "dark")}">`,
+    `    <img alt="${alt}" src="${badgeImageUrl(origin, userId, style, "light")}">`,
+    "  </picture>",
+    "</a>",
+  ].join("\n");
+}

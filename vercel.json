@@ -12,6 +12,7 @@
     { "source": "/r/:id", "destination": "/api/share/:id" },
     { "source": "/p/:id", "destination": "/api/share/:id?kind=profile" },
     { "source": "/c/:id", "destination": "/api/share/:id?kind=challenge" },
+    { "source": "/b/:id", "destination": "/api/og/:id?kind=badge" },
     { "source": "/history", "destination": "/index.html" },
     { "source": "/statistics", "destination": "/index.html" },
     { "source": "/stats", "destination": "/index.html" },

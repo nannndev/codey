@@ -1,6 +1,6 @@
 import { Client, Users } from 'node-appwrite';
 import { APPWRITE } from './appwrite-admin.js';
-import { FLAME_TIERS, tierFor } from '../../src/utils/flame-tiers.js';
+import { FLAME_TIERS, tierFor, type FlameTier } from '../../src/utils/flame-tiers.js';
 import { kapDataUri, sanitizeLook, type KapLook } from '../../src/utils/kap-art.js';
 
 /**
@@ -23,13 +23,19 @@ async function readPrefs(userId: string): Promise<Prefs> {
   return (await new Users(client).getPrefs({ userId })) as Prefs;
 }
 
-/** A data URI of the player's Kap; the plain Kap when the look cannot be read. */
-export async function playerKap(userId: string, streakDays = 7, width = 200, read: (id: string) => Promise<Prefs> = readPrefs): Promise<string> {
+/** The player's Kap: their flame by streak and their Wardrobe look (plain when it cannot be read). */
+export async function playerLook(userId: string, streakDays = 7, read: (id: string) => Promise<Prefs> = readPrefs): Promise<{ tier: FlameTier; look: KapLook }> {
   let look: KapLook = {};
   try {
     if (userId) look = lookFromPrefs(await read(userId));
   } catch {
     // The card still draws, with Kap in his usual amber.
   }
-  return kapDataUri(tierFor(streakDays) ?? FLAME_TIERS[1], look, width);
+  return { tier: tierFor(streakDays) ?? FLAME_TIERS[1], look };
+}
+
+/** A data URI of the player's Kap. */
+export async function playerKap(userId: string, streakDays = 7, width = 200, read: (id: string) => Promise<Prefs> = readPrefs): Promise<string> {
+  const { tier, look } = await playerLook(userId, streakDays, read);
+  return kapDataUri(tier, look, width);
 }
