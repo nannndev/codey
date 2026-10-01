@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { ReadmeBadge } from "@/components/social/ReadmeBadge";
 import { Check, Copy, Download, LoaderCircle, Share2, UserRound, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SharePostPanel } from "@/components/SharePostPanel";
@@ -106,6 +107,8 @@ export function ProfileShareDialog({ target, onClose }: ProfileShareDialogProps)
         </div>
 
         <SharePostPanel text={text} url={url} hint="Anyone with the link sees the card as its preview. For Instagram stories, download the image and post it there." />
+
+        {target.own && <ReadmeBadge userId={target.userId} />}
 
         <div className="flex flex-col-reverse gap-2 p-4 sm:flex-row sm:items-center sm:justify-between">
           <Button type="button" variant="ghost" size="sm" onClick={copyCaption} className="text-xs text-muted-foreground hover:text-foreground">

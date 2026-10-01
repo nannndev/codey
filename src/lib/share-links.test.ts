@@ -45,3 +45,18 @@ describe("profile share links", () => {
     expect(profileShareText({ name: "Ada", bestWpm: 0, runs: 0 }, false)).toContain("Ada is practicing");
   });
 });
+
+describe("README badge snippets", async () => {
+  const { badgeImageUrl, badgeSnippet } = await import("./share-links");
+  it("builds the badge URL with only non-default options", () => {
+    expect(badgeImageUrl("https://codey.app", "u1", "card", "dark")).toBe("https://codey.app/b/u1");
+    expect(badgeImageUrl("https://codey.app", "u1", "flat", "light")).toBe("https://codey.app/b/u1?style=flat&theme=light");
+  });
+
+  it("gives Markdown for a fixed theme and <picture> for auto", () => {
+    expect(badgeSnippet("https://codey.app", "u1", "card", "dark")).toBe("[![Codey typing stats](https://codey.app/b/u1)](https://codey.app/p/u1)");
+    const auto = badgeSnippet("https://codey.app", "u1", "flat", "auto");
+    expect(auto).toContain('<source media="(prefers-color-scheme: dark)" srcset="https://codey.app/b/u1?style=flat">');
+    expect(auto).toContain('src="https://codey.app/b/u1?style=flat&theme=light"');
+  });
+});
